@@ -1,0 +1,23 @@
+{% load people_tags %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+     {# <link rel="stylesheet" href="style.css">  #}
+    <title>{% block title %}work the rainbow{% endblock %}</title>
+</head>
+
+<body>
+    <div id="sidebar">
+        {% block navigation_panel %}
+        <ul>
+            {# <li><a href="{% url 'calendar' %}">calendar</a></li> #}
+            {# <li><a href="{% url 'profile' %}">profile</a></li> #}
+        </ul>
+        {% endblock %}
+    </div>
+
+    <div id="content">
+        {% block content %}{% endblock content %}
+    </div>
+</body>
+</html>

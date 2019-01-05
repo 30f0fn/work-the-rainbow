@@ -1,0 +1,21 @@
+{% extends "worktime/base.html" %}
+
+{% block content %}
+
+<h2>teachers</h2>
+<ul>
+  {% for teacher in object.teacher_set.all %}
+    <li> {{ teacher.first_name }}
+  {% endfor %}
+</ul>
+<a href="{% url 'add-teacher' object.slug %}">add a teacher</a>  
+
+<h2>students</h2>
+<ul>
+  {% for student in object.students.all %}
+    <li> {{ student.short_name }}
+  {% endfor %}
+</ul>
+<a href="{% url 'add-child' object.slug %}">add a student</a> 
+
+{% endblock %}

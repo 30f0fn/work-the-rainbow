@@ -1,0 +1,12 @@
+{% block title %}deleting a {{model_name}}?{% endblock title %}
+
+{% block content %}
+Are you sure you want to delete the {{model_name}} {{object}}?
+<form action="{{request.path}}" method="post">
+    {% csrf_token %}
+    {{ form }}
+    <input type="submit" value="Submit">
+</form>
+{% endblock content %}
+
+

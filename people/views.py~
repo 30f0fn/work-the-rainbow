@@ -1,0 +1,116 @@
+# work-the-rainbow/people/views.py
+from django.views.generic import DetailView, ListView, FormView, CreateView, UpdateView, DeleteView
+from django.urls import reverse, reverse_lazy
+
+
+from . import forms, models
+
+# from . import models
+
+# easy-to-implement classroom management flow
+# create classroom
+# from classroom management, use links to AddChild and AddTeacher
+# AddChild simply asks for child name and parents' email
+# AddTeacher asks for teacher name and teacher's email
+
+
+
+#############
+# utilities #
+#############
+
+class ClassroomEditMixin(object):
+    success_url = reverse_lazy('manage-classroom')
+
+
+class GetObjectInClassroomMixin(object):
+    def get_queryset(self):
+        classroom = models.Classroom.objects.get(slug=self.kwargs[classroom_slug])
+        obj = self.models.objects.filter(classroom=classroom,
+                                        slug=self.kwargs[item_slug])    
+
+
+
+###################
+# top-level views #
+###################
+
+class ClassroomCreateView(CreateView):
+    model = models.Classroom
+    fields = ['name', 'slug']
+    template_name = 'people/classroom_create.html'
+    # form_class = CreateClassroomForm
+    success_url = reverse_lazy('ManageClassroomView')
+
+# list all teachers and all children
+# links to add a teacher or a child
+class ClassroomView(DetailView):
+    model = models.Classroom
+
+
+#########################
+# generic views - child #
+#########################
+
+
+class ChildrenListView(ListView):
+    model = models.Child
+
+# create child, invite parents by email
+class ChildAddView(ClassroomEditMixin, FormView):
+    model = models.Child
+    form_class = forms.AddChildForm
+    template_name = 'child_create.html'
+
+# create child, invite parents by email
+class ChildDetailView(GetObjectInClassroomMixin, FormView):
+    model = models.Child
+
+# # edit child
+class ChildEditView(GetObjectInClassroomMixin, ClassroomEditMixin, UpdateView):
+    model = models.Child
+    # form_class = EditChildForm
+
+# create child, invite parents by email
+class ChildRemoveView(GetObjectInClassroomMixin, ClassroomEditMixin, DeleteView):
+    model = models.Child
+
+
+############################
+# generic views - teacher  #
+############################
+
+class TeachersListView(ListView):
+    model = models.Teacher
+
+class TeacherAddView(ClassroomEditMixin, CreateView):
+    model = models.Teacher
+    fields = ['first_name', 'last_name', 'classroom']
+
+class TeacherDetailView(GetObjectInClassroomMixin, DetailView):
+    model = models.Teacher
+
+class TeacherEditView(ClassroomEditMixin, GetObjectInClassroomMixin, UpdateView):
+    model = models.Teacher
+
+class TeacherRemoveView(ClassroomEditMixin, GetObjectInClassroomMixin, DeleteView):
+    model = models.Teacher
+
+
+###########################
+# generic views - parents #
+###########################
+
+class ParentsListView(ListView):
+    model = models.Parent
+
+class ParentDetailView(GetObjectInClassroomMixin, DetailView):
+    model = models.Parent
+
+class ParentEditView(ClassroomEditMixin, GetObjectInClassroomMixin, DetailView):
+    model = models.Parent
+
+class ParentRemoveView(ClassroomEditMixin, GetObjectInClassroomMixin, DetailView):
+    model = models.Parent
+
+    

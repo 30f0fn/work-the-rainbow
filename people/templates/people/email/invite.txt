@@ -1,0 +1,14 @@
+hello.
+
+this is your invitation to the worktime scheduling website for the bigelow little rainbow classroom.
+
+the site will show you the existing classroom schedule, let you reschedule your existing worktime sessions, and manage worktime schedule assignments.
+
+to accept the invitation and complete signup, please click here:
+
+http://www.worktherainbow.org/invited/{{token}}
+
+thank you,
+
+worktime schedulers
+little rainbow classroom
