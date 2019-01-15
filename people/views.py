@@ -1,42 +1,79 @@
 # work-the-rainbow/people/views.py
+
+from django.http import Http404
+from django.shortcuts import render
 from django.views.generic import DetailView, ListView, FormView, CreateView, UpdateView, DeleteView, TemplateView
 from django.views.generic.detail import SingleObjectMixin
 from django.urls import reverse, reverse_lazy
 from django.shortcuts import redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.utils.decorators import method_decorator
 from allauth.account.views import LoginView
 from allauth.account.views import SignupView as LocalSignupView
+from allauth.account.models import EmailAddress
 from allauth.socialaccount.views import SignupView as SocialSignupView
+from invitations.models import Invitation
+from rules.contrib.views import PermissionRequiredMixin
 
-from . import forms, models
-from . import decorators
+from . import forms
+from people.models import Classroom, Child, User, RelateEmailToObject
+from . import rules
 
-# from . import models
 
-# easy-to-implement classroom management flow
-# create classroom
-# from classroom management, use links to AddChild and AddTeacher
-# AddChild simply asks for child name and parents' email
-# AddTeacher asks for teacher name and teacher's email
+########
+# todo #
+########
 
+# prune unused template files
 
 #############
 # utilities #
 #############
 
+class RelateEmailToObjectView(FormView):
+    # subclass this with values for relation and get_related_object
+    template_name = 'generic_create.html'
+    form_class = forms.RelateEmailToObjectForm
+    relation = None
 
-class ClassroomMixin(object):
-    def get_classroom(self):
+    def get_related_object(self, *args, **kwargs):
+        raise NotImplementeError("you need to implement get_related_object")
+
+    def form_valid(self, form):
+        email = form.cleaned_data['email']
+        leto = RelateEmailToObject(email=email,
+                          relation=self.relation,
+                          related_object=self.get_related_object())
+        try:
+            leto.execute()
+        except User.DoesNotExist:
+            leto.save()
+            Invitation.objects.filter(email=email).delete()
+            invite = Invitation.create(email)
+            invite.send_invitation(self.request)
+        return super().form_valid(form)
+
+
+# class ClassroomMixin(LoginRequiredMixin, object):
+class ClassroomMixin(LoginRequiredMixin, PermissionRequiredMixin, object):
+    permission_required = 'people.view_classroom'
+    @property
+    def classroom(self):
         slug = self.kwargs['classroom_slug']
-        return models.Classroom.objects.get(slug=slug)
+        return Classroom.objects.get(slug=slug)
+
 
 class ClassroomEditMixin(ClassroomMixin):
+    permission_required = 'people.edit_classroom'
     def get_success_url(self):
-        return reverse_lazy('manage-classroom',
-                            kwargs={'slug':self.get_classroom().slug})
+        return reverse_lazy('view-classroom',
+                            kwargs={'slug':self.classroom.slug})
 
-class GetObjectInClassroomMixin(ClassroomMixin):
+
+class QuerysetInClassroomMixin(ClassroomMixin):
     def get_queryset(self):
-        obj = self.model.objects.filter(classroom=self.get_classroom(),
+        return self.model.objects.filter(classroom=self.classroom,
                                         slug=self.kwargs[item_slug])    
 
 
@@ -44,150 +81,141 @@ class GetObjectInClassroomMixin(ClassroomMixin):
 # top-level views #
 ###################
 
-class ClassroomCreateView(CreateView):
-    model = models.Classroom
-    fields = ['name', 'slug']
-    template_name = 'people/classroom_create.html'
-    # form_class = CreateClassroomForm
-    def get_success_url(self):
-        return reverse_lazy('manage-classroom', kwargs={'slug':self.object.slug})
-# , slug=self.object.slug)
 
 # list all teachers and all children
 # links to add a teacher or a child
-class ClassroomView(DetailView):
-    model = models.Classroom
+
+class ClassroomView(ClassroomMixin, DetailView):
+    permission_required='people.view_classroom'
+    model = Classroom
 
 
-#########################
-# invitation and signup #
-#########################
-
-# verify that url token matches invite
-# offer either social login, or password entry
-
-# try to get the invite
-# redirect if unsuccessful
-# if successful, show the template, with links
-class InviteAcceptView(TemplateView):
-    template_name = 'invited_signup_choice.html'
-    def get(self, *args, **kwargs):
-        try:
-            invite = models.ParentInvite.objects.get(token = self.kwargs['token'])
-            # if invite.is_active():
-            user, created = models.User.objects.get_or_create(email=invite.email)
-            if created:
-                user.username = invite.email
-            user.save()
-            invite.delete()
-            return super().get(self, *args, **kwargs)
-            # else:
-                # raise DoesNotExist
-        except models.ParentInvite.DoesNotExist:
-            # message "sorry, I couldn't validate the required signup invitation"
-            return redirect('index')
-
-
-
-
-class InvitedSignupMixin(object):
-
-    @decorators.validate_invite_token
-    def dispatch(self, request, *args, **kwargs):
-        return super().dispatch(request, *args, **kwargs)
+class ClassroomCreateView(PermissionRequiredMixin, FormView):
+    permission_required = 'people.create_classroom'
+    template_name = 'classroom_create.html'
+    form_class = forms.CreateClassroomForm
+    def get_success_url(self, *args, **kwargs):
+        return self.classroom.get_absolute_url()
 
     def form_valid(self, form):
-        response = super().form_valid(self, form)
-        token = self.kwargs.get('token')
-        invite = models.ParentInvite.objects.get(token=token)        
-        profile = Profile(user=self.user, is_parent=True)
-        profile.save()
-        invite.child.parents.add(profile)
-        return response
-
-class InvitedSignupView(InvitedSignupMixin, LocalSignupView):
-    pass
-    
-# user gets this view after linking social account for initial signup
-class InvitedSocialSignupView(InvitedSignupMixin, SocialSignupView):
-    pass 
+        classroom = Classroom(**{key:form.cleaned_data[key]
+                                 for key in dir(Classroom)
+                                 if key in form.cleaned_data})
+        classroom.save()
+        for email in form.cleaned_emails():
+            RelateEmailToObject(email=email, relation='schedulers',
+                              related_object=classroom).activate()
+        self.classroom = classroom
+        return super().form_valid(form)
     
 
 #########################
 # generic views - child #
 #########################
 
-
-class ChildrenListView(ListView):
-    model = models.Child
-
-# create child, invite parents by email 
-# todo: prevent duplicates
+"""
+create child, invite parents by email
+if user already exists (i.e., no user has the listed email)
+then configure user's profile as parent of child
+else, check if invite exists to this email;
+if not, then send invite
+upon user creation, receiver attaches user to child as parent
+"""
 class ChildAddView(ClassroomEditMixin, FormView):
-    template_name = "child_create.html"
+    template_name = 'child_create.html'
     form_class = forms.AddChildForm
 
     def form_valid(self, form):
-        classroom = self.get_classroom()
-        child = models.Child(**{key:form.cleaned_data[key]
-                                for key in dir(models.Child)
+        form.cleaned_data['classroom'] = self.classroom
+        child = Child(**{key:form.cleaned_data[key]
+                                for key in dir(Child)
                                 if key in form.cleaned_data})
-        child.classroom = classroom
         child.save()
-        emails = [form.cleaned_data[email_field]
-                  for email_field in ['parent_email_1', 'parent_email_2']]
-        [models.ParentInvite.objects.get_or_create(email=email)[0].save()
-         for email in emails if email]
+        for email in form.cleaned_emails():
+            RelateEmailToObject(email=email, relation='parents',
+                                     related_object=child).activate()
+            self.child = child
         return super().form_valid(form)
 
-class ChildDetailView(GetObjectInClassroomMixin, FormView):
-    model = models.Child
+
+class AddParentToChildView(RelateEmailToObjectView):
+    def get_related_object(self):
+        try:
+            return Child.objects.get(self.kwargs['child_pk'])
+        except Child.DoesNotExist:
+            raise Http404("Poll does not exist")
+        return render(request, 'worktime/404.html', {'child': p})
+
+
+class ChildDetailView(QuerysetInClassroomMixin, FormView):
+    model = Child
+
 
 # # edit child
-class ChildEditView(GetObjectInClassroomMixin, ClassroomEditMixin, UpdateView):
-    model = models.Child
+class ChildEditView(QuerysetInClassroomMixin, ClassroomEditMixin, UpdateView):
+    model = Child
     # form_class = EditChildForm
 
+
 # create child, invite parents by email
-class ChildRemoveView(GetObjectInClassroomMixin, ClassroomEditMixin, DeleteView):
-    model = models.Child
+class ChildRemoveView(QuerysetInClassroomMixin, ClassroomEditMixin, DeleteView):
+    model = Child
+
+
+class RelateEmailToClassroomView(ClassroomEditMixin, RelateEmailToObjectView):
+
+    def get_related_object(self):
+        return self.classroom
+
+#############################
+# generic views - scheduler #
+#############################
+
+class SchedulerAddView(RelateEmailToClassroomView):
+    relation = 'schedulers'
 
 
 ############################
 # generic views - teacher  #
 ############################
 
-class TeachersListView(ListView):
-    model = models.Teacher
+class TeacherAddView(RelateEmailToClassroomView):
+    relation = 'teachers'
 
-class TeacherAddView(ClassroomEditMixin, CreateView):
-    model = models.Teacher
-    fields = ['first_name', 'last_name', 'classroom']
-
-class TeacherDetailView(GetObjectInClassroomMixin, DetailView):
-    model = models.Teacher
-
-class TeacherEditView(ClassroomEditMixin, GetObjectInClassroomMixin, UpdateView):
-    model = models.Teacher
-
-class TeacherRemoveView(ClassroomEditMixin, GetObjectInClassroomMixin, DeleteView):
-    model = models.Teacher
+# class TeacherRemoveView(ClassroomEditMixin, QuerysetInClassroomMixin, ...?):
 
 
 ###########################
 # generic views - parents #
 ###########################
 
-class ParentsListView(ListView):
-    model = models.Parent
+# class ParentsListView(ListView):
+#     model = Parent
 
-class ParentDetailView(GetObjectInClassroomMixin, DetailView):
-    model = models.Parent
 
-class ParentEditView(ClassroomEditMixin, GetObjectInClassroomMixin, DetailView):
-    model = models.Parent
+# this is only to be seen by the user (and perhaps site admin)
+# have ParentDetail for intra-classroom users
+# shouldnt need permissions rule, since view should determine which profile to show based on current user
+class ProfileView(DetailView):
+    template_name = 'profile_detail.html'
+    @method_decorator(login_required)
+    def get(self, request, *args, **kwargs):
+        return super().get(self, request, *args, **kwargs)
+    def get_object(self):
+        return self.request.user
 
-class ParentRemoveView(ClassroomEditMixin, GetObjectInClassroomMixin, DetailView):
-    model = models.Parent
 
-    
+class ProfileEditView(UpdateView):
+    model = User
+    fields = ['username', 'email']
+    template_name = 'profile_update.html'
+    @method_decorator(login_required)
+    def get(self, request, *args, **kwargs):
+        return super().get(self, request, *args, **kwargs)
+    def get_object(self):
+        return self.request.user
+
+
+# class ParentRemoveView(ClassroomEditMixin, QuerysetInClassroomMixin, DetailView):
+#     model = Parent
+

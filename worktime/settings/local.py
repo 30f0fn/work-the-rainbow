@@ -1,10 +1,14 @@
 from worktime.settings.base import *
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "worktime.settings.local")
-EMAIL_HOST_PASSWORD = "44parkst"
+
+SECRET_KEY = os.environ.get('SECRET_KEY')
+
+EMAIL_HOST_PASSWORD=os.environ.get("EMAIL_HOST_PASSWORD")
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'nwnjhzz6di28p2ce8iwhh0swd5fajjb6fhdtae29imz1nw86u3'
+# SECRET_KEY = 'nwnjhzz6di28p2ce8iwhh0swd5fajjb6fhdtae29imz1nw86u3'
+
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True

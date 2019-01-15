@@ -1,0 +1,7 @@
+class WeekdayIterator:
+    def __init__(self, start_date):
+        self.first = start_date
+        super().__init__()
+    def __getitem__(self, index):
+        return self.first + (index * datetime.timedelta(days=7))
+

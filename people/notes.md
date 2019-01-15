@@ -71,3 +71,21 @@ Implementing parent identification flow
   - add authentication method: password or social account
     - if social account, populate user data with first and last names
   - add personal info
+
+
+Todo for People app
+-------------------
+
+- permissions: who can create/manage classroom roster?
+    - admin creates classroom, invites scheduler
+    - scheduler manages roster of that classroom
+    - parents of children in classroom can
+        - view that classroom roster and schedule
+        - edit their own worktime slots
+- improve user's profile management
+    - edit profile data
+    - edit child data
+    - user-editing profile info; add social accounts
+    
+- invite teachers (existing users or no)
+

@@ -1,0 +1,3 @@
+{% extends "base.html" %}
+
+{% include "generic_update.html" %}

@@ -1,0 +1,20 @@
+{% extends "worktime/base.html" %}
+
+{% block nav %} {% endblock %}
+
+{% block content %}
+<h2>profile</h2>
+<ul>
+  <li> email: {{object.email}}
+  <li> username: {{object.username}}
+    {% if user.is_parent %}
+      <li>children:
+        <ul>
+          {% for child in object.children %}
+            <li>{{child.short_name}}, {{child.classroom}}
+          {% endfor %}
+        </ul>
+      {% endif %}
+</ul>
+
+{% endblock %}

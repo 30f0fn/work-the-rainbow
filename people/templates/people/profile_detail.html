@@ -1,0 +1,32 @@
+{% extends "worktime/base.html" %}
+
+{% block nav %} {% endblock %}
+
+{% block content %}
+<h2>profile</h2>
+<ul>
+  <li> email: {{object.email}}
+  <li> username: {{object.username}}
+    {% if user.is_parent %}
+      <li>children:
+        <ul>
+          {% for child in object.child_set.all %}
+            <li>{{child.short_name}}, {{child.classroom}}
+              {% if child.parent_set.count > 1%}
+                {% for parent in child.parent_set %}
+                  {% if parent != request.user %}
+                    {{parent}}
+                  {% endif %}
+                {% endfor %}
+              {% endif %}
+            {% endfor %}
+        </ul>
+      {% endif %}
+</ul>
+
+{# <p><a href={% url 'edit-profile' %}>edit this profile</a> </p> #}
+<p><a href = {% url 'account_change_password' %}> change password </a></p>
+<p><a href = {% url 'account_email' %}> change email address </a></p>
+<p><a href = {% url 'socialaccount_connections' %} > manage social network connections </a></p>
+
+{% endblock %}

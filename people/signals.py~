@@ -1,0 +1,26 @@
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from people.models import User, LinkEmailToObject
+
+
+# @receiver(post_save, sender=User)
+# def link_user_to_child(sender, instance, created, **kwargs):
+#     # print(f"link_child_to_parent: this function was called with instance={instance}, created={created}")
+#     if created:
+#         email = instance.email
+#         for link in EmailLinkFromChild.objects.filter(email=email):
+#             print(f"linked user {instance} to child {link.child}")
+#             child = link.child
+#             if instance not in child.parents.all():
+#                 child.parents.add(instance)
+#                 child.save()
+ 
+
+@receiver(post_save, sender=User)
+def link_user_to_object(sender, instance, created, **kwargs):
+    print(f"link_email_to_object: this function was called with instance={instance}, created={created}")
+    if created:
+        email = instance.email
+        for link in LinkEmailToObject.objects.filter(email=email):
+            print(f"linked {email} to {link.linked_object}")
+            link.execute()

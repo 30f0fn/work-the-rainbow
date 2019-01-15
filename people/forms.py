@@ -1,6 +1,8 @@
-from django.forms import Form, CharField, EmailField, SlugField, ValidationError, ModelChoiceField, IntegerField
-from django.forms.widgets import HiddenInput
-from . import models
+from django.forms import Form, CharField, EmailField, SlugField, ValidationError, ModelChoiceField, IntegerField, ModelForm
+# from django.forms.widgets import HiddenInput
+
+
+from people.models import Classroom, RelateEmailToObject
 
 # forms for initial classroom setup
 
@@ -9,26 +11,50 @@ class PersonForm(Form):
     last_name = CharField()
 
 
-class AddChildForm(PersonForm):
-    short_name = CharField()
-    shifts_per_month = IntegerField()
-    parent_email_1 = EmailField()
-    parent_email_2 = EmailField(required=False)
+class RelateEmailToObjectForm(Form):
+    email = EmailField()
+
+    # class Meta:
+        # model = RelateEmailToObject
+        # fields = ['email']
 
 
-
-
-class AddTeacherForm(PersonForm):
+class AddTeacherForm(Form):
     email = EmailField()
 
 
+class AddChildForm(PersonForm):
+
+    short_name = CharField()
+    shifts_per_month = IntegerField()
+    parent_email_1 = EmailField(required=False)
+    parent_email_2 = EmailField(required=False)
+
+    def cleaned_emails(self):
+        return [self.cleaned_data[email_field] for email_field in
+                ['parent_email_1', 'parent_email_2'] if self.cleaned_data[email_field]]
+
+        
+
+
+
+
+
+
 class CreateClassroomForm(Form):
+    scheduler_email_1 = EmailField(required=False)
+    scheduler_email_2 = EmailField(required=False)
     slug = SlugField()
     name = CharField()
-    def clean_slug(self):
-        check_unique(self, 'email', Classroom)
-    def clean_name(self):
-        check_unique(self, 'name', Classroom)
+    def cleaned_emails(self):
+        return [self.cleaned_data[email_field] for email_field in
+                ['scheduler_email_1', 'scheduler_email_2'] if self.cleaned_data[email_field]]
+
+
+    # def clean_slug(self):
+        # check_unique(self, 'email', Classroom)
+    # def clean_name(self):
+        # check_unique(self, 'name', Classroom)
 
 
 # maintenance forms
@@ -44,7 +70,7 @@ class ParentForm(UserProfileForm):
 
 
 class TeacherProfileForm(UserProfileForm):
-    classroom = ModelChoiceField(queryset=models.Classroom.objects.all())
+    classroom = ModelChoiceField(queryset=Classroom.objects.all())
 
 
 def check_unique(form_instance, field_name, model, error_message=None):

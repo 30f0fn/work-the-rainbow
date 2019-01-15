@@ -1,0 +1,10 @@
+import rules
+from people.models import *
+from allauth.account.models import *
+from invitations.models import *
+from main.models import * 
+Invitation.objects.all()
+u = User.objects.all()[0]
+c = Child.objects.first()
+uuu = User.objects.all()[2]
+lrb = Classroom.objects.all()[0]

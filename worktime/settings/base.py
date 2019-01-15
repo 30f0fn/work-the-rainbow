@@ -29,16 +29,23 @@ INSTALLED_APPS = [
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
+    'rules',
+    'invitations',
+    'main',
     'people',
-    'worktime',
+    # 'worktime',
 ]
 
 SITE_ID = 1 # for django-allauth
+
+ACCOUNT_LOGOUT_ON_GET = True # logout without confirmatoin page 
 
 ACCOUNT_AUTHENTICATION_METHOD = "email"
 ACCOUNT_EMAIL_REQUIRED = True
 
 
+# for django-invites 
+ACCOUNT_ADAPTER = 'invitations.models.InvitationsAdapter'
 
 
 MIDDLEWARE = [
@@ -56,7 +63,10 @@ ROOT_URLCONF = 'worktime.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': ['templates/worktime', 'people/templates/people', 'templates'],
+        'DIRS': ['templates/worktime',
+                 'people/templates/people',
+                 'main/templates/main',
+                 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -89,6 +99,9 @@ AUTH_USER_MODEL = "people.User"
 
 AUTHENTICATION_BACKENDS = (
 
+    # for rules app
+    'rules.permissions.ObjectPermissionBackend',
+
     # Needed to login by username in Django admin, regardless of `allauth`
     'django.contrib.auth.backends.ModelBackend',
 
@@ -96,6 +109,7 @@ AUTHENTICATION_BACKENDS = (
     'allauth.account.auth_backends.AuthenticationBackend',
 
 )
+
 
 
 
@@ -124,6 +138,7 @@ AUTH_PASSWORD_VALIDATORS = [
 LANGUAGE_CODE = 'en-us'
 
 TIME_ZONE = 'UTC'
+TIME_FORMAT = 'H:i'
 
 USE_I18N = True
 

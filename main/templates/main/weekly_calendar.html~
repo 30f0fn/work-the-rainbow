@@ -1,0 +1,4 @@
+{% extends "worktime/base.html" %}
+
+{# {% load people_tags %} #}
+{% load rules %}

@@ -1,21 +1,45 @@
 {% extends "worktime/base.html" %}
 
+{% load people_tags %}
+{% load rules %}
+
 {% block content %}
 
 <h2>teachers</h2>
+<ul> 
+  {% for teacher in object.teachers %} 
+    <li> {{ teacher }} 
+  {% endfor %} 
+</ul> 
+{% has_perm 'people.edit_classroom' user classroom as can_edit_classroom %} 
+{% if can_edit_classroom %}   
+  <a href="{% url 'add-teacher' object.slug %}">add a teacher</a>     
+{% endif %}   
+
+<h2>kids</h2> 
+<ul> 
+  {% for kid in object.children %} 
+    <li> {{ kid.nickname }}
+      {% for parent in kid.parents %} {{ parent.email }} {% endfor %} 
+    </li>
+  {% endfor %}
+</ul> 
+{% has_perm 'people.edit_classroom' user classroom as can_edit_classroom %} 
+{% if can_edit_classroom %} 
+  <a href="{% url 'add-child' object.slug %}">add a kid</a>  
+{% endif %} 
+
+
+<h2>scheduler</h2>
 <ul>
-  {% for teacher in object.teacher_set.all %}
-    <li> {{ teacher.first_name }}
+  {% for scheduler in object.schedulers %}
+    <li>
+      {{ scheduler }}
+    </li>
   {% endfor %}
 </ul>
-<a href="{% url 'add-teacher' object.slug %}">add a teacher</a>  
+{% if can_edit_classroom %}   
+  <a href="{% url 'add-scheduler' object.slug %}">add a scheduler</a>     
+{% endif %}   
 
-<h2>students</h2>
-<ul>
-  {% for student in object.child_set.all %}
-    <li> {{ student.short_name }}
-  {% endfor %}
-</ul>
-<a href="{% url 'add-child' object.slug %}">add a student</a> 
-
-{% endblock %}
+{% endblock content %}
