@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+
+{% block content %}
+<p>Please submit your shift preferences here.  You must assign some rank to at least {{min_shifts}} shifts.</p>
+
+<p>Note that higher ranks take precedence for the scheduler.  For this reason, if for example you assign two shifts the rank of 1, then you will be likelier to get one of them then you would be if you assigned one the rank 1 and the other the rank 2.</p>
+{% include "worktime/generic_form.html" %}
+{% endblock content %}

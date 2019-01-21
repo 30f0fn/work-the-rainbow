@@ -1,22 +1,24 @@
 {% extends "worktime/base.html" %}
 
-{# {% load people_tags %} #}
+{% load people_tags %} 
 {% load rules %}
 
 {% block content %}
-
+<h1> {{view.classroom.name}} - week of {{view.start_date|date:"n/j/y"}}</h1>
+  {% include 'calendar-nav.html' %}
   <ul>
-  {% for date in view.week %}
-    <li>
-      {{date.day}}
-      <ul>
-        {% for c in view.worktime_commitments_by_day %}
-          <li>
-            {{c.time}} worktime: {{c.family}}
-          </li>
-      </ul>
-    </li>
-  {% endfor %}
+    {% for day, shift_instances in view.worktimes_struct.items %}
+      <li>
+        {{day.date|date:"l, F j"}} 
+        <ul> 
+          {% for shift_instance, commitment in shift_instances.items %}
+            <li>
+              {{shift_instance.start_time}}: {{commitment.family.nickname}}
+            </li>
+          {% endfor %}
+        </ul>
+      </li>
+    {% endfor %}
   </ul>
 
 {% endblock content %}

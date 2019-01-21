@@ -1,3 +1,4 @@
+import calendar
 import datetime
 
 class WeekdayIterator:
@@ -18,8 +19,8 @@ def next_date_with_given_weekday(weekday, from_date):
     return from_date + datetime.timedelta(days=offset)
 
 
-def previous_date_with_given_weekday(weekday, from_date):
-    return next_date_with_given_weekday(1, from_date) - datetime.timedelta(days=7)
+# def most_recent_date_with_given_weekday(weekday, from_date):
+    # return next_date_with_given_weekday(1, from_date) - datetime.timedelta(days=7)
 
 
 def week_from(first_day):
@@ -32,12 +33,12 @@ def week_of(date):
 
 
 def weeks_for_month(year, month, outliers=False):
-    month_cal = calendar.monthcalendar(year, month)
+    month_calendar = calendar.monthcalendar(year, month)
     if outliers:
         start_date = previous_date_with_given_weekday(
             1, datetime.date(year, month, 1))
         weeks = [week_from(start_date + w * datetime.timedelta(days=7)) 
-                 for w in month_cal]
+                 for w in month_calendar]
     else:
         weeks = [[datetime.date(year, month, d) if d > 0 else None
                   for d in w] for w in month_calendar]

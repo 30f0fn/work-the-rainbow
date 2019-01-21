@@ -5,41 +5,45 @@
 
 {% block content %}
 
-<h2>teachers</h2>
+  <h1>
+    {{classroom.name}} 
+  </h1>
+
+<h2>teachers</h2> 
+<ul>  
+  {% for teacher in object.teachers %}  
+    <li> {{ teacher }}  
+  {% endfor %}  
+</ul>  
+{% has_perm 'people.edit_classroom' user classroom as can_edit_classroom %}  
+{% if can_edit_classroom %}    
+  <a href="{% url 'add-teacher' object.slug %}">add a teacher</a>      
+{% endif %}    
+
+<h2>kids</h2>   
+<ul>   
+  {% for kid in object.children %}   
+    <li> {{ kid.nickname }}  
+      {% for parent in kid.parents.all %} {{ parent.email }} {% endfor %}   
+    </li>  
+  {% endfor %}  
+</ul>   
+{% has_perm 'people.edit_classroom' user classroom as can_edit_classroom %}  
+{% if can_edit_classroom %}  
+  <a href="{% url 'add-child' object.slug %}">add a kid</a>   
+{% endif %}  
+
+
+<h2>scheduler</h2> 
 <ul> 
-  {% for teacher in object.teachers %} 
-    <li> {{ teacher }} 
+  {% for scheduler in object.schedulers %} 
+    <li> 
+      {{ scheduler }} 
+    </li> 
   {% endfor %} 
 </ul> 
-{% has_perm 'people.edit_classroom' user classroom as can_edit_classroom %} 
-{% if can_edit_classroom %}   
-  <a href="{% url 'add-teacher' object.slug %}">add a teacher</a>     
-{% endif %}   
-
-<h2>kids</h2> 
-<ul> 
-  {% for kid in object.children %} 
-    <li> {{ kid.nickname }}
-      {% for parent in kid.parents %} {{ parent.email }} {% endfor %} 
-    </li>
-  {% endfor %}
-</ul> 
-{% has_perm 'people.edit_classroom' user classroom as can_edit_classroom %} 
-{% if can_edit_classroom %} 
-  <a href="{% url 'add-child' object.slug %}">add a kid</a>  
-{% endif %} 
-
-
-<h2>scheduler</h2>
-<ul>
-  {% for scheduler in object.schedulers %}
-    <li>
-      {{ scheduler }}
-    </li>
-  {% endfor %}
-</ul>
-{% if can_edit_classroom %}   
-  <a href="{% url 'add-scheduler' object.slug %}">add a scheduler</a>     
-{% endif %}   
+{% if can_edit_classroom %}    
+  <a href="{% url 'add-scheduler' object.slug %}">add a scheduler</a>      
+{% endif %}    
 
 {% endblock content %}

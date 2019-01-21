@@ -11,15 +11,20 @@
 <body>
     <div id="sidebar">
         <ul>
-            {# <li><a href="{% url 'calendar' %}">calendar</a></li> #}
           <li>
             <a href="{% url 'home' %}">home</a>
           </li>
           {# {{ user.has_perm 'people.create_classroom' }} #}
           {% for classroom in request.user.classrooms %}
-            <li>
-              <a href="{{classroom.get_absolute_url}}">{{classroom.name}}</a>
-            </li>
+            {# <li> #}
+              {# <a href="{{classroom.get_absolute_url}}">{{classroom.name}}</a> #}
+            {# </li> #}
+          <li>
+            <a href="{% url 'classroom-calendar' classroom.slug %}"> {{classroom.name}} - calendar</a>
+          </li>
+          <li>
+            <a href="{% url 'classroom-roster' classroom.slug %}"> {{classroom.name}} - roster</a>
+          </li>
           {% endfor %}
           {% has_perm 'people.create_classroom' user classroom as can_create_classroom  %}
           {% if can_create_classroom %}

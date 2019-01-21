@@ -28,7 +28,7 @@ class Period(models.Model):
         return f"<Period {self.pk}: {self.start_date} - {self.start_date + self.duration}>"
 
 
-class DatelessTimedEvent(models.Model):
+class ShiftTime(models.Model):
     name = models.CharField(max_length=32)
     start_time = models.TimeField()
     duration = models.DurationField(default=datetime.timedelta(hours=2))
@@ -36,35 +36,20 @@ class DatelessTimedEvent(models.Model):
         return f"<ShiftTime {self.pk}: {self.name}>"
     class Meta:
         ordering = ['start_time']
-    
-
-
-class ShiftTime(DatelessTimedEvent):
-    name = models.CharField(max_length=32)
-    start_time = models.TimeField()
-    duration = models.DurationField(default=datetime.timedelta(hours=2))
-    def __str__(self):
-        return f"<ShiftTime {self.pk}: {self.name}>"
-    class Meta:
-        ordering = ['start_time']
-
-
-     
-
 
 
 class Shift(models.Model):
     # add foreignkey to classroom
     weekday = WeekdayField()
-    shift_time = models.ForeignKey(ShiftTime, on_delete=models.CASCADE)
+    time_span = models.ForeignKey(ShiftTimeSpan, on_delete=models.CASCADE)
     @property
     def start_time(self):
-        return self.shift_time.start_time
+        return self.time_span.start_time
 
     def next_instance_from(self, from_date):
         # offset = (int(self.weekday) - period.start_date.weekday()) % 7        
         instance_date = next_date_with_given_weekday(int(self.weekday), from_date)
-        return datetime.datetime.combine(instance_date, self.shift_time.start_time)
+        return datetime.datetime.combine(instance_date, self.time_span.start_time)
 
     def create_instances_in_period(self, period):
         wi = WeekdayIterator(self.next_instance_from(period.start_date))
@@ -75,11 +60,12 @@ class Shift(models.Model):
         return ShiftInstance.objects.filter(shift=self,
                                             date__gte=period.start_date,
                                             date__lte=period.start_date+period.duration)
+
     def __str__(self):
-        return f"<Shift {self.pk}: weekday={self.weekday}, time={self.shift_time}>"
+        return f"<Shift {self.pk}: weekday={self.weekday}, time={self.time_span}>"
 
     class Meta:
-        ordering = ['weekday', 'shift_time']
+        ordering = ['weekday', 'time_span']
 
 
 class ShiftInstance(models.Model):

@@ -26,8 +26,8 @@ def is_admin(user):
 
 
 rules.add_rule('people.edit_child',
-               is_admin,
-               is_scheduler,
+               is_admin | 
+               is_scheduler_in_classroom |
                is_parent_of)
 
 

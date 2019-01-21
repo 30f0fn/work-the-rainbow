@@ -1,4 +1,4 @@
-# work-the-rainbow/people/views.py
+ # work-the-rainbow/people/views.py
 
 from django.http import Http404
 from django.shortcuts import render
@@ -42,16 +42,23 @@ class RelateEmailToObjectView(FormView):
 
     def form_valid(self, form):
         email = form.cleaned_data['email']
+        related_object = self.get_related_object()
         leto = RelateEmailToObject(email=email,
-                          relation=self.relation,
-                          related_object=self.get_related_object())
+                                   relation=self.relation,
+                                   related_object=related_object)
         try:
-            leto.execute()
+            related_user = leto.execute()
+            message = f"added user {related_user} to {related_object}'s {self.relation} "
+            messages.add_message(self.request, messages.SUCCESS, message)
+            
         except User.DoesNotExist:
             leto.save()
             Invitation.objects.filter(email=email).delete()
             invite = Invitation.create(email)
             invite.send_invitation(self.request)
+            message = f"sent invite to {email}; upon signup the resulting user will be added to {related_object}'s {self.relation} "
+            messages.add_message(self.request, messages.SUCCESS, message)
+
         return super().form_valid(form)
 
 
@@ -67,7 +74,7 @@ class ClassroomMixin(LoginRequiredMixin, PermissionRequiredMixin, object):
 class ClassroomEditMixin(ClassroomMixin):
     permission_required = 'people.edit_classroom'
     def get_success_url(self):
-        return reverse_lazy('view-classroom',
+        return reverse_lazy('classroom-roster',
                             kwargs={'slug':self.classroom.slug})
 
 
@@ -106,6 +113,8 @@ class ClassroomCreateView(PermissionRequiredMixin, FormView):
             RelateEmailToObject(email=email, relation='schedulers',
                               related_object=classroom).activate()
         self.classroom = classroom
+        message = f"created the {classroom.name} classroom"
+        messages.add_message(self.request, messages.SUCCESS, message)
         return super().form_valid(form)
     
 
@@ -135,6 +144,8 @@ class ChildAddView(ClassroomEditMixin, FormView):
             RelateEmailToObject(email=email, relation='parents',
                                      related_object=child).activate()
             self.child = child
+        message = f"added the kid {child.nickname}"
+        messages.add_message(self.request, messages.SUCCESS, message)
         return super().form_valid(form)
 
 
@@ -166,6 +177,7 @@ class RelateEmailToClassroomView(ClassroomEditMixin, RelateEmailToObjectView):
 
     def get_related_object(self):
         return self.classroom
+
 
 #############################
 # generic views - scheduler #

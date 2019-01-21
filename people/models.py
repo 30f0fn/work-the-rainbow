@@ -1,14 +1,28 @@
+import functools
+
 from django.db import models
+from django.db.models import Q
 from django.contrib.auth.models import AbstractUser
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.urls import reverse_lazy
+
+import main.models
 
 ########
 # todo #
 ########
 
 # clean out the API for e.g. Classroom (want uniform access to parents/teachers/schedulers/children)
+
+
+# class FakeQuerySet(object):
+#     def __init__(self, entries):
+#         super().__init__()
+#         self.entries = entries
+#     def all(self):
+#         return self.entries
+
 
 
 from people.email import send_invite_email
@@ -37,7 +51,10 @@ class User(AbstractUser):
     @property
     def children(self):
         return self.child_set.all()
-    
+
+    @property
+    def worktime_commitments(self):
+        return self.child_set
 
 
 class NamingMixin(object):
@@ -69,8 +86,13 @@ class Classroom(NamingMixin, models.Model):
     def parents(self):
         return User.objects.filter(child__classroom=self)
 
+    def worktime_commitments_by_date(self, date):
+        return main.models.WorktimeCommitment.objects.filter(
+            family__classroom=self,
+            shift_instance__date=date)
+
     def get_absolute_url(self):
-        return reverse_lazy('view-classroom', kwargs={'slug':self.slug})
+        return reverse_lazy('classroom-roster', kwargs={'slug':self.slug})
 
     def __str__(self):
         return f"<Classroom {self.pk}: {self.name}>"        
@@ -83,12 +105,35 @@ class Child(NamingMixin, models.Model):
     classroom = models.ForeignKey(Classroom, on_delete=models.DO_NOTHING)
     shifts_per_month = models.IntegerField(default=2)
     parents = models.ManyToManyField(User)
-    def add_parent(self, user):
-        self.parents.add(user)
-    class Meta:
-        pass
+
+    @property
+    def caredays(self):
+        return main.models.CareDay.objects.filter(caredayassignment__child=self)
+
+
+    # below is hideous...
+    # want the union, for each careday of child, of the shifts of that careday
+    # how to do it in one query?
+    @property
+    def shifts(self):
+        caredays = self.caredays.all()
+        def get_q(careday):
+            return Q(weekday=careday.weekday, 
+                     time_span__start_time__gte=careday.time_span.start_time,
+                     time_span__end_time__lte=careday.time_span.end_time)
+        return main.models.Shift.objects.filter(
+            functools.reduce(lambda x, y : x | y, map(get_q, caredays)))
+
+    @property
+    def worktime_commitments(self):
+        return main.models.WorktimeCommitment.objects.filter(family=self)
+
     def __str__(self):
         return f"<Child {self.pk}: {self.nickname}>"
+
+    class Meta:
+        pass
+
 
 
         # unique_together = (('first_name', 'last_name', 'classroom'),
@@ -152,6 +197,7 @@ class RelateEmailToObject(models.Model):
         self.related_object.save()
         if self.pk:
             self.delete()
+        return related_user
 
     def __str__(self):
         return f"<relating {self.email} to {self.related_object} under {self.relation}>"

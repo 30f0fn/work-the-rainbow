@@ -1,0 +1,23 @@
+{% extends "worktime/base.html" %}
+
+{% load people_tags %} 
+{% load rules %}
+
+{% block content %}
+
+  <ul>
+  {% for day, shift_instances in view.worktimes_dict.items %}
+    <li>
+      {{day}} 
+      <ul> 
+        {% for shift_instance, commitment in shift_instances.items %}
+          <li>
+            {{shift_instance.start_time}}: {{commitment.family.nickname}}
+          </li>
+        {% endfor %}
+      </ul>
+    </li>
+  {% endfor %}
+  </ul>
+
+{% endblock content %}

@@ -1,14 +1,14 @@
 worktime commitment representation
 ----------------------------------
 
-- strategy: model FamilyCommitment as Occurrence of a FamilyAssignment Event; generate the Occurrences from the Event by a rule; then override manually for exceptions.
+- strategy: model WorktimeCommitment as Occurrence of a WorktimeAssignment Event; generate the Occurrences from the Event by a rule; then override manually for exceptions.
 
-- each FamilyCommitment has this data:
+- each WorktimeCommitment has this data:
     - classroom
     - family
     - date and starttime, endtime
 
-- in turn, FamilyAssignment event has this data:
+- in turn, WorktimeAssignment event has this data:
     - classroom
     - family
     - weekday
@@ -24,8 +24,32 @@ calendars
 interface
 ---------
 
-- edit FamilyCommitments
-    - offer FamilyCommitments to swap
+- edit WorktimeCommitments
+    - offer WorktimeCommitments to swap
     - return form with available options
 
+
+
+
+formview vs updateview
+
+    FormView
+    TemplateResponseMixin
+    BaseFormView
+    FormMixin
+    ContextMixin
+    ProcessFormView
+    View
+
+
+    UpdateView
+    SingleObjectTemplateResponseMixin <don't need>
+    <!-- TemplateResponseMixin -->
+    BaseUpdateView <don't want>
+    ModelFormMixin <don't want>
+    <!-- FormMixin -->
+    <!-- SingleObjectMixin -->
+    <!-- ContextMixin -->
+    <!-- ProcessFormView -->
+    <!-- View -->
 

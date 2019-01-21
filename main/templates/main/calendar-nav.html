@@ -1,0 +1,14 @@
+{% block calendar-nav %}
+  <div id="calendar-nav">
+    <a href="{% url 'daily-classroom-calendar' view.classroom.slug view.date.year view.date.month view.date.day %}">daily</a>
+    <a href="{% url 'weekly-classroom-calendar' view.classroom.slug view.date.year view.date.month view.date.day %}">weekly</a>
+    <a href="{% url 'monthly-classroom-calendar' view.classroom.slug view.date.year view.date.month view.date.day %}">monthly</a>        
+    <a href="{{view.previous}}">
+    &lt;  
+    </a>
+    <a href="{{view.next}}"> 
+      &gt;   
+    </a> 
+</div>
+
+{% endblock calendar-nav %}

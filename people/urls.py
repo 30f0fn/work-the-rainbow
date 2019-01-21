@@ -46,7 +46,7 @@ urlpatterns = [
     path('invitations/', include('invitations.urls', namespace='invitations')),
     path('<slug:classroom_slug>/', include(classroom_urls)),
     path('<slug:slug>/roster', 
-         views.ClassroomView.as_view(), name='view-classroom',),
+         views.ClassroomView.as_view(), name='classroom-roster',),
     path('create_classroom', 
          views.ClassroomCreateView.as_view(), name='create-classroom',),
     # path('invited/<slug:token>',
