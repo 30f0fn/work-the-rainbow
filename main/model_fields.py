@@ -11,6 +11,7 @@ WEEKDAYS = {
 }
 
 class WeekdayField(models.CharField):
+
     def __init__(self, *args, **kwargs):
         kwargs['choices'] = tuple(sorted(WEEKDAYS.items()))
         kwargs['max_length'] = 1 

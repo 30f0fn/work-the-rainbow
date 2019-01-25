@@ -6,8 +6,14 @@ from django.contrib.auth.models import AbstractUser
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.urls import reverse_lazy
+from django.contrib import messages
+
+from invitations.models import Invitation
 
 import main.models
+
+# from people.email import send_invite_email
+
 
 ########
 # todo #
@@ -16,18 +22,9 @@ import main.models
 # clean out the API for e.g. Classroom (want uniform access to parents/teachers/schedulers/children)
 
 
-# class FakeQuerySet(object):
-#     def __init__(self, entries):
-#         super().__init__()
-#         self.entries = entries
-#     def all(self):
-#         return self.entries
 
 
 
-from people.email import send_invite_email
-from invitations.models import Invitation
-import random
 
 class User(AbstractUser):
 
@@ -38,7 +35,7 @@ class User(AbstractUser):
 
     @property
     def classrooms_as_parent(self):
-        return Classroom.objects.filter(child__parents=self)
+        return Classroom.objects.filter(child__parent_set=self)
 
     @property
     def classrooms(self):
@@ -70,17 +67,17 @@ class Classroom(NamingMixin, models.Model):
     scheduler_set = models.ManyToManyField(User,
                                         related_name='classrooms_as_scheduler')
 
-    @property
-    def teachers(self):
-        return self.teacher_set.all()
+    # @property
+    # def teachers(self):
+        # return self.teacher_set
 
-    @property
-    def schedulers(self):
-        return self.scheduler_set.all()
+    # @property
+    # def schedulers(self):
+        # return self.scheduler_set
 
-    @property
-    def children(self):
-        return self.child_set.all()
+    # @property
+    # def children(self):
+        # return self.child_set 
 
     @property
     def parents(self):
@@ -104,12 +101,12 @@ class Child(NamingMixin, models.Model):
     nickname = models.CharField(max_length=100)
     classroom = models.ForeignKey(Classroom, on_delete=models.DO_NOTHING)
     shifts_per_month = models.IntegerField(default=2)
-    parents = models.ManyToManyField(User)
+
+    parent_set = models.ManyToManyField(User)
 
     @property
     def caredays(self):
         return main.models.CareDay.objects.filter(caredayassignment__child=self)
-
 
     # below is hideous...
     # want the union, for each careday of child, of the shifts of that careday
@@ -135,60 +132,31 @@ class Child(NamingMixin, models.Model):
         pass
 
 
-
-        # unique_together = (('first_name', 'last_name', 'classroom'),
-                           # ('short_name', 'classroom'))
-
-
-# class Teacher(NamingMixin, models.Model):
-#     first_name = models.CharField(max_length=100)
-#     last_name = models.CharField(max_length=100)
-#     classroom = models.ForeignKey(Classroom, on_delete=models.DO_NOTHING)
-#     class Meta:
-#         pass
-#         # unique_together = (('first_name', 'last_name', 'classroom'))
-
-
-# class Parent(NamingMixin, models.Model):
-#     first_name = models.CharField(max_length=100)
-#     last_name = models.CharField(max_length=100)
-#     classroom = models.ForeignKey(Classroom, on_delete=models.DO_NOTHING)
-#     class Meta:
-#         pass
-#     def __str__(self):
-#         return f"<Parent {self.pk}: {self.first_name} {self.last_name} {self.classroom}>"
-
-        # unique_together = (('first_name', 'last_name', 'classroom'))
-
-
-# class ParentInvite(models.Model):
-#     email = models.EmailField(unique=True)
-#     child = models.ForeignKey(Child, on_delete=models.DO_NOTHING, null=True)
-#     accepted = False
-#     token = models.CharField(max_length=50)
-#     def save(self, *args, **kwargs):
-#         self.token = ''.join([random.choice('abcdefghijklmnopqrstuvwxyz0123456789')
-#                               for i in range(50)])
-#         send_invite_email(self.email, self.token)
-#         super().save(*args, **kwargs)
-
-#     def __str__(self):
-#         return f"<Invite object {self.pk}: {self.email}>"
-
-# when user is created, check if it has this email address, and if so, configure the user to be parent of this child
-# class EmailLinkFromChild(models.Model):
-#      child = models.ForeignKey(Child, on_delete=models.CASCADE)
-#      email = models.EmailField()
-#      def __str__(self):
-#          return f"<EmailLinkFromChild: child={self.child}, email={self.email}>"
-
-
 class RelateEmailToObject(models.Model):
     email = models.EmailField()
     relation = models.CharField(max_length=50)
+    relation_name = models.CharField(max_length=50)
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
     object_id = models.PositiveIntegerField()
     related_object = GenericForeignKey()
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not self.relation_name:
+            self.relation_name = self.relation
+
+    def activate(self, request):
+        try:
+            related_user = self.execute()
+            message = f"added user {related_user} to {self.related_object}'s {self.relation_name}"
+            messages.add_message(request, messages.SUCCESS, message)
+        except User.DoesNotExist:
+            self.save()
+            Invitation.objects.filter(email=email).delete()
+            invite = Invitation.create(email)
+            invite.send_invitation(self.request)
+            message = f"sent invite to {self.email}; upon signup the resulting user will be added to {self.related_object}'s {self.relation_name}"
+            messages.add_message(self.request, messages.SUCCESS, message)
 
     def execute(self):
         related_user = User.objects.get(models.Q(emailaddress__email=self.email)

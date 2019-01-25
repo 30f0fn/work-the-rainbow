@@ -1,18 +1,22 @@
 from django.urls import path, include
-from . import views
+from main import views
 
-schedule_patterns = [
-    path('upcoming', views.UpcomingEventsView.as_view(),
-         name='upcoming-events')
+user_schedule_patterns = [
+    path('',
+         views.UpcomingEventsView.as_view(),
+         name='home'),
+    path('upcoming',
+         views.UpcomingEventsView.as_view(),
+         name='upcoming-events'),
+    path('worktime-preferences/<slug:classroom_slug>/<slug:child>',
+         views.WorktimePreferencesSubmitView.as_view(),
+         name='worktime-preferences'),
+    path('reschedule/<int:pk>',
+         views.WorktimeCommitmentRescheduleView.as_view(),
+         name='reschedule-worktimecommitment'),
 ]
 
-
-schedule_preferences_patterns = [
-    path('preferences', views.PreferencesSubmitView.as_view(),
-         name='preferences')    
-]
-
-classroom_schedule_patterns = [
+classroom_calendar_patterns = [
     path('',
          views.WeeklyClassroomCalendarView.as_view(),
          name='classroom-calendar'),
@@ -36,21 +40,19 @@ classroom_schedule_patterns = [
          name='monthly-classroom-calendar'),
 ]
 
-
-urlpatterns = [
-    path('', views.UpcomingEventsView.as_view(), name='home'), # maybe defined by user settings
-    # path('calendar/', include(family_calendar_patterns)),
-    path('schedule/', include(schedule_patterns)),
-    path('<slug:classroom_slug>/calendar/', include(classroom_schedule_patterns)),
-    path('<slug:classroom_slug>/<slug:child>/', include(schedule_preferences_patterns)),
+classroom_scheduling_patterns = [
+    path('<slug:child_slug>/<int:year>/<int:month>/<int:day>',
+         views.MakeWorktimeCommitmentsView.as_view(),
+         name='make-worktime-commitments'),
 ]
 
+classroom_patterns = [
+    path('scheduling/', include(classroom_scheduling_patterns)),
+    path('calendar/', include(classroom_calendar_patterns)),
+]
 
-"""
-general strategy for calendar urlconfs:
-supply units, and either no date, or either complete absolute date
-if no date, then use datetime.now, else use date supplied
-extract start_date and end_date from enclosing unit of date
-extract days, weeks from enclosing unit
-"""
-
+urlpatterns = [
+    path('/', include(user_schedule_patterns)),
+    # path('scheduling/', include(classroom_scheduling_patterns)),
+    path('<slug:classroom_slug>/', include(classroom_patterns)),
+]

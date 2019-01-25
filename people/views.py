@@ -8,7 +8,9 @@ from django.urls import reverse, reverse_lazy
 from django.shortcuts import redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib import messages
 from django.utils.decorators import method_decorator
+
 from allauth.account.views import LoginView
 from allauth.account.views import SignupView as LocalSignupView
 from allauth.account.models import EmailAddress
@@ -25,50 +27,43 @@ from . import rules
 # todo #
 ########
 
+# the property-decorated methods should be genuine properties of the view, maybe set in dispatch()
 # prune unused template files
 
 #############
 # utilities #
 #############
 
+
 class RelateEmailToObjectView(FormView):
     # subclass this with values for relation and get_related_object
     template_name = 'generic_create.html'
     form_class = forms.RelateEmailToObjectForm
     relation = None
+    relation_name = None
 
     def get_related_object(self, *args, **kwargs):
         raise NotImplementeError("you need to implement get_related_object")
 
+    # should this be a method of the related_object value? 
     def form_valid(self, form):
         email = form.cleaned_data['email']
         related_object = self.get_related_object()
         leto = RelateEmailToObject(email=email,
                                    relation=self.relation,
+                                   relation_name=self.relation_name,
                                    related_object=related_object)
-        try:
-            related_user = leto.execute()
-            message = f"added user {related_user} to {related_object}'s {self.relation} "
-            messages.add_message(self.request, messages.SUCCESS, message)
-            
-        except User.DoesNotExist:
-            leto.save()
-            Invitation.objects.filter(email=email).delete()
-            invite = Invitation.create(email)
-            invite.send_invitation(self.request)
-            message = f"sent invite to {email}; upon signup the resulting user will be added to {related_object}'s {self.relation} "
-            messages.add_message(self.request, messages.SUCCESS, message)
-
+        leto.activate(self.request)
         return super().form_valid(form)
 
 
 # class ClassroomMixin(LoginRequiredMixin, object):
 class ClassroomMixin(LoginRequiredMixin, PermissionRequiredMixin, object):
     permission_required = 'people.view_classroom'
-    @property
-    def classroom(self):
-        slug = self.kwargs['classroom_slug']
-        return Classroom.objects.get(slug=slug)
+    def dispatch(self, request, *args, **kwargs):
+        slug = kwargs.pop('classroom_slug')
+        self.classroom = Classroom.objects.get(slug=slug)
+        return super().dispatch(request, *args, **kwargs)
 
 
 class ClassroomEditMixin(ClassroomMixin):
@@ -93,6 +88,8 @@ class QuerysetInClassroomMixin(ClassroomMixin):
 # links to add a teacher or a child
 
 class ClassroomView(ClassroomMixin, DetailView):
+    def get_object(self):
+        return self.classroom
     permission_required='people.view_classroom'
     model = Classroom
 
@@ -110,8 +107,10 @@ class ClassroomCreateView(PermissionRequiredMixin, FormView):
                                  if key in form.cleaned_data})
         classroom.save()
         for email in form.cleaned_emails():
-            RelateEmailToObject(email=email, relation='schedulers',
-                              related_object=classroom).activate()
+            RelateEmailToObject(email=email,
+                                relation='scheduler_set',
+                                relation_name='schedulers',
+                                related_object=classroom).activate(self.request)
         self.classroom = classroom
         message = f"created the {classroom.name} classroom"
         messages.add_message(self.request, messages.SUCCESS, message)
@@ -141,8 +140,10 @@ class ChildAddView(ClassroomEditMixin, FormView):
                                 if key in form.cleaned_data})
         child.save()
         for email in form.cleaned_emails():
-            RelateEmailToObject(email=email, relation='parents',
-                                     related_object=child).activate()
+            RelateEmailToObject(email=email,
+                                relation='parent_set',
+                                relation_name='parents',
+                                related_object=child).activate(self.request)
             self.child = child
         message = f"added the kid {child.nickname}"
         messages.add_message(self.request, messages.SUCCESS, message)
@@ -184,7 +185,8 @@ class RelateEmailToClassroomView(ClassroomEditMixin, RelateEmailToObjectView):
 #############################
 
 class SchedulerAddView(RelateEmailToClassroomView):
-    relation = 'schedulers'
+    relation = 'scheduler_set'
+    relation_name = 'scheduler'
 
 
 ############################
@@ -192,9 +194,8 @@ class SchedulerAddView(RelateEmailToClassroomView):
 ############################
 
 class TeacherAddView(RelateEmailToClassroomView):
-    relation = 'teachers'
-
-# class TeacherRemoveView(ClassroomEditMixin, QuerysetInClassroomMixin, ...?):
+    relation = 'teacher_set'
+    relation_name = 'teachers'
 
 
 ###########################

@@ -1,0 +1,7 @@
+import random
+import constraint
+from constraint import *
+import itertools
+
+from main.models import Shift, WorktimeAssignment, WorktimeCommitment
+from people.models import Classroom, Child

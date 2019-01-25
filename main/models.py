@@ -4,8 +4,10 @@ from django.db import models
 from django.utils.timezone import make_aware
 
 from people.models import Child, Classroom
-from main.model_fields import WeekdayField, NumChoiceField
+from main.model_fields import WeekdayField, NumChoiceField, WEEKDAYS
 from main.utilities import WeekdayIterator, next_date_with_given_weekday
+
+from people.views import ClassroomMixin
 
 # what if family has two kids in one classroom?
 # one (end-user) solution is to apportion all worktime obligations to one of them
@@ -39,6 +41,7 @@ class Period(models.Model):
 
     @property
     def end_date(self):
+        # do this with query
         return self.start_date + self.duration
 
     def __str__(self):
@@ -49,12 +52,6 @@ class TimeSpan(models.Model):
     name = models.CharField(max_length=32)
     start_time = models.TimeField()
     end_time = models.TimeField()
-    # duration = models.DurationField(default=datetime.timedelta(days=0))
-
-    # @property
-    # def end_time(self):
-        # (datetime.datetime.combine(datetime.datetime(1, 1, 1),
-                                  # self.start_time) + self.duration).time()
 
     def __str__(self):
         return f"<Timespan {self.pk}: {self.name}>"
@@ -128,8 +125,12 @@ conversely, access children from shift
 
 
 class ShiftTimeSpan(TimeSpan):
-    def __str__(self):
+
+    def __repr__(self):
         return f"<ShiftTimeSpan {self.pk}: {self.name}>"
+
+    def __str__(self):
+        return f"{self.name} ({self.start_time} - {self.end_time})"
 
 
 class Shift(models.Model):
@@ -160,9 +161,6 @@ class Shift(models.Model):
         return ShiftInstance.objects.filter(shift=self,
                                             date__gte=period.start_date,
                                             date__lte=period.start_date+period.duration)
-    def __str__(self):
-        return f"<Shift {self.pk}: weekday={self.weekday}, time={self.time_span}>"
-
     @property
     def children(self):
         return Child.objects.filter(caredaycontract__careday__shifts__contains=self)
@@ -172,6 +170,12 @@ class Shift(models.Model):
         return CareDay.objects.get(weekday=self.weekday,
                                    time_span__start_time__lte=self.time_span.start_time,
                                    time_span__end_time__gte=self.time_span.end_time)
+
+    def __repr__(self):
+        return f"<Shift {self.pk}: weekday={self.weekday}, time={self.time_span}>"
+
+    def __str__(self):
+        return f"{WEEKDAYS[self.weekday]} {self.time_span}"
 
     class Meta:
         ordering = ['weekday', 'time_span']
@@ -192,6 +196,9 @@ class ShiftInstance(models.Model):
     @property
     def commitment(self):
         return self.worktimecommitment_set.first()
+
+    def __str__(self):
+        return f"{self.shift}, {self.date}"
 
     class Meta:
         ordering = ['date', 'shift']
@@ -238,3 +245,23 @@ class WorktimeCommitment(models.Model):
         ordering = ['shift_instance']
 
 
+class ClassroomWorktimeMixin(object):
+ 
+    def shifts_dict(self, date, classroom=None):
+        classroom = classroom or self.classroom
+        return {shift_instance:
+                shift_instance.worktimecommitment_set.filter(
+                    family__classroom=classroom).first()
+                for shift_instance in ShiftInstance.objects.filter(date=date)}
+
+    def days_dict(self, start_date, num_days, classroom=None):
+        classroom = classroom or self.classroom
+        return {date: self.shifts_dict(date, classroom=classroom)
+                for date in [start_date + datetime.timedelta(days=n)
+                             for n in range(num_days)]}
+
+    def weeks_list(self, start_date, num_weeks, classroom=None):
+        classroom = classroom or self.classroom
+        return [self.days_dict(date, 5, classroom=classroom)
+                for date in [start_date + n * datetime.timedelta(days=7)
+                             for n in range(num_weeks)]]

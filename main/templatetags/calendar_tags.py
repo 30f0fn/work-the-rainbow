@@ -20,3 +20,5 @@ def worktime_commitment_by_date_hour_minute(classroom, date, hour, minute):
                                           time=datetime.time(hour, minute))
     worktime = context['worktime_commitments_by_day'][when]
     return worktime
+
+

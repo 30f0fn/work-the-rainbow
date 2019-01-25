@@ -8,6 +8,7 @@ from allauth.account.models import *
 from invitations.models import *
 from main.models import * 
 from main.scheduler import *
+from main.forms import *
 
 user = User.objects.first()
 child = Child.objects.first()
@@ -16,6 +17,6 @@ period = Period.objects.filter(classroom=classroom).first()
 shift = Shift.objects.first()
 careday = CareDay.objects.first()
 caredaytimespan = CareDayTimeSpan.objects.first()
+si = ShiftInstance.objects.first()
+# wcrf = WorktimeCommitmentRescheduleForm(si)
 
-class DumbForm(Form):
-    afield = forms.TextField()

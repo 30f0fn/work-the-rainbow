@@ -23,9 +23,9 @@ class AddTeacherForm(Form):
     email = EmailField()
 
 
-class AddChildForm(PersonForm):
+class AddChildForm(Form):
 
-    short_name = CharField()
+    nickname = CharField()
     shifts_per_month = IntegerField()
     parent_email_1 = EmailField(required=False)
     parent_email_2 = EmailField(required=False)
