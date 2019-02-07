@@ -2,10 +2,10 @@ import functools
 
 from django.db import models
 from django.db.models import Q
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, Group
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 from django.contrib import messages
 
 from invitations.models import Invitation
@@ -15,43 +15,150 @@ import main.models
 # from people.email import send_invite_email
 
 
+
+
 ########
 # todo #
 ########
 
-# clean out the API for e.g. Classroom (want uniform access to parents/teachers/schedulers/children)
+# todo need roles parent, teacher, etc. to track the corresponding relations to objects child, classroom, etc
+
+# custom querysets with custom model managers
+
+"""
+role re-implementation
+
+roles of a user are determined by other database entries
+mainly needed for perspective navigator - want to return list of roles of given user, to generate series of links
+also need to maintain one role as the 'active' one for a given user, defining current perspective (maybe this should be recorded as a session variable?)
+
+without many-to-many relation to roles, how to determine that a user has several roles?  
+
+is it possible to use groups instead?
+"""
+
+
+
+# class Role(models.Model):
+#     PARENT = 1
+#     TEACHER = 2
+#     SCHEDULER = 3
+#     ADMIN = 4
+#     ROLE_CHOICES = (
+#         (PARENT, 'parent'),
+#         (TEACHER, 'teacher'),
+#         (SCHEDULER, 'scheduler'),
+#         (ADMIN, 'admin'),
+#     )
+
+#     id = models.PositiveSmallIntegerField(choices=ROLE_CHOICES, primary_key=True)
+    
+#     def role_name(self):
+#         return self.get_id_display()
+
+#     def get_absolute_url(self):
+#         return reverse(f'{self.role_name()}-home')
+
+#     def __str__(self):
+#         return self.get_id_display()
+
+# parent_role, _ = Role.objects.get_or_create(id=1)
+# teacher_role, _ = Role.objects.get_or_create(id=2)
+# scheduler_role, _ = Role.objects.get_or_create(id=3)
+# admin_role, _ = Role.objects.get_or_create(id=4)
 
 
 
 
+# role names should be singular!
+class Role(Group):
+
+    def get_absolute_url(self):
+        return reverse('role-home-redirect',
+                       kwargs={'group_name' : self.name}.lower())
+
+    def _membership_predicate(self):
+        return f'is_{self.name}'
+
+    def _accepts(self, user):
+        return getattr(user, self._membership_predicate())
+
+    def update_membership(self, user):
+        if self._accepts(user):
+            self.user_set.add(user)
+        else:
+            self.user_set.remove(user)
+        self.save()
+
+    class Meta:
+        proxy = True
+
+parent_role, _ = Role.objects.get_or_create(name='parent')
+teacher_role, _ = Role.objects.get_or_create(name='teacher')
+scheduler_role, _ = Role.objects.get_or_create(name='scheduler')
+admin_role, _ = Role.objects.get_or_create(name='admin')
 
 
 class User(AbstractUser):
 
-    # may have teacher without classroom
-    is_teacher = models.BooleanField(default=False)
+    active_role = models.ForeignKey(Role, null=True,
+                                     on_delete=models.PROTECT,
+                                     related_name='active_for')
 
-    is_admin = models.BooleanField(default=False)
+    # may have teacher without classroom
+    @property
+    def is_teacher(self):
+        return self.classrooms_as_teacher.exists()
 
     @property
+    def is_scheduler(self):
+        return self.classrooms_as_scheduler.exists()
+
+    @property
+    def is_parent(self):
+        return self.child_set.exists()
+
+    @property
+    def is_admin(self):
+        return self.is_superuser
+
     def classrooms_as_parent(self):
-        return Classroom.objects.filter(child__parent_set=self)
+        return Classroom.objects.filter(
+            child__parent_set=self).distinct()
+
+    def classrooms_as_admin(self):
+        return Classroom.objects.all()
+
+    def classrooms_as_teacher(self):
+        return self._classrooms_as_teacher.all()
+
+    def classrooms_as_scheduler(self):
+        return self._classrooms_as_scheduler.all()
 
     @property
     def classrooms(self):
-        if self.is_admin:
-            return Classroom.objects.all()
-        else:
-            return (self.classrooms_as_parent.all() \
-                    | self.classrooms_as_teacher.all()).distinct()
+        return getattr(self, f'classrooms_as_{self.active_role.name}')()
 
     @property
     def children(self):
         return self.child_set.all()
 
     @property
-    def worktime_commitments(self):
-        return self.child_set
+    def roles(self):
+        return self.groups.all()
+
+    @property
+    def has_multi_roles(self):
+        return len(list(self.roles)) > 1
+
+    def save(self):
+        if not self.active_role:
+            self.active_role = self.roles.first()
+        super().save()
+
+    # @property
+    # def worktime_commitments(self):
+        # return self.child_set
 
 
 class NamingMixin(object):
@@ -63,21 +170,9 @@ class Classroom(NamingMixin, models.Model):
     name = models.CharField(max_length=100, unique=True)
     slug = models.SlugField(max_length=50, unique=True)
     teacher_set = models.ManyToManyField(User,
-                                      related_name='classrooms_as_teacher')
+                                      related_name='_classrooms_as_teacher')
     scheduler_set = models.ManyToManyField(User,
-                                        related_name='classrooms_as_scheduler')
-
-    # @property
-    # def teachers(self):
-        # return self.teacher_set
-
-    # @property
-    # def schedulers(self):
-        # return self.scheduler_set
-
-    # @property
-    # def children(self):
-        # return self.child_set 
+                                        related_name='_classrooms_as_scheduler')
 
     @property
     def parents(self):
@@ -92,6 +187,9 @@ class Classroom(NamingMixin, models.Model):
         return reverse_lazy('classroom-roster', kwargs={'slug':self.slug})
 
     def __str__(self):
+        return self.name
+
+    def __repr__(self):
         return f"<Classroom {self.pk}: {self.name}>"        
 
 
@@ -99,14 +197,14 @@ class Child(NamingMixin, models.Model):
     # first_name = models.CharField(max_length=100)
     # last_name = models.CharField(max_length=100)
     nickname = models.CharField(max_length=100)
-    classroom = models.ForeignKey(Classroom, on_delete=models.DO_NOTHING)
+    classroom = models.ForeignKey(Classroom, on_delete=models.PROTECT)
     shifts_per_month = models.IntegerField(default=2)
 
     parent_set = models.ManyToManyField(User)
 
     @property
     def caredays(self):
-        return main.models.CareDay.objects.filter(caredayassignment__child=self)
+        return main.models.CareDayAssignment.objects.filter(child=self)
 
     # below is hideous...
     # want the union, for each careday of child, of the shifts of that careday
@@ -116,8 +214,8 @@ class Child(NamingMixin, models.Model):
         caredays = self.caredays.all()
         def get_q(careday):
             return Q(weekday=careday.weekday, 
-                     time_span__start_time__gte=careday.time_span.start_time,
-                     time_span__end_time__lte=careday.time_span.end_time)
+                     start_time__gte=careday.start_time,
+                     end_time__lte=careday.end_time)
         return main.models.Shift.objects.filter(
             functools.reduce(lambda x, y : x | y, map(get_q, caredays)))
 
@@ -126,6 +224,9 @@ class Child(NamingMixin, models.Model):
         return main.models.WorktimeCommitment.objects.filter(family=self)
 
     def __str__(self):
+        return f"{self.nickname}"
+
+    def __repr__(self):
         return f"<Child {self.pk}: {self.nickname}>"
 
     class Meta:

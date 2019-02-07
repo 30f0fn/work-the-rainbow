@@ -1,0 +1,19 @@
+<div id="teaching-nav">
+  <a href='{% url 'teacher-home' %}'>
+    home
+  </a>
+  {% for classroom in user.classrooms %}
+    <table>
+      <tr>
+        <td>
+          <a href="{% url 'classroom-calendar' classroom.slug %}"> {{classroom.slug}} calendar</a>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <a href="{% url 'classroom-roster' classroom.slug %}"> {{classroom.slug}} roster</a>
+        </td>
+      </tr>
+    </table>
+  {% endfor %}
+</div>

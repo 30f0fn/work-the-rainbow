@@ -1,4 +1,5 @@
 import datetime
+from collections import defaultdict
 
 from django.forms import Form, CharField, EmailField, SlugField, ValidationError, ModelChoiceField, IntegerField, ModelForm, ModelMultipleChoiceField, BooleanField
 from django.forms.widgets import CheckboxSelectMultiple, RadioSelect
@@ -7,7 +8,7 @@ from django.forms.widgets import CheckboxSelectMultiple, RadioSelect
 # import main.views
 import main.schedule_settings
 import main.models
-from main.models import ClassroomWorktimeMixin, ShiftInstance, WorktimeCommitment
+from main.models import ShiftInstance
 import people.models
 
 """
@@ -61,50 +62,37 @@ class PreferenceSubmitForm(Form):
                                                            rank=rank)
 
 
-class WorktimeCommitmentRescheduleForm(ClassroomWorktimeMixin, ModelForm):
+# class WorktimeCommitmentRescheduleForm(Form):
 
-    def __init__(self, *args, **kwargs):
-        # earliest, latest should be adjustable in CLASSROOM_SETTINGS
-        super().__init__(*args, **kwargs)
-        earliest = max(datetime.datetime.now().date() + datetime.timedelta(days=1),
-                       self.instance.date - datetime.timedelta(days=7))
-        latest = self.instance.date + datetime.timedelta(days=7)
-        family = self.instance.family
-        queryset = main.models.ShiftInstance.objects.filter(
-            date__range=(earliest, latest),
-            worktimecommitment=None,
-            shift__in=family.shifts)
-        self.fields['shift_instance'] = ModelChoiceField(queryset=queryset,
-                                                         widget=RadioSelect,
-                                                         empty_label=None)
+#     def __init__(self, *args, **kwargs):
+#         # earliest, latest should be adjustable in CLASSROOM_SETTINGS
+#         super().__init__(*args, **kwargs)
+#         earliest = max(datetime.datetime.now().date() + datetime.timedelta(days=1),
+#                        self.instance.date - datetime.timedelta(days=7))
+#         latest = self.instance.date + datetime.timedelta(days=7)
+#         family = self.instance.family
+#         queryset = main.models.ShiftInstance.objects.filter(
+#             date__range=(earliest, latest),
+#             commitment=None,
+#             shift__in=family.shifts)
+#         self.fields['shift_instance'] = ModelChoiceField(queryset=queryset,
+#                                                          widget=RadioSelect,
+#                                                          empty_label=None)
 
-    class Meta:
-        model = main.models.WorktimeCommitment
-        fields = ['shift_instance']
 
     
 # scheduling form
 # for each family, select multiple shiftinstances
 
-# show a range of weeks, and all shifts for each day in each week
-# give a checkbox option for each shift available to a given family
-# indicate preferences at each available shift
-
-# a single selectmultiple field with options = shifts available to family
-# in view, list all families with nonzero obligations, with remaining needed commitments
 
 class MakeFamilyCommitmentsForm(Form):
 
-    def __init__(self, family, start_date, end_date, existing_commitments, available_shifts,
-                 *args, **kwargs):
+    def __init__(self, family, available_shifts, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.start_date = start_date
-        self.end_date = end_date
         self.family = family
-        self.existing_commitments = existing_commitments
-        self.shift_instances = available_shifts
+        self.available_shifts = available_shifts
         self.fields.update({str(si.pk) : BooleanField(required=False)
-                            for si in self.shift_instances})
+                            for si in self.available_shifts})
 
     def clean(self, *args, monthly=True, **kwargs):
         super().clean(*args, **kwargs)
@@ -115,26 +103,54 @@ class MakeFamilyCommitmentsForm(Form):
             # maybe only a warning here? 
             raise ValidationError(f"The family of {self.family} needs only {self.family.shifts_per_month}, but this assigns them {num_shifts}")
 
-    # for each shiftinstance option in the shiftinstancesfield,
-    # if it is checked but no commitment yet exists, create a corresponding commitment
-    # if it is unchecked, delete corresponding commitment
-
-    def shifts_to_add(self):
-        return [ShiftInstance.objects.get(pk=int(si_pk))
-                for si_pk in self.cleaned_data 
-                if (self.cleaned_data[si_pk] and
-                    int(si_pk) not in [si.pk for si in self.existing_commitments])]
-
-    def shifts_to_remove(self):
-        return [si for si in self.existing_commitments
-                  if (str(si.pk) in self.cleaned_data and
-                      not self.cleaned_data[str(si.pk)])]
-        
-    def revise_commitments(self, to_add, to_remove):
-        for si in to_add:
-            WorktimeCommitment.objects.create(
-                shift_instance=si, family=self.family)
-        for si in to_remove:
-            si.worktimecommitment_set.filter(family=self.family).delete()
+    def revise_commitments(self):
+        revisions = defaultdict(list)
+        for si in self.available_shifts:
+            print(si, self.cleaned_data[str(si.pk)])
+            if self.cleaned_data[str(si.pk)] and not si.commitment:
+                revisions['added'].append(si)
+                si.commitment = self.family
+                si.save()
+            elif not self.cleaned_data[str(si.pk)] and si.commitment:
+                revisions['removed'].append(si)
+                si.commitment = None
+                si.save()
+        print(revisions)
+        return revisions
 
 
+    # below seems too tricky
+    # def revise_commitments(self):
+    #     revisions = [[],[]]
+    #     for si in self.available_shifts:
+    #         was_committed = (si.commitment == self.family)
+    #         if self.cleaned_data[str(si.pk)] != was_committed:
+    #             self.commitment = family if not self.commitment else None
+    #             revisions[was_committed].append(si)
+    #     return {'added':revisions[0], 'removed':revisions[1]}
+
+
+
+
+
+
+class RescheduleWorktimeCommitmentForm(Form):
+
+    def __init__(self, family, current_shift, available_shifts, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.family = family
+        self.current_shift = current_shift
+        self.fields['new_shift'] = ModelChoiceField(
+            queryset=available_shifts,
+            widget=RadioSelect,
+            empty_label=None)
+
+    def execute(self, *args, **kwargs):
+        new_shift = self.cleaned_data.get('new_shift')
+        if new_shift != self.current_shift:
+            self.current_shift.commitment = None
+            self.current_shift.save()
+            new_shift.commitment = self.family
+            new_shift.save()
+            return {'removed' : self.current_shift,
+                    'added' : new_shift}

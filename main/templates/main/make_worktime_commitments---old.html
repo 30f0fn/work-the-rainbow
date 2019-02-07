@@ -1,0 +1,72 @@
+{% extends "worktime/base.html" %}
+
+{% load people_tags %}
+{% load main_tags %}
+
+{% load rules %}
+
+{% block content %}
+
+  <h1>
+    worktime scheduling 
+  </h1>
+<h2>
+{{view.family}}, {{view.start_date|date:"F j"}}-{{view.end_date|date:"F j"}}
+</h2>
+
+
+{# navigating between dates #}
+{# todo - implement #}
+
+{# navigating between families #}
+  {% for family in view.classroom.child_set.all %}
+    {% if family != view.family %}
+      <a href='{% url 'make-worktime-commitments' view.classroom.slug family.nickname view.date.year view.date.month view.date.day %}'>
+        {{family}}
+      </a>
+    {% else %}
+      {{family}}
+    {% endif %}
+  {% endfor %}
+
+  <form action="{{request.path}}" method="post">
+    {% csrf_token %}
+    <table>
+      <tr>
+        {% for day in view.worktimes_struct.0 %}
+          <td>
+            {{ day|date:"l" }}
+          </td>
+        {% endfor %}
+      </tr>
+      {% for week in view.worktimes_struct %}
+        <tr>
+          {% for day, shift_instances in week.items %}
+            <td {% if day <= now %} class="calendar-past" {% endif %} >
+                {{day.date|date:"n/j"}}
+                <table>
+                  {% for shift_instance, commitment in shift_instances.items %}
+                    <tr>
+                      <td>
+                        {{shift_instance.start_time |time:"g:i"}}
+                      </td>
+                      <td>
+                        {% if commitment and commitment.family != view.family %}
+                          {{commitment.family.nickname}}
+                          {# {% elif shift_instance.pk in form.fields %} #}
+                        {% else %}
+                          {{ form|render_field_from_int:shift_instance.pk }}
+                          &nbsp;
+                        {% endif %}
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </table>
+</td>
+{% endfor %}
+</tr>
+{% endfor %}
+</table>
+<button type="submit", value="Submit">save</button>
+<form>
+{% endblock content %}

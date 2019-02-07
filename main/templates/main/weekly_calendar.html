@@ -7,15 +7,15 @@
 <h1> {{view.classroom.name}} - week of {{view.start_date|date:"n/j/y"}}</h1>
   {% include 'calendar-nav.html' %}
   <ul>
-    {% for day, shift_instances in view.worktimes_struct.items %}
+    {% for day, shifts in view.shifts_by_week.0.items %}
       <li>
-        {{day.date|date:"l, F j"}} 
+        {{day|date:"l, F j"}} 
         <ul> 
-          {% for shift_instance, commitment in shift_instances.items %}
-            <li>
-              {{shift_instance.start_time}}: {{commitment.family.nickname}}
-            </li>
-          {% endfor %}
+          {% for shift in shifts %}  
+            <li> 
+              {{shift.start_time |time:"g:i"}}: {{shift.commitment.nickname}} 
+            </li> 
+          {% endfor %}  
         </ul>
       </li>
     {% endfor %}

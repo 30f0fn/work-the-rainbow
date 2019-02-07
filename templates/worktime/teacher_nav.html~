@@ -1,0 +1,21 @@
+<div id="teaching-nav">
+  {% for classroom in user.classrooms_as_teacher %}
+    <table>
+      <tr>
+        <td>
+          {{classroom}}
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <a href="{% url 'classroom-calendar' classroom.slug %}"> calendar</a>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <a href="{% url 'classroom-roster' classroom.slug %}"> roster</a>
+        </td>
+      </tr>
+    </table>
+  {% endfor %}
+</div>

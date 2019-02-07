@@ -1,55 +1,37 @@
-worktime commitment representation
-----------------------------------
 
-- strategy: model WorktimeCommitment as Occurrence of a WorktimeAssignment Event; generate the Occurrences from the Event by a rule; then override manually for exceptions.
+todo 
 
-- each WorktimeCommitment has this data:
-    - classroom
-    - family
-    - date and starttime, endtime
+- CareDay Exceptions
+- generate caredays programmatically
+- generate shiftinstances programmatically
 
-- in turn, WorktimeAssignment event has this data:
-    - classroom
-    - family
-    - weekday
-    - shiftnumber
-    - period (start and end of four-month cycle) and within-period parity
-
-calendars
----------
-
-- calendars for bigelow, for classroom and for each family
-- seems natural to use inheritance
+- refactorings with ModelManagers
 
 interface
 ---------
 
-- edit WorktimeCommitments
-    - offer WorktimeCommitments to swap
-    - return form with available options
+- toggle between user perspectives: parent, scheduler, teacher, administrator
+    - implement in templates
+        - base template supplies perspective toggle
+        - perspective supplied by perspective base template
+            - base_parent.html, base_scheduler.html, etc
+        - <perspective>_base.html supplies appropriate menu items
+
+- data for each role
+    - parent
+        - links: parent-home, parent calendar, roster
+        - home: upcoming
+    - teacher
+        - links: teacher-home, attendance, calendar, roster
+        - home: today's shifts
+    - scheduler
+        - links: scheduler-home, edit class cal, edit roster, class config, prefs
+        - home: 
+    - admin
+        - links: admin-home, admin cal, admin page, site config, scheduler panopticon
 
 
+- need main splash page with some basic links plus info for people who aren't registered
 
-
-formview vs updateview
-
-    FormView
-    TemplateResponseMixin
-    BaseFormView
-    FormMixin
-    ContextMixin
-    ProcessFormView
-    View
-
-
-    UpdateView
-    SingleObjectTemplateResponseMixin <don't need>
-    <!-- TemplateResponseMixin -->
-    BaseUpdateView <don't want>
-    ModelFormMixin <don't want>
-    <!-- FormMixin -->
-    <!-- SingleObjectMixin -->
-    <!-- ContextMixin -->
-    <!-- ProcessFormView -->
-    <!-- View -->
-
+- need CareDay exceptions: extra day, extended/de-extended day, cancelled day
+- then want a generator or something which returns the caredayinstances for a child in some timespan

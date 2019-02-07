@@ -7,23 +7,26 @@ from people.models import Classroom
 def is_parent_of(user, child):
     return user in child.parent_set.all()
 
+
 @rules.predicate
 def is_parent_in_classroom(user, classroom):
     return classroom in Classroom.objects.filter(child__parents=user)
     # return user in Classroom.objects.filter(child__parent=profile)
 
+
 @rules.predicate
 def is_teacher_in_classroom(user, classroom):
     return user in classroom.teacher_set.all()
+
 
 @rules.predicate
 def is_scheduler_in_classroom(user, classroom):
     return user in classroom.scheduler_set.all()
 
+
 @rules.predicate
 def is_admin(user):
     return user.is_superuser
-
 
 
 rules.add_rule('people.edit_child',

@@ -1,0 +1,5 @@
+<div id='admin-nav'>
+  {% for classroom in user.classrooms %}
+    <a href='{% url classroom.get_absolute_url %}'>{{classroom}}</a>
+  {% endfor %}
+</div>

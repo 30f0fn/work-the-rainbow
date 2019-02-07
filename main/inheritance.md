@@ -1,0 +1,14 @@
+
+CalendarMixin: 
+DailyCalendarView, WeeklyCalendarView, MonthlyCalendarView, WorktimeFamilyEditView, WorktimeSchedulerEditView
+
+WeeklyCalendarMixin
+
+ClassroomMixin: 
+CalendarMixin
+
+WorktimeEditPerFamilyMixin: 
+WorktimeEditByFamilyView, WorktimeEditBySchedulerView
+
+ClassroomWorktimeMixin:
+DailyCalendarView, WeeklyCalendarView, MonthlyCalendarView, WorktimeFamilyEditView, WorktimeSchedulerEditView

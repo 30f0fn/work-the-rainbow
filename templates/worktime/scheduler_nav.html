@@ -1,0 +1,28 @@
+<div id="scheduler-nav">
+  <a href='{% url scheduler-home %}'>
+    home
+  </a>
+  {% for classroom in user.classrooms %}
+    <table>
+      <td>
+        <tr>
+          <a href="{% url 'classroom-calendar' classroom.slug %}">
+            {{classroom.slug}} calendar
+          </a>
+        </tr>
+      </td>
+      <tr>
+        <td>
+          <a href="{% url 'classroom-roster' classroom.slug %}">
+            {{classroom.slug}} roster
+          </a>
+        </td>
+      </tr>
+      <tr> 
+        <td>  
+        <a href="{% url 'scheduling' classroom.slug %}"> settings</a>  
+        </td>  
+      </tr> 
+    </table>
+  {% endfor %}
+</div>

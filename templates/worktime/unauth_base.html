@@ -1,0 +1,28 @@
+{% load people_tags %}
+{% load rules %}
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    {# <link rel="stylesheet" href="style.css">  #}
+    <title>work the rainbow</title>
+  </head>
+
+  <body>
+    <div id="messages">
+      {% for message in messages %}
+        <p{% if message.tags %} class="{{ message.tags }}"{% endif %}>
+          {{ message }}
+        </p>
+      {% endfor %}
+    </div>
+
+    <div id="content">
+      {% block content %}
+      {% endblock %}
+    </div>
+  </body>
+</html>
+
+
+

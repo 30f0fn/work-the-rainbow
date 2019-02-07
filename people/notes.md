@@ -88,4 +88,3 @@ Todo for People app
     - user-editing profile info; add social accounts
     
 - invite teachers (existing users or no)
-

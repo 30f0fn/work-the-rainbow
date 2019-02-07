@@ -1,6 +1,8 @@
 from django.urls import path, include
 from . import views
 
+import main.views
+
 classroom_urls = [
     # path('kids',
          # views.ChildrenListView.as_view(), name='list-children'),
@@ -49,6 +51,8 @@ urlpatterns = [
          views.ClassroomView.as_view(), name='classroom-roster'),
     path('create_classroom', 
          views.ClassroomCreateView.as_view(), name='create-classroom'),
+
+
     # path('invited/<slug:token>',
          # views.InviteAcceptView.as_view(), name='accept-invitation'),
 ]

@@ -24,3 +24,7 @@ def display_user_list(ul):
         ((u.email, u.username) for u in ul)
     )
 
+@register.filter
+def addstr(arg1, arg2):
+    """concatenate arg1 & arg2"""
+    return str(arg1) + str(arg2)

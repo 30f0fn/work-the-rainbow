@@ -1,0 +1,50 @@
+{% extends "worktime/base.html" %}
+
+{% load people_tags %}
+{% load main_tags %}
+
+{% load rules %}
+
+{% block content %}
+
+  <h1>
+    worktime scheduling 
+  </h1>
+<h2>
+{{view.family}}, {{view.start_date|date:"n/j"}}-{{view.end_date|date:"n/j"}}
+</h2>
+
+
+{# navigating between dates  #}
+{# todo - implement navigation between dates #}
+
+{% include 'worktime-reschedule-nav.html' %}
+
+  <form action="{{request.path}}" method="post">
+    {% csrf_token %}
+    <ul>
+      {% for day, shifts in view.shifts_by_week.0.items %}
+        <li>
+          {{day|date:"l, F j"}} 
+          <ul> 
+            {% for shift in shifts %}  
+              <li> 
+                {{shift.start_time |time:"g:i"}}:
+                {% with shift.commitment as commitment %}
+                  {% if commitment and commitment != view.family %}
+                    {{commitment.nickname}}
+                    {# {% elif shift_instance.pk in form.fields %} #}
+                  {% else %}
+                    {{ form|render_field_from_int:shift.pk }}
+                    &nbsp;
+                  {% endif %}
+                {% endwith %}
+              </li> 
+            {% endfor %}  
+          </ul>
+        </li>
+      {% endfor %}
+    <button type="submit", value="Submit">save</button>
+  </form>
+{% endblock content %}
+  

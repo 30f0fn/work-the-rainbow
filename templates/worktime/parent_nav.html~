@@ -1,0 +1,23 @@
+<div id="parent-nav">
+  {% for child in user.children %}
+    {% with child.classroom as classroom %}
+      <table>
+        <tr>
+          <td>
+            {{classroom}}
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <a href="{% url 'classroom-calendar' classroom.slug %}"> calendar</a>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <a href="{% url 'classroom-roster' classroom.slug %}"> roster</a>
+          </td>
+        </tr>
+      </table>
+    {% endwith %}
+  {% endfor %}
+</div>

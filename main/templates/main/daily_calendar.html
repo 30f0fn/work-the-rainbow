@@ -6,11 +6,10 @@
 {% block content %}
 <h1> {{view.classroom.name}} - {{view.date|date:"l, n/j/y"}}</h1>
   {% include 'calendar-nav.html' %}
-{{view.date.date}}
   <ul> 
-    {% for shift_instance, commitment in view.worktimes_struct.items %}
+    {% for shift in view.shifts %}
       <li>
-        {{shift_instance.start_time}}: {{commitment.family.nickname}}
+        {{shift.start_time}}: {{shift.commitment.nickname}}
       </li>
     {% endfor %}
   </ul>

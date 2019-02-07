@@ -23,3 +23,16 @@ INTERNAL_IPS = ['127.0.0.1']
 
 GOOGLE_OAUTH_CLIENT_ID = '172679960487-7um12gthi9rcp40rtqfptm7ai59frm03.apps.googleusercontent.com'
 GOOGLE_OAUTH_CLIENT_SECRET = 'vQdOqG8FIK4nCg8DPM0UAOL7'
+
+# Database
+# https://docs.djangoproject.com/en/2.1/ref/settings/#databases
+DATABASES = {
+    'default': {
+        'ENGINE' : 'django.db.backends.postgresql_psycopg2',
+        'NAME' : 'worktime',
+        'USER' : 'mw',
+        'PASSWORD' : '30f0fnts',
+        'HOST' : 'localhost',
+        'PORT' : '',
+    }
+}

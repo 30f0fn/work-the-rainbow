@@ -6,38 +6,36 @@
 {% block content %}
   <h1>{{view.classroom.name}} - {{view.date|date:"F Y"}}</h1>
   {% include 'calendar-nav.html' %}
-  <table>
-    <tr>
-      {% for day in view.worktimes_struct.0 %}
-        <td>
-          {{ day|date:"l" }}
-        </td>
-        {% endfor %}
-    </tr>
-    {% for week in view.worktimes_struct %}
+  {% with view.shifts_by_week as shifts_by_week %}
+    <table>
       <tr>
-        {% for day, shift_instances in week.items %}
-          <td {% if day <= now %} class="calendar-past" {% endif %} > {{day}}
-            <table>
-              {% for shift_instance, commitment in shift_instances.items %}
-                <tr>
-                  {% if commitment %}
-                    <td>
-                      {{shift_instance.start_time |time:"H:i"}}
-                    </td>
-                  <td>
-                    {{commitment.family.nickname}}
-                  </td>
-                {% else %}
-                  <td>&nbsp;</td><td>&nbsp;</d>
-                {% endif %}
-                </tr>
-              {% endfor %}
-            </table>
+        {% for day in shifts_by_week.0 %}
+          <td>
+            {{ day|date:"l" }}
           </td>
         {% endfor %}
       </tr>
-    {% endfor %}
-  </table>
-
+      {% for week in shifts_by_week %}
+        <tr>
+          {% for day, shifts in week.items %}
+            <td>
+              {{day|date:"j"}}
+              <table>
+                {% for shift in shifts %}
+                  <tr>
+                    <td>
+                      {{shift.start_time |time:"g:i"}}
+                    </td>
+                    <td>
+                      {{shift.commitment.nickname}}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </table>
+            </td>
+          {% endfor %}
+        </tr>
+      {% endfor %}
+    </table>
+  {% endwith %}
 {% endblock content %}

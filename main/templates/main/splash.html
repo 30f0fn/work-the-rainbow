@@ -1,0 +1,14 @@
+{% extends "worktime/unauth_base.html" %}
+
+{% load people_tags %}
+{% load main_tags %}
+
+{% load rules %}
+
+{% block content %}
+<div id="auth-panel">
+  <a href="{% url 'account_login' %}">sign in</a> 
+</div>
+<p>Welcome to the worktime management site, for parents, teachers, schedulers and adminstrators at Bigelow Cooperative Daycare in Somerville, MA.</p>
+<p>For site access, please contact either your kid's classroom scheduler or a site administrator.</p>
+{% endblock %}

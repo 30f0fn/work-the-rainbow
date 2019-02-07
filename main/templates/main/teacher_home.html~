@@ -1,0 +1,36 @@
+{% extends "worktime/base.html" %}
+
+{% load people_tags %} 
+{% load rules %}
+
+{% block content %}
+
+  <h1>
+    {{classroom}}, {{current_or_next_daycare_day}}
+  </h1>
+
+  <h2>
+    worktimes
+  </h2>
+  <ul>
+  {% for shift in view.shifts %}
+    <li>
+      {{shift.start_time | time:"g:i"}}: {{shift.commitment.nickname}}
+    </li>
+  {% endfor %}
+  </ul>  
+
+  <h2>
+    kids
+  </h2>
+  <ul>
+  {% for careday in caredays_today %}
+    <li>{{careday.child}}
+      {% if careday.extended %}
+        (extended)
+      {% endif %}
+    </li>
+  {% endfor %}
+  </ul>
+
+{% endblock content %}

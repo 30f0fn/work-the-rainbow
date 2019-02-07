@@ -2,7 +2,7 @@
 
 from django.http import Http404
 from django.shortcuts import render
-from django.views.generic import DetailView, ListView, FormView, CreateView, UpdateView, DeleteView, TemplateView
+from django.views.generic import DetailView, ListView, FormView, CreateView, UpdateView, DeleteView, TemplateView, RedirectView
 from django.views.generic.detail import SingleObjectMixin
 from django.urls import reverse, reverse_lazy
 from django.shortcuts import redirect
@@ -11,10 +11,10 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.utils.decorators import method_decorator
 
-from allauth.account.views import LoginView
-from allauth.account.views import SignupView as LocalSignupView
+# from allauth.account.views import LoginView
+# from allauth.account.views import SignupView as LocalSignupView
 from allauth.account.models import EmailAddress
-from allauth.socialaccount.views import SignupView as SocialSignupView
+# from allauth.socialaccount.views import SignupView as SocialSignupView
 from invitations.models import Invitation
 from rules.contrib.views import PermissionRequiredMixin
 
@@ -33,8 +33,7 @@ from . import rules
 #############
 # utilities #
 #############
-
-
+ 
 class RelateEmailToObjectView(FormView):
     # subclass this with values for relation and get_related_object
     template_name = 'generic_create.html'
@@ -65,6 +64,11 @@ class ClassroomMixin(LoginRequiredMixin, PermissionRequiredMixin, object):
         self.classroom = Classroom.objects.get(slug=slug)
         return super().dispatch(request, *args, **kwargs)
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update({'classroom' : self.classroom})
+        return context
+
 
 class ClassroomEditMixin(ClassroomMixin):
     permission_required = 'people.edit_classroom'
@@ -78,6 +82,20 @@ class QuerysetInClassroomMixin(ClassroomMixin):
         return self.model.objects.filter(classroom=self.classroom,
                                         slug=self.kwargs[item_slug])    
 
+
+
+
+########################
+# Role-switching views #
+########################
+
+class SwitchRolesView(RedirectView):
+
+    def new_role(self):
+        return self.kwargs.pop('new_role')
+
+    def get_redirect_url(self):
+        return f'{self.new_role()}-home'
 
 ###################
 # top-level views #
@@ -231,4 +249,3 @@ class ProfileEditView(UpdateView):
 
 # class ParentRemoveView(ClassroomEditMixin, QuerysetInClassroomMixin, DetailView):
 #     model = Parent
-

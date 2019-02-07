@@ -1,0 +1,76 @@
+{% extends "worktime/base.html" %}
+
+{% load people_tags %}
+{% load main_tags %}
+
+{% load rules %}
+
+{% block content %}
+
+  <h1>
+    worktime scheduling 
+  </h1>
+<h2>
+{{view.family}}, {{view.start_date|date:"n/j"}}-{{view.end_date|date:"n/j"}}
+</h2>
+
+
+{# navigating between dates  #}
+{# todo - implement navigation between dates #}
+{# {{view.shift_instance}} #}
+{# {{view.available_shifts}} #}
+
+{{view.get_initial}}
+
+<form action="{{request.path}}" method="post">
+    {% csrf_token %}
+    {{ form.as_ul }}
+    <input type="submit" value="Submit">
+</form>
+
+
+
+  {# <form action="{{request.path}}" method="post"> #}
+  {#   {% csrf_token %} #}
+  {#   <table> #}
+  {#     <tr> #}
+  {#       {% for day in view.weeks.0 %} #}
+  {#         <td> #}
+  {#           {{ day|date:"l" }} #}
+  {#         </td> #}
+  {#       {% endfor %} #}
+  {#     </tr> #}
+  {#     {% for week in view.shifts_by_week %} #}
+  {#       <tr> #}
+  {#         {% for day, shifts in week.items %} #}
+  {#           <td> #}
+  {#               {{day|date:"n/j"}} #}
+  {#               <table> #}
+  {#                 {% for shift in shifts %} #}
+  {#                   <tr> #}
+  {#                     <td> #}
+  {#                       {{shift.start_time |time:"g:i"}} #}
+  {#                     </td> #}
+  {#                     <td> #}
+  {#                       {% with shift.commitment as commitment %} #}
+  {#                         {% if commitment and commitment != view.family %} #}
+  {#                           {{commitment.nickname}} #}
+  {#                           {\# {% elif shift_instance.pk in form.fields %} #\} #}
+  {#                         {% else %} #}
+  {#                           {{ form|render_field_from_int:shift.pk }} #}
+  {#                           &nbsp; #}
+  {#                         {% endif %} #}
+  {#                       {% endwith %} #}
+  {#                     </td> #}
+  {#                   </tr> #}
+  {#                 {% endfor %} #}
+  {#               </table> #}
+  {#           </td> #}
+  {#         {% endfor %} #}
+  {#       </tr> #}
+  {#     {% endfor %} #}
+  {#   </table> #}
+  {#   <button type="submit", value="Submit">save</button> #}
+  {# </form> #}
+{% endblock content %}
+  
