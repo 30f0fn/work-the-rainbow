@@ -1,20 +1,28 @@
-import rules
-from people.models import *
-from allauth.account.models import *
-from invitations.models import *
-from main.models import * 
-from main.utilities import *
 
-classroom = Classroom.objects.first()
-period = Period(classroom=classroom, start_date=datetime.datetime(2019, 1, 1))
-shift = Shift.objects.first()
-for s in Shift.objects.all():
-    s.create_instances_in_period(period)
+def dates_in_range(start, end):
+    date = start
+    while date <= end:
+        yield date
+        date += datetime.timedelta(days=1)
 
+def instances_in_date_range(shift, start_date, end_date):
+    holidays = Holiday.objects.filter(start_date__lte=end_date,
+                                      end_date__gte=start_date)
+    holiday_dates = [date for holiday in holidays
+                     for date in date_range(holiday.start_date, holiday.end_date)]
+    date = next_date_with_given_weekday(int(shift.weekday), start_date)
+    while date <= end_date:
+        if date not in holiday_dates:
+            yield ShiftInstance.from_shift(shift, date)
+        date += datetime.timedelta(days=7)
+ 
+def even_nums_in_range(min, max):
+    num = min
+    while num <= max:
+        if num % 2 == 0:
+            yield num
+        num += 1
 
-
-Invitation.objects.all()
-u = User.objects.all()[0]
-c = Child.objects.first()
-uuu = User.objects.all()[2]
-lrb = Classroom.objects.all()[0]
+idr = instances_in_date_range(shift, today, next_month)
+for i in idr:
+    print(i)

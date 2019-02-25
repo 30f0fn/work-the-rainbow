@@ -3,7 +3,7 @@ import constraint
 from constraint import *
 import itertools
 
-from main.models import Shift, WorktimeAssignment
+from main.models import Shift, ShiftAssignment
 from people.models import Classroom, Child
 
 """
@@ -34,12 +34,11 @@ def create_optimal_shift_assignments(classroom, period):
 def create_commitments(classroom, period):
     for s in Shift.objects.all():
         families = [wtc.family for wtc in s.worktimeassignment_set.all()]
-        shift_instances = s.instances_in_period(period)
+        shift_instances = s.instances_in_date_range(period.start_date, period.end_date)
         for index, family in enumerate(families):
             # alternate weeks to assign
             for instance in shift_instances[index::2]:
-                instance.commitment=family
-                instance.save()
-                print(instance)
+                commitment = instance.create_commitment(family)
+                print(commitment)
 
   

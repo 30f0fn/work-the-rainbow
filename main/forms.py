@@ -115,7 +115,7 @@ class MakeFamilyCommitmentsForm(Form):
                 revisions['removed'].append(si)
                 si.commitment = None
                 si.save()
-        print(revisions)
+        # print(revisions)
         return revisions
 
 

@@ -23,6 +23,11 @@ def next_date_with_given_weekday(weekday, from_date):
     # return next_date_with_given_weekday(1, from_date) - datetime.timedelta(days=7)
 
 
+def add_delta_to_time(time, timedelta):
+    stupid_datetime = (datetime.datetime.combine(
+        datetime.datetime.now().date(), time))
+    return (stupid_datetime + timedelta).time()
+
 def week_from(first_day):
     return [start_date + datetime.timedelta(days=i)
             for i in range(7)]
@@ -46,3 +51,22 @@ def weeks_for_month(year, month, outliers=False):
 
 
 
+
+def dates_in_range(start, end):
+    date = start
+    while date <= end:
+        yield date
+        date += datetime.timedelta(days=1)
+
+
+# move to manager of CareDays
+def caredays_in_range(start, end):
+    holidays = Holiday.objects.filter(start_date__lte=end_date,
+                                      end_date__gte=start_date)
+    holiday_dates = [date for holiday in holidays
+                     for date in date_range(holiday.start_date, holiday.end_date)]
+    date = start
+    while date <= end:
+        if date not in holiday_dates and date.weekday() < 5:
+            yield date
+        date += datetime.timedelta(days=1)
