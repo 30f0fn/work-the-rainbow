@@ -8,7 +8,6 @@ from django.db import models
 from django.utils import timezone
 
 
-from recurrence.fields import RecurrenceField, recurrence
 
 from people.models import Child, Classroom
 from main.model_fields import WeekdayField, NumChoiceField, WEEKDAYS
