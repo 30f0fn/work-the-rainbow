@@ -12,18 +12,15 @@ from invitations.models import Invitation
 
 import main.models
 
-# from people.email import send_invite_email
-
-
-
 
 ########
 # todo #
 ########
 
 # todo need roles parent, teacher, etc. to track the corresponding relations to objects child, classroom, etc
+# need to retrieve all roles of user
+# have logical and database relationzations, seems weird... do i need the data realization?
 
-# custom querysets with custom model managers
 
 """
 role re-implementation
@@ -39,43 +36,10 @@ is it possible to use groups instead?
 
 
 
-# class Role(models.Model):
-#     PARENT = 1
-#     TEACHER = 2
-#     SCHEDULER = 3
-#     ADMIN = 4
-#     ROLE_CHOICES = (
-#         (PARENT, 'parent'),
-#         (TEACHER, 'teacher'),
-#         (SCHEDULER, 'scheduler'),
-#         (ADMIN, 'admin'),
-#     )
-
-#     id = models.PositiveSmallIntegerField(choices=ROLE_CHOICES, primary_key=True)
-    
-#     def role_name(self):
-#         return self.get_id_display()
-
-#     def get_absolute_url(self):
-#         return reverse(f'{self.role_name()}-home')
-
-#     def __str__(self):
-#         return self.get_id_display()
-
-# parent_role, _ = Role.objects.get_or_create(id=1)
-# teacher_role, _ = Role.objects.get_or_create(id=2)
-# scheduler_role, _ = Role.objects.get_or_create(id=3)
-# admin_role, _ = Role.objects.get_or_create(id=4)
-
-
-
-
-# role names should be singular!
 class Role(Group):
 
     def get_absolute_url(self):
-        return reverse('role-home-redirect',
-                       kwargs={'group_name' : self.name}.lower())
+        return self.name+'-home'
 
     def _membership_predicate(self):
         return f'is_{self.name}'
@@ -83,6 +47,7 @@ class Role(Group):
     def _accepts(self, user):
         return getattr(user, self._membership_predicate())
 
+    # todo seems sketchy
     def update_membership(self, user):
         if self._accepts(user):
             self.user_set.add(user)
@@ -112,7 +77,7 @@ class User(AbstractUser):
 
     @property
     def is_scheduler(self):
-        return self.classrooms_as_scheduler.exists()
+        return self.classrooms_as_scheduler().exists()
 
     @property
     def is_parent(self):
@@ -145,16 +110,17 @@ class User(AbstractUser):
 
     @property
     def roles(self):
+        # return Role.objects.filter()
         return self.groups.all()
 
     @property
     def has_multi_roles(self):
         return len(list(self.roles)) > 1
 
-    def save(self):
+    def save(self, *args, **kwargs):
         if not self.active_role:
             self.active_role = self.roles.first()
-        super().save()
+        super().save(*args, **kwargs)
 
     # @property
     # def worktime_commitments(self):
@@ -202,22 +168,41 @@ class Child(NamingMixin, models.Model):
 
     parent_set = models.ManyToManyField(User)
 
-    @property
-    def caredays(self):
-        return main.models.CareDayAssignment.objects.filter(child=self)
+    # todo test this
+    def has_careday_occurrence(self, occ):
+        return main.models.CareDayAssignment.objects.filter(
+            child=child,
+            start__lte=occ.start,
+            end__gte=self.start,
+            caredays=self.careday).exists()
 
-    # below is hideous...
-    # want the union, for each careday of child, of the shifts of that careday
-    # how to do it in one query?
-    @property
-    def shifts(self):
-        caredays = self.caredays.all()
-        def get_q(careday):
-            return Q(weekday=careday.weekday, 
-                     start_time__gte=careday.start_time,
-                     end_time__lte=careday.end_time)
-        return main.models.Shift.objects.filter(
-            functools.reduce(lambda x, y : x | y, map(get_q, caredays)))
+
+    def careday_occurrences(self, start, end):
+        for careday in main.models.CareDayAssignment.objects.careday_occurrences_for_child(
+                child=self, start=start, end=end):
+            yield careday
+
+    def possible_shifts(self, start, end, include_commitments=False):
+        # commitments = [] if not include_commitments else \
+            # WorktimeCommitment.objects.filter(start__range=(start, end),
+                                              # family__classroom=child.classroom)
+        for careday_occurrence in self.careday_occurrences(start, end):
+            for shift_occurrence in careday_occurrence.shift_occurrences():
+                yield shift_occurrence
+        
+
+    # # below is hideous...
+    # # want the union, for each careday of child, of the shifts of that careday
+    # # how to do it in one query?
+    # @property
+    # def shifts(self):
+    #     caredays = self.caredays.all()
+    #     def get_q(careday):
+    #         return Q(weekday=careday.weekday, 
+    #                  start_time__gte=careday.start_time,
+    #                  end_time__lte=careday.end_time)
+    #     return main.models.Shift.objects.filter(
+    #         functools.reduce(lambda x, y : x | y, map(get_q, caredays)))
 
     @property
     def worktime_commitments(self):

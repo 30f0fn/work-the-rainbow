@@ -15,6 +15,10 @@
     <li> {{ teacher }}  
   {% endfor %}  
 </ul>  
+{% has_perm 'people.edit_classroom' user classroom as can_edit_classroom %}  
+{% if can_edit_classroom %}    
+  <a href="{% url 'add-teacher' object.slug %}">add a teacher</a>      
+{% endif %}    
 
 <h2>kids</h2>   
 <ul>   
@@ -23,9 +27,14 @@
       {% if kid.parent_set.all %} 
           ({{ kid.parent_set.all|display_user_list | safe }})  
       {% endif %}
+      {# {% for parent in kid.parent_set.all %} {{ parent.email }} {% endfor %}    #}
     </li>  
   {% endfor %}  
 </ul>   
+{% has_perm 'people.edit_classroom' user classroom as can_edit_classroom %}  
+{% if can_edit_classroom %}  
+  <a href="{% url 'add-child' object.slug %}">add a kid</a>   
+{% endif %}  
 
 
 <h2>scheduler</h2> 
@@ -36,4 +45,8 @@
     </li> 
   {% endfor %} 
 </ul> 
+{% if can_edit_classroom %}    
+  <a href="{% url 'add-scheduler' object.slug %}">add a scheduler</a>      
+{% endif %}    
+
 {% endblock content %}

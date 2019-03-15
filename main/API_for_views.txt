@@ -1,0 +1,119 @@
+Existing API demands
+===
+
+---
+
+todo : replace ShiftsByDayMixin, ShiftsByWeek with Shift.objects.occurrences_by_date_and_time
+
+first fix views
+then fix templates accoridngly
+
+[PerFamilyEditWorktimeMixin]
+available_shifts
+- for a given child, get all ShiftInstances which...
+    - start tomorrow or later, with commitment either null or equal to the child, and
+    - are in the caredays of the child
+
+
+[MakeWorktimeCommitmentsView]
+
+API of this view:
+
+- display multiplechoice form organized as calendar
+- boolean field for each available ShiftOccurrence
+- fields prepopulated with existing commitments
+
+- mainly supports the form
+- the form has
+    - available_shifts attribute
+    - BooleanField for each shiftinstance in available_shifts
+
+- available_shifts is defined to be
+    - for a given child, get all ShiftInstances which...
+          - start tomorrow or later,
+          - have commitment either null or equal to the child, and
+          - are in the caredays of the child
+
+- after reimplementation with ShiftOccurrence, 
+    - add available_to_child() method to ShiftOccurrence
+    - then use the main ShiftOccurrence dict method
+    - need to serialize the ShiftOccurrence for each form field
+    - then need to create worktimecommitment from the serialization
+    
+    
+# does ShiftOccurrence have Child or WorktimeCommitment as value of commitment? 
+
+[MakeFamilyCommitmentsForm]
+
+
+
+
+
+[EditWorktimeCommitmentView]
+
+shift_instance 
+- for a given date, classroom and time
+   - get corresponding ShiftInstance
+available_shifts
+- add shift_instance to available_shifts of 
+
+[RescheduleWorktimeCommitmentsForm]
+
+
+----
+
+
+todo : in views, refactor ShiftInstance into ShiftOccurrence, WorktimeCommitment
+todo : rename CareDay to CareSession
+todo : in models, add new Occurrences manager for e.g. occurrences_by_date_and_time
+todo : in models, clean up occurrences_for_date_range
+todo : in views, factor start_date, start, and default end_date, end methods into separate mixin
+--- 
+
+
+---
+
+[ClassroomWorktimeMixin]
+shifts()
+- get all ShiftInstances of classroom for given date-range
+
+[ShiftsByDayMixin]
+shifts_by_day()
+- dictionary from dates to ShiftInstances;
+- draws from shifts() from ClassroomWorktimeMixin
+
+[ShiftsByWeekMixin]
+shifts_by_week()
+- returns list of dictionaries per week; each dict maps each weekday to its shifts_by_day
+
+[UpcomingEventsView]
+worktime_commitments
+- for a given parent
+    - get all ShiftInstances with commitment = any of their children
+
+[TeacherHomeView]
+caredays_today
+- for each classroom and date
+    - get all children who have a careday on that date
+
+
+[ParentHomeView]
+worktime_commitments
+- for a given parent
+    - get all ShiftInstances with commitment = any of their children
+
+[TeacherHomeView]
+for given teacher and date
+- get all ShiftInstances of teacher's classroom with that date
+- get all CareDayAssignments in child teacher's classroom with that date
+
+MakeWorktimeCommitmentsView
+- available_shifts directly from PerFamilyEditWorktimeMixin
+
+---
+
+from forms.py
+
+in revise_commitments
+- for each ShiftInstance in available_shifts
+    - add or remove family from commitment

@@ -42,34 +42,40 @@
 </div>
 
 
+
+
+
+
   <form action="{{request.path}}" method="post">
     {% csrf_token %}
+    {% with view.shifts_by_week as shifts_by_week %}
     <table>
       <tr>
-        {% for day in view.weeks.0 %}
+        {% for day in shifts_by_week.0 %}
           <td>
             {{ day|date:"l" }}
           </td>
         {% endfor %}
       </tr>
-      {% for week in view.shifts_by_week %}
+      {% for week in shifts_by_week %}
         <tr>
           {% for day, shifts in week.items %}
             <td>
-                {{day|date:"n/j"}}
+                {{day|date:"j"}}
                 <table>
                   {% for shift in shifts %}
                     <tr>
                       <td>
-                        {{shift.start_time |time:"g:i"}}
+                        {{shift.start |time:"g:i"}}
                       </td>
                       <td>
                         {% with shift.commitment as commitment %}
-                          {% if commitment and commitment != view.family %}
-                            {{commitment.nickname}}
+                          {% if commitment and commitment.family != view.family %}
+                            {{commitment.family.nickname}}
                             {# {% elif shift_instance.pk in form.fields %} #}
                           {% else %}
-                            {{ form|render_field_from_int:shift.pk }}
+                            {{ form|render_field_from_string:shift.serialize}}
+                            {# {{ form|render_field_from_int:shift.pk }} #}
                             &nbsp;
                           {% endif %}
                         {% endwith %}
@@ -82,7 +88,68 @@
         </tr>
       {% endfor %}
     </table>
+    {% endwith %}
     <button type="submit", value="Submit">save</button>
   </form>
 {% endblock content %}
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+{#   <form action="{{request.path}}" method="post"> #}
+{#     {% csrf_token %} #}
+{#     <table> #}
+{#       <tr> #}
+{#         {% for day in view.weeks.0 %} #}
+{#           <td> #}
+{#             {{ day|date:"l" }} #}
+{#           </td> #}
+{#         {% endfor %} #}
+{#       </tr> #}
+{#       {% for week in view.shifts_by_week %} #}
+{#         <tr> #}
+{#           {% for day, shifts in week.items %} #}
+{#             <td> #}
+{#                 {{day|date:"n/j"}} #}
+{#                 <table> #}
+{#                   {% for shift in shifts %} #}
+{#                     <tr> #}
+{#                       <td> #}
+{#                         {{shift.start_time |time:"g:i"}} #}
+{#                       </td> #}
+{#                       <td> #}
+{#                         {% with shift.commitment as commitment %} #}
+{#                           {% if commitment and commitment != view.family %} #}
+{#                             {{commitment.nickname}} #}
+{#                             {\# {% elif shift_instance.pk in form.fields %} #\} #}
+{#                           {% else %} #}
+{#                             {{ form|render_field_from_int:shift.pk }} #}
+{#                             &nbsp; #}
+{#                           {% endif %} #}
+{#                         {% endwith %} #}
+{#                       </td> #}
+{#                     </tr> #}
+{#                   {% endfor %} #}
+{#                 </table> #}
+{#             </td> #}
+{#           {% endfor %} #}
+{#         </tr> #}
+{#       {% endfor %} #}
+{#     </table> #}
+{#     {% endwith %} #}
+{#     <button type="submit", value="Submit">save</button> #}
+{#   </form> #}
+{# {% endblock content %} #}
   

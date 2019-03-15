@@ -1,5 +1,7 @@
 from django.db import models
 
+ #todo weekday better as int, because datetime treats it as int?
+
 WEEKDAYS = {
     '0' : 'Monday',
     '1' : 'Tuesday',

@@ -112,6 +112,14 @@ class ClassroomView(ClassroomMixin, DetailView):
     model = Classroom
 
 
+class EditRosterView(ClassroomMixin, DetailView):
+    def get_object(self):
+        return self.classroom
+    permission_required='people.edit_classroom'
+    template_name = 'manage_roster.html'
+    model = Classroom
+
+
 class ClassroomCreateView(PermissionRequiredMixin, FormView):
     permission_required = 'people.create_classroom'
     template_name = 'classroom_create.html'

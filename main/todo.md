@@ -1,9 +1,4 @@
 
-messages framework
-------------------
-
-- in base.html, flash messages
-
 Teachers functionality
 ----------------------
 
@@ -12,5 +7,11 @@ Teachers functionality
 Worktime scheduling
 -------------------
 
-- include calendar navigation in the scheduling views
 - transpose scheduler's scheduling view for parent
+- manage period logic?  ask julia
+
+Roles, etc
+----------
+
+- make sure a user's roles are correctly identified, in user.roles etc
+

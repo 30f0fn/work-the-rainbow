@@ -19,6 +19,11 @@ from django.conf import settings
 from main import urls as main_urls
 from people import urls as people_urls
 
+# for django-recurrences
+from django.conf.urls import url
+from django.views.i18n import JavaScriptCatalog
+
+
 urlpatterns = [
     # path('admin/', admin.site.urls),
     # path('', )
@@ -36,3 +41,5 @@ if settings.DEBUG:
         # url(r'^__debug__/', include(debug_toolbar.urls)),
 
     ] + urlpatterns
+
+

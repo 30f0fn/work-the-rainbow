@@ -12,16 +12,14 @@
     <h2>
       worktime shifts
     </h2>
-    {% if worktime_commitments %}
+    {% if view.worktime_commitments %}
       <ul>
-        {% for shift in worktime_commitments %}
+        {% for wtc in view.worktime_commitments %}
           <li>
-            {{shift.date | date:"F d"}}, 
-            {{shift.start_time | time:"H:i"}}
-            ({{shift.classroom.slug}})
-            <a href="{% url 'edit-worktime-commitment' shift.classroom.slug shift.commitment.nickname shift.date.year shift.date.month shift.date.day shift.start_time.hour shift.start_time.minute %}">
-              reschedule
-            </a>
+            {{wtc.start | date:"F d"}}, {{wtc.family.classroom.slug}}
+            {# <a href="{% url 'edit-worktime-commitment' wtc.classroom.slug shift.commitment.nickname shift.date.year shift.date.month shift.date.day shift.start_time.hour shift.start_time.minute %}"> #}
+              {# reschedule #}
+            {# </a> #}
           </li>
         {% endfor %}
       </ul>

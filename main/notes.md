@@ -1,3 +1,75 @@
+what is the event API required by view functions?
+
+kinds of event
+--------------
+
+careday, caredayassignment, shift, shiftcommitment, holiday, happening
+
+views
+-----
+
+parent
+- upcoming, calendar, edit commitments, preferences
+scheduler
+- assign worktimes, edit commitments...
+teacher
+- calendar, worktime completion
+
+overall: 
+- calendar: commitment per shift, shifts per day, maybe also kids per ShiftOccurrence
+- edit-commitments: possible-shifts-per-(fixed)-child, commitments-per-shift
+- upcoming: worktimes, happenings
+- worktime completion: commitments per day
+
+- todo
+    - kids per shiftoccurrence; derive from kids per caredayoccurrence
+
+
+
+the tricky one is possible-shifts-per-child
+- this is built from caredays-per-child and shifts-per-careday
+- two ways to access caredays of child
+    - generate all caredays of child (within range)
+    - check directly, using careday and date, whether child has careday
+- use caredayassignment
+        - to check whether child has careday, run through careday assignments in order of dt_created
+- two kinds of access of possible shifts:
+    - generator (presumably from caredaygenerator)
+    - boolean lookup (by shiftoccurrence)
+        - here, just lookup whether child has careday of shift
+        - trickiness here with extended day shifts
+    - need possible shifts just in generating edit-commitments form
+
+    
+
+
+each (weekly)shift has a generator for all of its actual instances; implement this as a rrule
+this requires getting the holidays from the db
+so, (weekly)shift generator should allow omitting holidays (use parameter forget_holidays)
+then, bigelowshift has a manager, which collects together all rule from each (weekly)shift, and combines them with the holiday exclusion rule to generate all actual shiftinstances
+
+ditto caredays
+
+data model structure
+- weeklyshift inherits from weeklyevent
+- weeklycareday inherits from weeklyevent
+- classroomshiftschedule has a method which calls weeklyshiftmanager
+- childcaredayschedule has a method which calls weeklycaredaymanager
+
+
+child -> caredayinstances of child (now ok, as intervals)
+caredayinstance -> shiftinstances 
+child -> available_shiftinstances
+
+how will I need to access shifts available for child?
+mainly in family's and scheduler's edit-worktime-calendar views
+(also in edit-worktime-commitment view, which is less important, and just needs generator)
+for calendar views, it might be helpful to have a dictionary, e.g., by filtering on the by_date_and_time manager method of the Shift class
+another option is to map each time to a ShiftInstance object (or maybe just namedtuple), with the list of kids and the commitment as (optional) fields
+
+(maybe better to call ShiftInstance maybe DatedShift)
+
+
 
 todo 
 

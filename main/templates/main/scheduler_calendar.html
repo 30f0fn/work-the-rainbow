@@ -4,13 +4,27 @@
 {% load rules %}
 
 {% block content %}
-  <h1>{{view.classroom.name}} - {{view.date|date:"F Y"}}</h1>
-  {% include 'calendar-nav.html' %} 
-  {# {{view.date}} #}
-  {# {{view.start_date}} #}
-  {# {{view.end_date}} #}
-  {# {{view.shifts_by_week}} #}
-  {# {{view.shifts_dict}} #}
+  <h1>{{view.classroom.name}}, {{view.start|date:"d F"}} - {{view.end|date:"d F"}}</h1>
+  {% include 'scheduler-calendar-nav.html' %} 
+
+
+
+<div>
+{# navigating between families #}
+  {% for family in view.classroom.child_set.all %}
+    {% if family != view.family %}
+      <a href='{% url 'make-worktime-commitments' view.classroom.slug family.nickname view.date.year view.date.month view.date.day %}'>
+        {{family}}
+      </a>
+    {% else %}
+      {{family}}
+    {% endif %}
+  {% endfor %}
+</div>
+
+
+
+
   {% with view.shifts_by_week as shifts_by_week %}
     <table>
       <tr>

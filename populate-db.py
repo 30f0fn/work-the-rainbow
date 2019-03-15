@@ -32,7 +32,7 @@ child = Child.objects.first()
 # s2, _ = ShiftTimeSpan.objects.get_or_create(name='afternoon', start_time='13:30', end_time='15:30')
 # s3, _ = ShiftTimeSpan.objects.get_or_create(name='late stay', start_time='15:30', end_time='17:30')
 
-period, _ = Period.objects.get_or_create(classroom=classroom, start_date=datetime.datetime(2019, 1, 1))
+period, _ = Period.objects.get_or_create(classroom=classroom, start=timezone.now()-datetime.timedelta(days=30), end = datetime.datetime.now()+datetime.timedelta(days=90))
 
 shift_timespans = [('8:30', '10:30'), ('13:30', '15:30'), ('15:30', '17:30')]
 
@@ -61,20 +61,31 @@ for w in WEEKDAYS:
 for c in classroom.child_set.all():
     num_days = random.randrange(2,6)
     days = random.sample(list(range(5)), num_days)
-    caredays = [CareDay.objects.all()[day] for day in days]
+    caredays = [CareDay.objects.filter(start_time__hour=8)[day] for day in days]
+    # ext_caredays = CareDay.objects.filter(start_time.hour=15)
     for i in range(num_days):
         careday = caredays[i]
-        end_time = careday.extended_endtime if random.randrange(2) \
-                   else careday.end_time
         CareDayAssignment.objects.create(child=c,
-                                         start_time=careday.start_time,
-                                         end_time=end_time,
-                                         weekday=careday.weekday)
+                                         careday=careday,
+                                         start=period.start,
+                                         end=period.end)
+        if random.randrange(2):
+            ext_careday = CareDay.objects.get(
+                start_time__hour=15,
+                weekday=careday.weekday)
+            CareDayAssignment.objects.create(child=c,
+                                             careday=ext_careday,
+                                             start=period.start,
+                                             end=period.end)
+            
 
 
 # shiftpreferences
 for c in classroom.child_set.all():
-    s = random.choice(c.shifts)
+    caredays = CareDay.objects.filter(caredayassignment__child=child)
+    shifts = list(itertools.chain.from_iterable([
+        careday.shifts for careday in caredays]))
+    s = random.choice(shifts)
     sp = ShiftPreference.objects.get_or_create(family=c, shift=s, rank=1)
     print(sp)
     

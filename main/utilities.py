@@ -1,6 +1,8 @@
 import calendar
 import datetime
 
+from django.utils import timezone
+
 class WeekdayIterator:
     def __init__(self, start_date):
         self.first = start_date
@@ -15,8 +17,23 @@ class WeekdayIterator:
 
 
 def next_date_with_given_weekday(weekday, from_date):
-    offset = (weekday - from_date.weekday()) % 7        
+    offset = (int(weekday) - from_date.weekday()) % 7        
     return from_date + datetime.timedelta(days=offset)
+
+
+def next_occurrence_from(time, weekday, date):
+    occ_date = next_date_with_given_weekday(weekday, from_date)
+    return occ_date.replace(hour=time.hour(), minute=time.minute())
+
+
+# take weekday+time date, construct next instance from date
+def occurrences_for_date_range(rule, from_date, to_date, exclusions=[]):
+    return recurrence.Recurrence(
+        dtstart = dtstart,
+        dtend = to_date,
+        exclusions = exclusions,
+        rrules = [recurrence.Rule(recurrence.WEEKLY)])
+
 
 
 # def most_recent_date_with_given_weekday(weekday, from_date):
@@ -70,3 +87,23 @@ def caredays_in_range(start, end):
         if date not in holiday_dates and date.weekday() < 5:
             yield date
         date += datetime.timedelta(days=1)
+
+def in_a_week():
+    return timezone.now() + datetime.timedelta(days=7)
+
+def serialize_datetime(dt):
+    data = map(str, [dt.year, dt.month, dt.day,
+             dt.hour, dt.minute,
+             # dt.tzinfo()
+    ])
+    return "-".join(data)
+
+def deserialize_datetime(dts):
+    data = map(int, dts.split("-"))
+    return timezone.datetime(*data)
+
+def nearest_monday(dt):
+    weekday = dt.weekday()
+    offset = weekday if weekday < 5 \
+        else weekday - 7
+    return dt - datetime.timedelta(days=offset)

@@ -14,7 +14,7 @@
           <a href='{% url role_name|addstr:'-home' %}'>{{role}}</a>
         {% endwith %}
       {% else %}
-        {{role}}
+        <h1>{{role}}</h1>
       {% endif %}
     {% endfor %}
   {% endif %}

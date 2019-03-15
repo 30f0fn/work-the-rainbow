@@ -1,0 +1,16 @@
+{% block scheduler-calendar-nav %}
+  <div id="calendar-nav">
+    {# {% for unit_name in view.unit_dict %} #}
+      {# {% with unit_name|add:'-classroom-calendar' as calendar_name %} #}
+        {# <a href="{% url calendar_name view.classroom.slug view.date.year view.date.month view.date.day %}">{{unit_name}}</a> #}
+      {# {% endwith %} #}
+    {# {% endfor %} #}
+    <a href="{{view.previous}}">
+      &lt;  
+    </a>
+    <a href="{{view.next}}"> 
+      &gt;   
+    </a> 
+  </div>
+
+{% endblock scheduler-calendar-nav %}

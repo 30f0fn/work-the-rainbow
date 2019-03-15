@@ -13,7 +13,8 @@
         <ul> 
           {% for shift in shifts %}  
             <li> 
-              {{shift.start_time |time:"g:i"}}: {{shift.commitment.nickname}} 
+              {{shift.start |time:"g:i"}}:
+              {{shift.commitment.family | default_if_none:""}} 
             </li> 
           {% endfor %}  
         </ul>

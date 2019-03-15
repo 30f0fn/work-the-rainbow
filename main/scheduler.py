@@ -22,7 +22,7 @@ def create_optimal_shift_assignments(classroom, period):
         problem.addConstraint(lambda s1, s2, s3: not(s1 == s2 == s3),
                               [c1, c2, c3])
     solution = problem.getSolutions()[0]
-    return [WorktimeAssignment.objects.get_or_create(family=families[f],
+    return [ShiftAssignment.objects.get_or_create(family=families[f],
                                                      period=period,
                                                      shift=solution[f])
             for f in range(len(families))]
@@ -32,13 +32,15 @@ def create_optimal_shift_assignments(classroom, period):
 # get the families to whom it's assigned
 # apportion instances to families
 def create_commitments(classroom, period):
-    for s in Shift.objects.all():
-        families = [wtc.family for wtc in s.worktimeassignment_set.all()]
-        shift_instances = s.instances_in_date_range(period.start_date, period.end_date)
+    for sh in Shift.objects.all():
+        families = [sha.family for sha in sh.shiftassignment_set.all()]
+        sh_occs = list(sh.occurrences_for_date_range(period.start, period.end))
+        print(sh_occs)
+        print(families)
         for index, family in enumerate(families):
             # alternate weeks to assign
-            for instance in shift_instances[index::2]:
-                commitment = instance.create_commitment(family)
+            for occ in sh_occs[index::2]:
+                commitment = occ.create_commitment(family)
                 print(commitment)
 
   

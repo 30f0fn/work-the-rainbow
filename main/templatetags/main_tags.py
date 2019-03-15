@@ -3,6 +3,13 @@ from django.utils.html import format_html, format_html_join
 
 register = template.Library()
 
+
+@register.filter
+def render_field_from_string(form, s):
+    if s in form.fields:
+        return form[s].as_widget()
+    return ""
+
 @register.filter
 def render_field_from_int(form, n):
     if str(n) in form.fields:

@@ -1,28 +1,25 @@
 <div id="scheduler-nav">
-  <a href='{% url scheduler-home %}'>
+  <a href='{% url 'scheduler-home' %}'>
     home
   </a>
-  {% for classroom in user.classrooms %}
+  {% for classroom in user.classrooms_as_scheduler %}
     <table>
-      <td>
-        <tr>
-          <a href="{% url 'classroom-calendar' classroom.slug %}">
-            {{classroom.slug}} calendar
-          </a>
-        </tr>
-      </td>
-      <tr>
-        <td>
-          <a href="{% url 'classroom-roster' classroom.slug %}">
-            {{classroom.slug}} roster
-          </a>
-        </td>
-      </tr>
+      {# <tr>  #}
+      {#   <td>   #}
+      {#   <a href="{% url 'scheduling' classroom.slug %}"> admin </a> #}
+      {#   </td>   #}
+      {# </tr>  #}
       <tr> 
         <td>  
-        <a href="{% url 'scheduling' classroom.slug %}"> settings</a>  
+        <a href="{% url 'scheduler-calendar' classroom.slug %}"> manage schedule </a>
         </td>  
       </tr> 
+      <tr> 
+        <td>  
+        <a href="{% url 'edit-roster' classroom.slug %}"> manage roster </a>
+        </td>  
+      </tr> 
+      <tr> 
     </table>
   {% endfor %}
 </div>

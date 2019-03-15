@@ -49,6 +49,8 @@ urlpatterns = [
     path('<slug:classroom_slug>/', include(classroom_urls)),
     path('<slug:classroom_slug>/roster', 
          views.ClassroomView.as_view(), name='classroom-roster'),
+    path('<slug:classroom_slug>/roster/edit', 
+         views.EditRosterView.as_view(), name='edit-roster'),
     path('create_classroom', 
          views.ClassroomCreateView.as_view(), name='create-classroom'),
 

@@ -70,6 +70,15 @@ classroom_scheduling_patterns = [
     path('scheduling',
          views.SchedulerView.as_view(),
          name='scheduling'),
+
+    path('scheduling/calendar',
+         views.SchedulerCalendarView.as_view(),
+         name='scheduler-calendar'),
+
+    path('scheduling/calendar/<int:year>/<int:month>/<int:day>',
+         views.SchedulerCalendarView.as_view(),
+         name='scheduler-calendar'),
+
     path('scheduling/<slug:child_slug>/<int:year>/<int:month>/<int:day>',
          views.MakeWorktimeCommitmentsView.as_view(),
          name='make-worktime-commitments'),

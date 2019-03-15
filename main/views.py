@@ -10,32 +10,19 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.db.models import Q
 from django.views.generic.detail import SingleObjectMixin
+from django.utils import timezone
 
 from rules.contrib.views import PermissionRequiredMixin
 
 from main import rules
 from people.models import Child, Classroom, teacher_role, scheduler_role, parent_role, admin_role
 from people.views import ClassroomMixin, ClassroomEditMixin
-import main.utilities
-import main.models
+from main.utilities import nearest_monday
+# import main.models
+from main.models import Holiday, Happening, Shift, WorktimeCommitment, CareDayAssignment, CareDay, ShiftOccurrence
 import main.forms
 
 # use instance variables for frequently used attributes whose computation hits the db?
-
-# def method_with_setters(method, **properties):
-#     def new_method(self, *args, **kwargs):
-#         for key, value in properties.items():
-#             if key not in dir(self):
-#                 setattr(self, key, value)
-#         getattr(self.__class__.mro()[1], method)(self, *args, **kwargs)
-#     return new_method
-
-
-# def dispatch_with_setters(**items):
-#     return method_with_setters('dispatch', **items)
-
-
-
 
 ########
 # todo #
@@ -48,7 +35,7 @@ import main.forms
 class UpcomingEventsMixin(object):
     # template_name = "upcoming_for_user.html"
     def date_range(self):
-        today = datetime.datetime.now().date()
+        today = timezone.now().date()
         return (today, today+datetime.timedelta(weeks=4))
     
     def get_context_data(self, **kwargs):
@@ -59,29 +46,15 @@ class UpcomingEventsMixin(object):
         return context
 
     def holidays(self):
-        return main.models.Holiday.objects.filter(
-            start_date__range = self.date_range())
-
-    def worktime_commitments(self):
-        today = datetime.datetime.now().date(),
-        return main.models.ShiftInstance.objects.filter(
-            commitment__parent_set=self.request.user,
-            date__range = self.date_range()).select_related(
-                'classroom', 'commitment')
+        return Holiday.objects.filter(
+            start__range = self.date_range())
 
     def events(self):
-        return main.models.Happening.objects.filter(
-            start_date__range = self.date_range())
+        return Happening.objects.filter(
+            start__range = self.date_range())
 
-
-
-class CalendarMixin(object):
-    unit_dict = {'daily':'days', 'weekly':'weeks', 'monthly':'months'}    
-
-    @property
-    def unit(self):
-        return self.unit_dict[self.unit_name]
-
+class DateMixin(object):
+    
     @property
     def date(self):
         try:
@@ -94,10 +67,63 @@ class CalendarMixin(object):
                 print(f"got date {self._date} from URL!")
             except KeyError:
                 print("failed to get date from URL!!!")
-                self._date = datetime.datetime.now().date()
+                self._date = timezone.now().date()
         return self._date
 
     @property
+    def next_careday_date(self):
+        d = self.date
+        while d.weekday() > 4 or\
+              Holiday.objects.filter(start__lte=day,
+                                     end__gte=day):
+            dd += datetime.timedelta(days=1)
+        return d
+
+
+
+class DateIntervalMixin(DateMixin):
+
+    # todo python3 ABC
+    # @abstractmethod
+    @property
+    def start_date(self):
+        return self.date
+
+    # todo
+    # @abstractmethod
+    @property
+    def end_date(self):
+        return self.start_date
+
+    @property
+    def start(self):
+        dt = timezone.datetime.combine(self.start_date,
+                                         timezone.datetime.min.time())
+        return timezone.make_aware(dt)
+
+    @property
+    def end(self):
+        dt = timezone.datetime.combine(self.end_date,
+                                         timezone.datetime.max.time())
+        return timezone.make_aware(dt)
+
+
+
+
+        
+
+class CalendarMixin(DateIntervalMixin):
+
+    # todo eliminate these uses of property decorator, they're weird
+    
+    # unit_dict = {'daily':'days', 'weekly':'weeks', 'monthly':'months'}    
+    unit_dict = {'weekly':'weeks', 'monthly':'months'}    
+    @property
+    def unit(self):
+        return self.unit_dict[self.unit_name]
+
+    # @property
+    # todo yucky, maybe I don't need it
     def weeks(self):
         return [[(self.start_date + datetime.timedelta(days=week*7+day))
                  for day in range(5)]
@@ -124,58 +150,25 @@ class CalendarMixin(object):
         return self.jump_url(-1)
 
 
-# class WeekApportioningMixin(object):
-#     # for weekly, monthly, and period calendars
-#     # requires self.date (e.g. from CalendarMixin)
-#     # needs self.num_weeks (e.g. as class variable of MonthlyCalendarView)
-    
-    # def dispatch(self, request, *args, **kwargs):
-    #     self.weeks = [[(self.start_date() + datetime.timedelta(days=week*7+day))
-    #                    for day in range(5)]
-    #                   for week in range(self.num_weeks)]
-    #     return super().dispatch(request, *args, **kwargs)
 
-
-class ShiftsByDayMixin(object):
-
-    def shifts_by_day(self):
-        shifts_dict = defaultdict(list)
-        for si in self.shifts():
-            shifts_dict[si.date].append(si)
-        return shifts_dict
-    
-
-class ShiftsByWeekMixin(ShiftsByDayMixin):
-    # for weekly, monthly, and period calendars
-    # requires self.date (e.g. from CalendarMixin)
-    # needs self.num_weeks (e.g. as class variable of MonthlyCalendarView)
-
-    def shifts_by_week(self):
-        return [{day: self.shifts_by_day()[day] for day in week}
-                for week in self.weeks]
-
-
-# not in use
-# use dispatch-overriding technique?
-class HolidayMixin(object):
-
-    @property
-    def holidays(self):
-        return main.models.Holiday.objects.filter(
-            classroom=classroom,
-            start_date__gte=self.date,
-            end_date__lte=self.date+datetime.timedelta(years=1))
 
 
 class ClassroomWorktimeMixin(object):
     # requires ClassroomMixin
-    # requires view attributes start_date and end_date
+    # requires the datetimes start, end as bounds of the occurrence dict
+    # for this, CalendarMixin is enough
 
-    def shifts(self):
-        return main.models.ShiftInstance.objects.filter(
-            classroom=self.classroom,
-            date__gte=self.start_date,
-            date__lte=self.end_date).select_related('commitment')
+    def shifts_dict(self):
+        return Shift.objects.occurrences_by_date_and_time(
+            self.start, self.end,
+            include_commitments=True,
+            classrooms=[self.classroom])
+
+    def shifts_by_week(self):
+        shifts = self.shifts_dict()
+        return [{date : shifts[date].values() for date in week}
+         for week in self.weeks()]
+            
 
 class FamilyMixin(object):
 
@@ -188,17 +181,21 @@ class FamilyMixin(object):
         context = super().get_context_data(**kwargs)
         context.update({'family' : self.family})
         return context
-        
 
 
 class PerFamilyEditWorktimeMixin(object):
     # requires shifts e.g. from ClassroomWorktimeMixin 
+    # todo this does'nt make sense for the ExitWorktimeCommitmentView
+
+    # todo this should use just occurrences_for_date_range
     def available_shifts(self):
-        tomorrow = datetime.datetime.now()+datetime.timedelta(days=1)
-        return self.shifts().all().filter(
-            Q(commitment=None) | Q(commitment=self.family),
-            shift__in=self.family.shifts,
-            date__gte=tomorrow)
+        sh_dict = Shift.objects.occurrences_by_date_and_time(
+            self.start, self.end,
+            include_commitments=True,
+            classrooms=[self.classroom])
+        ret =  [sh for day in sh_dict for sh in sh_dict[day].values()
+                if sh.is_available_to_child(self.family)]
+        return ret
 
 
 class TimedURLMixin(object):
@@ -218,7 +215,7 @@ class TimedURLMixin(object):
 # classroom calendar views #
 ############################
 
-
+# todo i can't find a use for this, it's now orphaned
 class DailyClassroomCalendarView(ClassroomMixin,
                                  ClassroomWorktimeMixin,
                                  # HolidayMixin,
@@ -241,7 +238,7 @@ class WeeklyClassroomCalendarView(ClassroomMixin,
                                   # HolidayMixin,
                                   CalendarMixin,
                                   # WeekApportioningMixin,
-                                  ShiftsByWeekMixin,
+                                  # ShiftsByWeekMixin,
                                   TemplateView):
     template_name = 'weekly_calendar.html'
     unit_name = 'weekly' # for CalendarMixin
@@ -250,43 +247,44 @@ class WeeklyClassroomCalendarView(ClassroomMixin,
     @property
     def start_date(self):
         # print("computing start date")
-        most_recent_monday = self.date - datetime.timedelta(days = self.date.weekday())
-        return most_recent_monday
+        # most_recent_monday = self.date - datetime.timedelta(days = self.date.weekday())
+        return nearest_monday(self.date)
+        # return most_recent_monday
 
     @property
     def end_date(self):
         return self.start_date + self.num_weeks * datetime.timedelta(days=7)
 
 
+# todo make sure date makes sense 
 class MonthlyClassroomCalendarView(ClassroomMixin,
                                    ClassroomWorktimeMixin,
                                   # HolidayMixin,
                                    CalendarMixin,
                                    # WeekApportioningMixin,
-                                   ShiftsByWeekMixin,
+                                   # ShiftsByWeekMixin,
                                    TemplateView):
     template_name = 'monthly_calendar.html'
     unit_name = 'monthly' # for CalendarMixin
 
-    @property
-    def num_weeks(self):
-        return len(calendar.monthcalendar(self.date.year, self.date.month))
+    def weeks(self):
+        cal = calendar.Calendar().monthdatescalendar(
+            self.date.year, self.date.month)
+        return [[date for date in week if date.weekday() < 5]
+                for week in cal
+                if week[4].month >= self.date.month
+                and week[0].month <= self.date.month]
 
+    #todo these are redundant
     @property
     def start_date(self):
-        first_of_month = datetime.date(self.date.year, self.date.month, 1)
-        most_recent_monday = first_of_month - datetime.timedelta(days = first_of_month.weekday())
-        return most_recent_monday
+        return self.weeks()[0][0]
 
     @property
     def end_date(self):
-        return self.start_date + datetime.timedelta(days = 7 * self.num_weeks - 1)
+        return self.weeks()[-1][-1]
+
             
-
-
-
-
-
 
 
 
@@ -301,7 +299,7 @@ class RedirectToHomeView(RedirectView):
     def get_redirect_url(self, **kwargs):
         user = self.request.user
         if user.is_authenticated:
-            return reverse(f'{user.active_role()}-home')
+            return reverse(user.active_role.get_absolute_url())
         else:
             return reverse('splash')
 
@@ -310,7 +308,8 @@ class SplashView(TemplateView):
     template_name = 'splash.html'
 
 
-class RoleHomeView(LoginRequiredMixin, TemplateView):
+class RoleHomeMixin(DateIntervalMixin,
+                   LoginRequiredMixin):
 
     def get(self, *args, **kwargs):
         self.request.user.active_role = self.role
@@ -318,23 +317,29 @@ class RoleHomeView(LoginRequiredMixin, TemplateView):
         return super().get(*args, **kwargs)
 
 
-class ParentHomeView(RoleHomeView):
+class ParentHomeView(UpcomingEventsMixin, RoleHomeMixin, TemplateView):
     role = parent_role
     template_name = 'parent_home.html'
 
+    # fix this
     def worktime_commitments(self):
-        today = datetime.datetime.now().date(),
-        return main.models.ShiftInstance.objects.filter(
-            commitment__parent_set=self.request.user,
-            date__range = self.date_range()).select_related(
-                'classroom', 'commitment')
+        # return ["poop"]
+        # today = timezone.now().date(),
+        return WorktimeCommitment.objects.filter(
+            family__parent_set=self.request.user,
+            start__range = self.date_range())
 
 
 # for teachers with a single classroom; 
 # need special handling for multi-classroom teachers
-class TeacherHomeView(ShiftsByDayMixin, RoleHomeView):
+class TeacherHomeView(RoleHomeMixin,
+                      FormView):
     role = teacher_role
     template_name = 'teacher_home.html'
+    form_class = main.forms.CommitmentCompletionForm
+
+    def get_success_url(self):
+        return self.request.path
 
     # todo: add data to context?
     # todo make this an instance-attribute rather than a method
@@ -342,43 +347,77 @@ class TeacherHomeView(ShiftsByDayMixin, RoleHomeView):
     def classroom(self):
         return self.request.user.classrooms.first()
 
-    def shifts(self):
-        return main.models.ShiftInstance.objects.filter(date=self.date)
-
-
-    # add to instance variables
     @property
-    def date(self):
-        day = datetime.datetime.now().date()
-        while day.weekday() > 4 or\
-              main.models.Holiday.objects.filter(start_date__lte=day,
-                                                end_date__gte=day):
-            day += datetime.timedelta(days=1)
-        return day
+    def shifts(self):
+        shifts_dict = Shift.objects.occurrences_by_date_and_time(
+            self.start, self.end,
+            include_commitments=True,
+            classrooms=[self.classroom])
+        return shifts_dict[self.start_date]
 
-    def caredays_today(self):
-        return main.models.CareDayAssignment.objects.filter(
-            weekday = self.date.weekday(),
-            child__classroom = self.classroom
-        ).select_related('child')
+    # todo!
 
-    def get_context_data(self):
-        context = super().get_context_data()
-        data = {'caredays' : self.caredays_today(),
+    def caredays(self):
+        return CareDay.objects.occurrences_for_date_range(self.start,
+                                                          self.end)
+
+
+    # def kids_dict(self):
+    #     k_dict = defaultdict([False, False])
+    #     caredays = CareDay.objects.occurrences_for_date_range(self.start,
+    #                                                           self.end)
+    #     for i, careday in enumerate(caredays):
+    #         for child in careday.children():
+    #             k_dict[child][i] = careday
+    #     return k_dict
+
+    def get_commitments(self):
+        return WorktimeCommitment.objects.filter(
+            start__gte=self.start, end__lte=self.end)
+
+    def get_form_kwargs(self, *args, **kwargs):
+        kwargs = super().get_form_kwargs(*args, **kwargs)
+        kwargs.update({'commitments' : self.get_commitments()})
+        return kwargs
+
+    def get_initial(self, *args, **kwargs):
+        initial = super().get_initial(*args, **kwargs)
+        data = {str(commitment.pk) : commitment.completed
+                for commitment in self.get_commitments()}
+        initial.update(data)
+        print(f"get_initial : {initial}")
+        return initial
+
+    def form_valid(self, form):
+        form.save()
+        # if revisions:
+        return super().form_valid(form)
+
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+        data = {
+            # 'caredays' : self.caredays_today(),
                 'date' : self.date,
                 'classroom' : self.classroom,
-                'shifts' : self.shifts()}
+                # 'worktimes' : Shift.
+                'shifts' : self.shifts
+        }
         context.update(data)
         return context
 
 
-class SchedulerHomeView(RoleHomeView):
+class SchedulerHomeView(RoleHomeMixin, TemplateView):
     role = scheduler_role
 
     template_name = 'scheduler_home.html'
 
+    @property
+    def classroom(self):
+        return self.request.user.classrooms.first()
+
     
-class AdminHomeView(RoleHomeView):
+class AdminHomeView(RoleHomeMixin, TemplateView):
     role = admin_role
 
     template_name = 'admin_home.html'
@@ -406,7 +445,7 @@ class AdminHomeView(RoleHomeView):
 class EditWorktimeCommitmentView(ClassroomEditMixin,
                                  ClassroomWorktimeMixin,
                                  CalendarMixin,
-                                 ShiftsByWeekMixin,
+                                 # ShiftsByWeekMixin,
                                  FamilyMixin,
                                  PerFamilyEditWorktimeMixin,
                                  TimedURLMixin,
@@ -418,7 +457,7 @@ class EditWorktimeCommitmentView(ClassroomEditMixin,
 
     @property
     def start_date(self):
-        monday_before_today = datetime.datetime.now().date() - \
+        monday_before_today = timezone.now().date() - \
                               datetime.timedelta(days = self.date.weekday())
         monday_before_commitment = self.date - \
                                    datetime.timedelta(days = self.date.weekday())
@@ -434,20 +473,6 @@ class EditWorktimeCommitmentView(ClassroomEditMixin,
     @property
     def num_weeks(self):
         return (self.end_date - self.start_date).days // 7
-
-    @property
-    def shift_instance(self):
-        si = getattr(self, '_shift_instance', None)
-        if not si:
-            self._shift_instance = main.models.ShiftInstance.objects.get(
-                classroom=self.classroom,
-                date=self.date,
-                start_time=self.time)
-        return self._shift_instance
-
-    def available_shifts(self):
-        return super().available_shifts() | main.models.ShiftInstance.objects.filter(
-            pk=self.shift_instance.pk)
 
     def get_success_url(self):
         return reverse('upcoming')
@@ -466,6 +491,7 @@ class EditWorktimeCommitmentView(ClassroomEditMixin,
         return initial
 
     def form_valid(self, form):
+        # raise Exception("Form Valid method called")
         revisions = form.execute()
         if revisions:
             message = "thanks! we rescheduled {family}'s worktime commitment from {removed} to {added}".format(family=self.family, **revisions)
@@ -496,7 +522,7 @@ class WorktimePreferencesSubmitView(ClassroomEditMixin, FormView):
 
     def get_initial(self, *args, **kwargs):
         initial = super().get_initial(*args, **kwargs)
-        data = {rank: main.models.Shift.objects.filter(
+        data = {rank: Shift.objects.filter(
             shiftpreference__family=self.child,
             shiftpreference__rank=i) 
                 for i, rank in enumerate(self.get_form_class().ranks)}
@@ -504,7 +530,8 @@ class WorktimePreferencesSubmitView(ClassroomEditMixin, FormView):
         return initial
 
     def form_valid(self, form):
-        form.save_prefs()
+        revisions = form.save_prefs()
+        # todo message changes here
         return super().form_valid(form)
 
 
@@ -519,12 +546,49 @@ class SchedulerView(TemplateView):
     pass
 
 
-# this order is a bit backward, should be specific to general
+
+# todo is this the correct inheritance order?
+class SchedulerCalendarView(ClassroomEditMixin,
+                            ClassroomWorktimeMixin,
+                            CalendarMixin,
+                            TemplateView):
+
+    num_weeks = 4
+    template_name = 'scheduler_calendar.html'
+    unit_name = 'weekly'
+
+    # todo break period into three four-week sections, show active section
+    @property
+    def start_date(self):
+        # print("computing start date")
+        most_recent_monday = self.date - datetime.timedelta(days = self.date.weekday())
+        return most_recent_monday
+    
+    @property
+    def end_date(self):
+        return self.start_date + self.num_weeks * datetime.timedelta(days=7)
+
+
+    def jump_url(self, increment):
+        new_date = self.jump_date(increment)
+        kwargs= {'classroom_slug' : self.classroom.slug,
+                 'year':new_date.year, 'month':new_date.month, 'day':new_date.day}
+        return reverse_lazy('scheduler-calendar',
+                            kwargs=kwargs)
+ 
+    def next(self):
+        return self.jump_url(4)
+
+    def previous(self):
+        return self.jump_url(-4)
+
+
+
+
+# todo is this the correct inheritance order?
 class MakeWorktimeCommitmentsView(ClassroomEditMixin,
                                   ClassroomWorktimeMixin,
                                   CalendarMixin,
-                                  # WeekApportioningMixin,
-                                  ShiftsByWeekMixin,
                                   FamilyMixin,
                                   PerFamilyEditWorktimeMixin,
                                   FormView):
@@ -533,6 +597,9 @@ class MakeWorktimeCommitmentsView(ClassroomEditMixin,
     template_name = 'make_worktime_commitments.html'
     form_class = main.forms.MakeFamilyCommitmentsForm
     unit_name = 'weekly'
+
+    def form():
+        return self.form_class()
 
     # this makes sense only if link sends to first day of month
     # else, try to extract this from a period
@@ -551,7 +618,7 @@ class MakeWorktimeCommitmentsView(ClassroomEditMixin,
         kwargs= {'classroom_slug' : self.classroom.slug,
                  'child_slug' : self.family.nickname,
                  'year':new_date.year, 'month':new_date.month, 'day':new_date.day}
-        return reverse_lazy(f'make-worktime-commitments',
+        return reverse_lazy('make-worktime-commitments',
                             kwargs=kwargs)
  
     def next(self):
@@ -565,26 +632,32 @@ class MakeWorktimeCommitmentsView(ClassroomEditMixin,
     def get_success_url(self):
         return self.request.path
 
+    # todo
     def get_form_kwargs(self, *args, **kwargs):
         kwargs = super().get_form_kwargs(*args, **kwargs)
         kwargs.update({'family' : self.family,
-                       'available_shifts' : self.available_shifts()})
+                       'available_shifts' : self.available_shifts()
+        })
         return kwargs
 
+    # todo
     def get_initial(self, *args, **kwargs):
         initial = super().get_initial(*args, **kwargs)
-        # data = {}
-        data = {str(si.pk): si.commitment == self.family 
-                for si in self.available_shifts()}
+        data = {sh.serialize() : getattr(sh.commitment, 'family', None) == self.family 
+                for sh in self.available_shifts()}
         initial.update(data)
         return initial
 
     def form_valid(self, form):
         revisions = form.revise_commitments()
-        message1 = f"shifts added: {', '.join({revisions['added']})}"
-        messages.add_message(self.request, messages.SUCCESS, message1)
-        message2 = f"shifts removed: {', '.join({revisions['removed']})}"
-        messages.add_message(self.request, messages.SUCCESS, message2)
+        added_repr = ', '.join([str(sh) for sh in revisions['added']])
+        if added_repr:
+            message1 = "shifts added: "+ added_repr
+            messages.add_message(self.request, messages.SUCCESS, message1)
+        removed_repr = ', '.join([str(sh) for sh in revisions['removed']])
+        if removed_repr:
+            message2 = "shifts removed: "+ ', '.join([str(sh) for sh in revisions['removed']])
+            messages.add_message(self.request, messages.SUCCESS, message2)
         return super().form_valid(form)
 
 

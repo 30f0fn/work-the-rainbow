@@ -1,14 +1,13 @@
 import datetime
 from collections import defaultdict
 
-from django.forms import Form, CharField, EmailField, SlugField, ValidationError, ModelChoiceField, IntegerField, ModelForm, ModelMultipleChoiceField, BooleanField
+from django.forms import Form, CharField, EmailField, SlugField, ValidationError, ModelChoiceField, IntegerField, ModelForm, ModelMultipleChoiceField, BooleanField, NullBooleanField
 from django.forms.widgets import CheckboxSelectMultiple, RadioSelect
 
 
 # import main.views
 import main.schedule_settings
 import main.models
-from main.models import ShiftInstance
 import people.models
 
 """
@@ -78,8 +77,6 @@ class PreferenceSubmitForm(Form):
 #         self.fields['shift_instance'] = ModelChoiceField(queryset=queryset,
 #                                                          widget=RadioSelect,
 #                                                          empty_label=None)
-
-
     
 # scheduling form
 # for each family, select multiple shiftinstances
@@ -91,10 +88,12 @@ class MakeFamilyCommitmentsForm(Form):
         super().__init__(*args, **kwargs)
         self.family = family
         self.available_shifts = available_shifts
-        self.fields.update({str(si.pk) : BooleanField(required=False)
-                            for si in self.available_shifts})
+        print("HHEELLOO!")
+        print(available_shifts)
+        self.fields.update({sh.serialize() : BooleanField(required=False)
+                            for sh in self.available_shifts})
 
-    def clean(self, *args, monthly=True, **kwargs):
+    def clean(self, *args, monthly=False, **kwargs):
         super().clean(*args, **kwargs)
         # todo: verify that no commitment exists for each newly added shift
         num_shifts = len([pk for pk in self.cleaned_data
@@ -102,34 +101,21 @@ class MakeFamilyCommitmentsForm(Form):
         if monthly and num_shifts > self.family.shifts_per_month:
             # maybe only a warning here? 
             raise ValidationError(f"The family of {self.family} needs only {self.family.shifts_per_month}, but this assigns them {num_shifts}")
-
+    
     def revise_commitments(self):
         revisions = defaultdict(list)
-        for si in self.available_shifts:
-            print(si, self.cleaned_data[str(si.pk)])
-            if self.cleaned_data[str(si.pk)] and not si.commitment:
-                revisions['added'].append(si)
-                si.commitment = self.family
-                si.save()
-            elif not self.cleaned_data[str(si.pk)] and si.commitment:
-                revisions['removed'].append(si)
-                si.commitment = None
-                si.save()
-        # print(revisions)
+        for sh_field in self.changed_data:
+            sh = main.models.ShiftOccurrence.deserialize(sh_field)
+            if self.cleaned_data[sh_field]:
+                revisions['added'].append(sh)
+                # current deserializing hits db; avoid this?
+                sh.create_commitment(self.family)
+            else:
+                main.models.WorktimeCommitment.objects.get(
+                    family=self.family,
+                    start=sh.start).delete()
+                revisions['removed'].append(sh)
         return revisions
-
-
-    # below seems too tricky
-    # def revise_commitments(self):
-    #     revisions = [[],[]]
-    #     for si in self.available_shifts:
-    #         was_committed = (si.commitment == self.family)
-    #         if self.cleaned_data[str(si.pk)] != was_committed:
-    #             self.commitment = family if not self.commitment else None
-    #             revisions[was_committed].append(si)
-    #     return {'added':revisions[0], 'removed':revisions[1]}
-
-
 
 
 
@@ -154,3 +140,26 @@ class RescheduleWorktimeCommitmentForm(Form):
             new_shift.save()
             return {'removed' : self.current_shift,
                     'added' : new_shift}
+
+
+
+
+class CommitmentCompletionForm(Form):
+
+    def __init__(self, *args, **kwargs):
+        commitments = kwargs.pop('commitments')
+        super().__init__(*args, **kwargs)
+        print(f"FORM_KWARGS : {kwargs}")
+        self.commitments = commitments
+        for commitment in self.commitments:
+            self.fields[str(commitment.pk)] = NullBooleanField()
+
+
+    def save(self):
+        # print("FORM SAVE METHOD CALLED!")
+        # raise Exception("form save method called")
+        #todo message if changed
+        for commitment in self.commitments:
+            if str(commitment.pk) in self.changed_data:
+                commitment.completed = self.cleaned_data[str(commitment.pk)]
+                commitment.save()
