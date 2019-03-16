@@ -14,7 +14,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # # SECURITY WARNING: keep the secret key used in production secret!
 # SECRET_KEY = os.environ['RAINBOW_SECRET_KEY']
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['0.0.0.0', 'localhost', 'gentle-wildwood-51939.herokuapp.com']
 
 # Application definition
 
@@ -157,3 +157,5 @@ EMAIL_PORT = 587
 EMAIL_HOST_USER = 'worktherainbow@gmail.com'
 # EMAIL_HOST_PASSWORD = os.environ['GMAIL_PASSWORD']
 # '44parkst'
+
+
