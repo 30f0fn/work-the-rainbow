@@ -58,10 +58,10 @@ class Role(Group):
     class Meta:
         proxy = True
 
-parent_role, _ = Role.objects.get_or_create(name='parent')
-teacher_role, _ = Role.objects.get_or_create(name='teacher')
-scheduler_role, _ = Role.objects.get_or_create(name='scheduler')
-admin_role, _ = Role.objects.get_or_create(name='admin')
+# parent_role, _ = Role.objects.get_or_create(name='parent')
+# teacher_role, _ = Role.objects.get_or_create(name='teacher')
+# scheduler_role, _ = Role.objects.get_or_create(name='scheduler')
+# admin_role, _ = Role.objects.get_or_create(name='admin')
 
 
 class User(AbstractUser):
