@@ -17,8 +17,8 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 
-# from main import urls as main_urls
-# from people import urls as people_urls
+from main import urls as main_urls
+from people import urls as people_urls
 
 # for django-recurrences
 from django.conf.urls import url
@@ -30,8 +30,8 @@ urlpatterns = [
     # path('', )
 ]
 
-# urlpatterns += people_urls.urlpatterns
-# urlpatterns += main_urls.urlpatterns
+urlpatterns += people_urls.urlpatterns
+urlpatterns += main_urls.urlpatterns
 
 if settings.DEBUG:
     import debug_toolbar
