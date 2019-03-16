@@ -1,7 +1,7 @@
 import datetime
 from collections import defaultdict
 
-from django.forms import Form, CharField, EmailField, SlugField, ValidationError, ModelChoiceField, IntegerField, ModelForm, ModelMultipleChoiceField, BooleanField, NullBooleanField
+from django.forms import Form, CharField, EmailField, SlugField, ValidationError, ModelChoiceField, IntegerField, ModelForm, ModelMultipleChoiceField, BooleanField, NullBooleanField, ChoiceField
 from django.forms.widgets import CheckboxSelectMultiple, RadioSelect
 
 
@@ -61,25 +61,6 @@ class PreferenceSubmitForm(Form):
                                                            rank=rank)
 
 
-# class WorktimeCommitmentRescheduleForm(Form):
-
-#     def __init__(self, *args, **kwargs):
-#         # earliest, latest should be adjustable in CLASSROOM_SETTINGS
-#         super().__init__(*args, **kwargs)
-#         earliest = max(datetime.datetime.now().date() + datetime.timedelta(days=1),
-#                        self.instance.date - datetime.timedelta(days=7))
-#         latest = self.instance.date + datetime.timedelta(days=7)
-#         family = self.instance.family
-#         queryset = main.models.ShiftInstance.objects.filter(
-#             date__range=(earliest, latest),
-#             commitment=None,
-#             shift__in=family.shifts)
-#         self.fields['shift_instance'] = ModelChoiceField(queryset=queryset,
-#                                                          widget=RadioSelect,
-#                                                          empty_label=None)
-    
-# scheduling form
-# for each family, select multiple shiftinstances
 
 
 class MakeFamilyCommitmentsForm(Form):
@@ -88,8 +69,6 @@ class MakeFamilyCommitmentsForm(Form):
         super().__init__(*args, **kwargs)
         self.family = family
         self.available_shifts = available_shifts
-        print("HHEELLOO!")
-        print(available_shifts)
         self.fields.update({sh.serialize() : BooleanField(required=False)
                             for sh in self.available_shifts})
 
@@ -118,28 +97,36 @@ class MakeFamilyCommitmentsForm(Form):
         return revisions
 
 
-
-
 class RescheduleWorktimeCommitmentForm(Form):
 
-    def __init__(self, family, current_shift, available_shifts, *args, **kwargs):
+    def __init__(self, family, current_commitment, available_shifts, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.family = family
-        self.current_shift = current_shift
-        self.fields['new_shift'] = ModelChoiceField(
-            queryset=available_shifts,
-            widget=RadioSelect,
-            empty_label=None)
+        self.current_commitment = current_commitment
+        self.available_shifts = available_shifts
+        choices = ((sh.serialize(), str(sh)) for sh in available_shifts)
+        # for choice in choices:
+        #     print(choice)
+        self.fields.update({'shift_occ' : ChoiceField(
+            choices=choices,
+            widget=RadioSelect)})
+        print('initial: ', kwargs.get('initial'))
+        for ch in self.fields['shift_occ'].choices:
+            print(ch[0])
+        # print(self.fields['shift_occ'].choices)
+
 
     def execute(self, *args, **kwargs):
-        new_shift = self.cleaned_data.get('new_shift')
-        if new_shift != self.current_shift:
-            self.current_shift.commitment = None
-            self.current_shift.save()
-            new_shift.commitment = self.family
-            new_shift.save()
-            return {'removed' : self.current_shift,
-                    'added' : new_shift}
+        data = self.cleaned_data
+        new_shift = main.models.ShiftOccurrence.deserialize(
+            self.cleaned_data.get('shift_occ'))
+        old_start = self.current_commitment.start
+        if new_shift.start != old_start:
+            self.current_commitment.start = new_shift.start
+            self.current_commitment.end = new_shift.end
+            self.current_commitment.save()
+            return {'old_start' : old_start,
+                    'new_start' : new_shift.start}
 
 
 

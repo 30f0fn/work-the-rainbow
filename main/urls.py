@@ -23,9 +23,6 @@ basic_patterns = [
          views.AdminHomeView.as_view(),
          name='admin-home'),
 
-#     path('reschedule/<slug:classroom_slug>/<slug:child_slug>/<slug:unit_name>/<int:year>/<int:month>/<int:day>',
-#          views.EditWorktimeCommitmentsView.as_view(),
-#          name='edit-worktime-commitments'),
 ]
 
 
@@ -61,7 +58,7 @@ child_parenting_patterns = [
     path('worktime/preferences',
          views.WorktimePreferencesSubmitView.as_view(),
          name='worktime-preferences'),
-    path('worktime/reschedule/<int:year>/<int:month>/<int:day>/<int:hour>/<int:minute>',
+    path('worktime/reschedule/<int:pk>',
          views.EditWorktimeCommitmentView.as_view(),
          name='edit-worktime-commitment'),
 ]

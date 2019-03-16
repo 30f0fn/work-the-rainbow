@@ -21,7 +21,9 @@
 </div>
 
 <div id="role-supplied-nav">
-  {% with user.active_role.name|addstr:'_nav.html' as role_nav %}
-    {% include role_nav %}
-  {% endwith %}
+  {% if user.is_authenticated %}
+    {% with user.active_role.name|addstr:'_nav.html' as role_nav %}
+      {% include role_nav %}
+    {% endwith %}
+  {% endif %}
 </div>

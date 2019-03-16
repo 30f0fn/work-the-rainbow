@@ -477,6 +477,7 @@ class EditWorktimeCommitmentView(ClassroomEditMixin,
 
     def get_initial(self, *args, **kwargs):
         initial = super().get_initial(*args, **kwargs)
+        occ = 
         data = {'shift_occ': self.commitment().shift_occurrence().serialize()}
         initial.update(data)
         print(initial)

@@ -53,32 +53,29 @@ shift, careday, holiday, worktimecommitment,
 class EventManager(models.Manager):
 
     def overlaps(self, start, end): 
-        return self.filter(start__lte=end, end__gte=start)
+        return super().get_queryset().filter(start__lte=end, end__gte=start)
     
-    def for_date_range(self, start, end):
-        events = self.filter(start__lte=end,
+    def by_date(self, start, end, restriction=None):
+        events = super().get_queryset().filter(start__lte=end,
                              end__gte=start)
-        return events
- 
-    def by_date(self, start, end):
-        events = self.for_date_range(start, end)
         dates = dates_in_range(start, end)
         results = defaultdict(list)
         for event in events:
-            if event.start_date <= date <= event.end:
-                results[event.date].append(event)
+            # if event.start.date() <= date <= event.end.date():
+            results[event.start.date()].append(event)
         return results
 
-    def dates_for_range(self, start, end):
-        events = self.by_date(start, end)
+    def dates_for_range(self, start, end, restriction=None):
+        events = self.by_date(start, end, restriction=restriction)
         return [date for date in events if events[date]]
         
 
-    def by_date_and_time(self, start, end):
-        events = self.by_date(start, end)
+    def by_date_and_time(self, start, end, restriction=None):
+        by_date = self.by_date(start, end, restriction=restriction)
         results = defaultdict(dict)
-        for event in events:
-            results[event.start.date()][event.start.time()] = event
+        for date in by_date:
+            for event in by_date[date]:
+                results[date][event.start.time()] = event
         return results
 
 
@@ -112,8 +109,8 @@ class WeeklyEventOccurrence(object):
         weekly_cls_name = self.__class__.__name__[:-len("Occurrence")]
         setattr(self, weekly_cls_name.lower(), weekly_event)
         # self.weekly_event = weekly_event
-        self.start = datetime.datetime.combine(date, weekly_event.start_time)
-        self.end = datetime.datetime.combine(date, weekly_event.end_time)
+        self.start = timezone.datetime.combine(date, weekly_event.start_time)
+        self.end = timezone.datetime.combine(date, weekly_event.end_time)
 
     class Meta:
         abstract = True
@@ -203,8 +200,10 @@ class CareDayOccurrence(WeeklyEventOccurrence):
                              caredayassignment__careday=self.careday)
     
     def shift_occurrences(self):
-        for shift in Shift.objects.filter(careday=self):
-            yield ShiftOccurrence(shift=shift, date=self.date)
+        for shift in Shift.objects.filter(weekday=self.careday.weekday,
+                                          start_time__lte=self.careday.start_time,
+                                          end_time__gte=self.careday.start_time):
+            yield ShiftOccurrence(shift=shift, date=self.start.date())
 
 
 # HAVE weekdays * (regular/extended) = ten of these
@@ -223,8 +222,11 @@ class CareDay(WeeklyEvent):
 
 class ShiftManager(WeeklyEventManager):
 
+    # todo how does this differ from the method it overrides?
     def occurrences_for_date_range(self, start, end,
-                                   include_commitments=False, classrooms=[]):
+                                   include_commitments=False,
+                                   classrooms=[],
+                                   child=None):
         occ_nest = (occ.occurrences_for_date_range(start, end, ignore_holidays=True)
                     for occ in self.all().select_related('classroom'))
         occurrences = list(chain.from_iterable(occ_nest))
@@ -249,10 +251,6 @@ class ShiftManager(WeeklyEventManager):
                 # print(commitment)
                 # print(results[start.date()][start.time()])
                 # print(results[start.date()][start.time()].commitment)
-        print(results)
-        # print(commitments[0])
-        # st = commitments[0].start
-        # print(results[st.date()][st.time()].commitment)
         return results
         
 
@@ -307,7 +305,7 @@ class Period(Event):
 class CareDayAssignmentManager(WeeklyEventManager):
 
     def overlaps(self, child, start, end, careday=None):
-        o = super().overlaps(start, end).filter(child=child)
+        o = super().overlaps(start, end).filter(child=child).select_related('careday')
         if careday:
             o = o.filter(careday=careday)
         return o
@@ -473,10 +471,56 @@ class ShiftOccurrence(WeeklyEventOccurrence):
                                deserialize_datetime(repr_dict['start']))
         
 
-# todo should this just have a shift field?
+# todo this should just have shift and fields?
+# then, override start and end property methods?  seems ugly
 class WorktimeCommitment(Event):
     family = models.ForeignKey(Child, on_delete=models.CASCADE)
     completed = models.NullBooleanField()
+    shift = models.ForeignKey(Shift, on_delete=models.CASCADE)
+
+    def shift_occurrence(self):
+        return ShiftOccurrence(shift=self.shift,
+                               date=self.start.date(),
+                               commitment=self)
+
+    def save(self, *args, **kwargs):
+        self.shift = Shift.objects.get(classroom=self.family.classroom,
+                                       start_time=self.start.time(),
+                                       weekday=self.start.weekday())
+        super().save(*args, **kwargs)
+
+    # @property
+    # def start(self):
+    #     return timezone.make_aware(
+    #         timezone.datetime.combine(self.date, self.shift.start_time))
+
+    # @property
+    # def end(self):
+    #     return timezone.make_aware(
+    #         timezone.datetime.combine(self.date, self.shift.end_time))
+
+
+    def alternatives(self, earlier, later):
+        dt_min = max(timezone.now(), self.start - earlier).replace(
+            hour=timezone.datetime.min.hour,
+            minute=timezone.datetime.min.minute)
+        dt_max = max(timezone.now(), self.start + later).replace(
+            hour=timezone.datetime.max.hour,
+            minute=timezone.datetime.max.minute)
+        maybe_alts = self.family.possible_shifts(
+            start=dt_min,
+            end=dt_max)
+        commitments = WorktimeCommitment.objects.by_date_and_time(
+            start=dt_min, end=dt_max)
+        print("COMMITMENTS: ", commitments)
+        for occ in maybe_alts:
+            # print(getattr(occ, 'commitment', None))
+            c = commitments[occ.start.date()].get(occ.start.time())
+            print(c)
+            if c in [None, self]:
+                occ.commitment = c
+                yield occ
+
 
 
 class ShiftPreference(models.Model):
@@ -498,27 +542,5 @@ class ShiftAssignment(models.Model):
 
 class ShiftInstance(object):
     pass
-
-
-# class ClassroomWorktimeMixin(object):
- 
-#     def shifts_dict(self, date, classroom=None):
-#         classroom = classroom or self.classroom
-#         return {shift_instance:
-#                 shift_instance.commitment
-#                 for shift_instance in ShiftInstance.objects.filter(date=date)}
-
-#     def days_dict(self, start_date, num_days, classroom=None):
-#         classroom = classroom or self.classroom
-#         return {date: self.shifts_dict(date, classroom=classroom)
-#                 for date in [start_date + datetime.timedelta(days=n)
-#                              for n in range(num_days)]}
-
-#     def weeks_list(self, start_date, num_weeks, classroom=None):
-#         classroom = classroom or self.classroom
-#         return [self.days_dict(date, 5, classroom=classroom)
-#                 for date in [start_date + n * datetime.timedelta(days=7)
-#                              for n in range(num_weeks)]]
-
 
 

@@ -17,9 +17,9 @@
         {% for wtc in view.worktime_commitments %}
           <li>
             {{wtc.start | date:"F d"}}, {{wtc.family.classroom.slug}}
-            {# <a href="{% url 'edit-worktime-commitment' wtc.classroom.slug shift.commitment.nickname shift.date.year shift.date.month shift.date.day shift.start_time.hour shift.start_time.minute %}"> #}
-              {# reschedule #}
-            {# </a> #}
+            <a href="{% url 'edit-worktime-commitment' wtc.family.classroom.slug wtc.family.nickname wtc.pk %}"> 
+              change 
+            </a> 
           </li>
         {% endfor %}
       </ul>

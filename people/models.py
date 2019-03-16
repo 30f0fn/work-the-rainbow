@@ -70,8 +70,8 @@ class Role(Group):
 class User(AbstractUser):
 
     active_role = models.ForeignKey(Role, null=True,
-                                     on_delete=models.PROTECT,
-                                     related_name='active_for')
+                                    on_delete=models.PROTECT,
+                                    related_name='active_for')
 
     # may have teacher without classroom
     @property
@@ -121,6 +121,8 @@ class User(AbstractUser):
         return len(list(self.roles)) > 1
 
     def save(self, *args, **kwargs):
+        if not self.pk:
+            super().save(*args, **kwargs)
         if not self.active_role:
             self.active_role = self.roles.first()
         super().save(*args, **kwargs)
@@ -185,27 +187,13 @@ class Child(NamingMixin, models.Model):
                 child=self, start=start, end=end):
             yield careday
 
-    def possible_shifts(self, start, end, include_commitments=False):
+    def possible_shifts(self, start, end):
         # commitments = [] if not include_commitments else \
             # WorktimeCommitment.objects.filter(start__range=(start, end),
                                               # family__classroom=child.classroom)
         for careday_occurrence in self.careday_occurrences(start, end):
             for shift_occurrence in careday_occurrence.shift_occurrences():
                 yield shift_occurrence
-        
-
-    # # below is hideous...
-    # # want the union, for each careday of child, of the shifts of that careday
-    # # how to do it in one query?
-    # @property
-    # def shifts(self):
-    #     caredays = self.caredays.all()
-    #     def get_q(careday):
-    #         return Q(weekday=careday.weekday, 
-    #                  start_time__gte=careday.start_time,
-    #                  end_time__lte=careday.end_time)
-    #     return main.models.Shift.objects.filter(
-    #         functools.reduce(lambda x, y : x | y, map(get_q, caredays)))
 
     @property
     def worktime_commitments(self):

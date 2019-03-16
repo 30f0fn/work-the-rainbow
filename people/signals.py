@@ -1,7 +1,7 @@
 from django.db.models.signals import post_save, m2m_changed
 from django.dispatch import receiver
 
-from people.models import User, Child, Classroom, RelateEmailToObject
+from people.models import User, Child, Classroom, RelateEmailToObject, Role
 
 # parent_role, scheduler_role, teacher_role, admin_role, 
 

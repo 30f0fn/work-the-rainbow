@@ -32,7 +32,7 @@ child = Child.objects.first()
 # s2, _ = ShiftTimeSpan.objects.get_or_create(name='afternoon', start_time='13:30', end_time='15:30')
 # s3, _ = ShiftTimeSpan.objects.get_or_create(name='late stay', start_time='15:30', end_time='17:30')
 
-period, _ = Period.objects.get_or_create(classroom=classroom, start=timezone.now()-datetime.timedelta(days=30), end = datetime.datetime.now()+datetime.timedelta(days=90))
+period, _ = Period.objects.get_or_create(classroom=classroom, start=timezone.now()-datetime.timedelta(days=30), end = timezone.now()+datetime.timedelta(days=90))
 
 shift_timespans = [('8:30', '10:30'), ('13:30', '15:30'), ('15:30', '17:30')]
 
@@ -40,13 +40,11 @@ shift_timespans = [('8:30', '10:30'), ('13:30', '15:30'), ('15:30', '17:30')]
 for w in WEEKDAYS:
     if int(w) < 5:
         for st in shift_timespans:
-            s = Shift.objects.get_or_create(weekday=w, start_time = st[0], end_time=st[1])
+            s = Shift.objects.get_or_create(weekday=w,
+                                            start_time = st[0],
+                                            end_time=st[1],
+                                            classroom=classroom)
             print(f"created {s}")
-
-# shiftinstances
-for s in Shift.objects.all():
-    s.create_instances_in_period(period)
-
 
 
 # cdts, created = CareDayTimeSpan.objects.get_or_create(name='regular', start_time='08:30', end_time='15:30', extended_endtime='17:30')
@@ -55,8 +53,11 @@ for w in WEEKDAYS:
     if int(w) < 5:
         CareDay.objects.get_or_create(weekday=w,
                                       start_time='8:30',
-                                      end_time='15:30',
-                                      extended_endtime='17:30')
+                                      end_time='15:30',)
+        CareDay.objects.get_or_create(weekday=w,
+                                      start_time='15:30',
+                                      end_time='17:30',)
+
 
 for c in classroom.child_set.all():
     num_days = random.randrange(2,6)
@@ -88,7 +89,7 @@ for c in classroom.child_set.all():
     s = random.choice(shifts)
     sp = ShiftPreference.objects.get_or_create(family=c, shift=s, rank=1)
     print(sp)
-    
+     
     
 from main.scheduler import *
 
@@ -100,3 +101,5 @@ create_commitments(classroom, period)
 #     return Q(weekday=careday.weekday, 
 #              start_time__gte=careday.start_time,
 #              end_time__lte=careday.end_time)
+
+# run below after creating superuser mw
