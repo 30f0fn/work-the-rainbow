@@ -30,9 +30,9 @@ INSTALLED_APPS = [
     'allauth.account',
     'allauth.socialaccount',
     'rules',
-    'people',
     'invitations',
     'main',
+    'people',
     # 'worktime',
 ]
 

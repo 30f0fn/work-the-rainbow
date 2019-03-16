@@ -34,6 +34,13 @@ without many-to-many relation to roles, how to determine that a user has several
 is it possible to use groups instead?
 """
 
+# todo how to ensure these exist?
+# parent_role, _ = Role.objects.get_or_create(name='parent')
+# teacher_role, _ = Role.objects.get_or_create(name='teacher')
+# scheduler_role, _ = Role.objects.get_or_create(name='scheduler')
+# admin_role, _ = Role.objects.get_or_create(name='admin')
+
+
 
 
 class Role(Group):
@@ -58,10 +65,6 @@ class Role(Group):
     class Meta:
         proxy = True
 
-# parent_role, _ = Role.objects.get_or_create(name='parent')
-# teacher_role, _ = Role.objects.get_or_create(name='teacher')
-# scheduler_role, _ = Role.objects.get_or_create(name='scheduler')
-# admin_role, _ = Role.objects.get_or_create(name='admin')
 
 
 class User(AbstractUser):

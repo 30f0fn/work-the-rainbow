@@ -15,7 +15,7 @@ from django.utils import timezone
 from rules.contrib.views import PermissionRequiredMixin
 
 from main import rules
-from people.models import Child, Classroom, teacher_role, scheduler_role, parent_role, admin_role
+from people.models import Child, Classroom, Role
 from people.views import ClassroomMixin, ClassroomEditMixin
 from main.utilities import nearest_monday
 # import main.models
@@ -318,7 +318,7 @@ class RoleHomeMixin(DateIntervalMixin,
 
 
 class ParentHomeView(UpcomingEventsMixin, RoleHomeMixin, TemplateView):
-    role = parent_role
+    role = Role.objects.get_or_create(name='parent')
     template_name = 'parent_home.html'
 
     # fix this
@@ -334,7 +334,7 @@ class ParentHomeView(UpcomingEventsMixin, RoleHomeMixin, TemplateView):
 # need special handling for multi-classroom teachers
 class TeacherHomeView(RoleHomeMixin,
                       FormView):
-    role = teacher_role
+    role = Role.objects.get_or_create(name='teacher')
     template_name = 'teacher_home.html'
     form_class = main.forms.CommitmentCompletionForm
 
@@ -408,8 +408,8 @@ class TeacherHomeView(RoleHomeMixin,
 
 
 class SchedulerHomeView(RoleHomeMixin, TemplateView):
-    role = scheduler_role
-
+    role = Role.objects.get_or_create(name='scheduler')
+    
     template_name = 'scheduler_home.html'
 
     @property
@@ -418,7 +418,7 @@ class SchedulerHomeView(RoleHomeMixin, TemplateView):
 
     
 class AdminHomeView(RoleHomeMixin, TemplateView):
-    role = admin_role
+    role = Role.objects.get_or_create(name='admin')
 
     template_name = 'admin_home.html'
     
