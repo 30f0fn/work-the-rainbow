@@ -1,0 +1,36 @@
+{% extends "worktime/base.html" %}
+
+{% load people_tags %} 
+{% load rules %}
+
+{% block content %}
+
+  <h1>
+    {{view.classroom}}, {{view.date}}
+  </h1>
+
+  <h2>
+    worktimes
+  </h2>
+  <ul>
+  {% for time, shift in shifts.items %}
+    <li>
+      {{time | time:"g:i"}}: {{shift.commitment.family.nickname}}
+    </li>
+  {% endfor %}
+  </ul>  
+
+  <h2>
+    kids
+  </h2>
+  <ul>
+  {% for careday in view.caredays %}
+    <h3>{{careday.start.time | time:"g:i"}}-{{careday.end.time | time:"g:i"}}</h3>
+    {% for child in careday.children %}
+    <li>{{child.nickname}}
+      {% endfor %} 
+    </li>
+  {% endfor %}
+  </ul>
+
+{% endblock content %}

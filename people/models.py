@@ -20,6 +20,7 @@ import main.models
 # todo need roles parent, teacher, etc. to track the corresponding relations to objects child, classroom, etc
 # need to retrieve all roles of user
 # have logical and database relationzations, seems weird... do i need the data realization?
+# todo need to ensure admin role automatically added
 
 
 """
