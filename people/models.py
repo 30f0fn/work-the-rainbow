@@ -162,7 +162,7 @@ class Classroom(NamingMixin, models.Model):
             shift_instance__date=date)
 
     def get_absolute_url(self):
-        return reverse_lazy('classroom-roster', kwargs={'slug':self.slug})
+        return reverse_lazy('classroom-roster', kwargs={'classroom_slug':self.slug})
 
     def __str__(self):
         return self.name

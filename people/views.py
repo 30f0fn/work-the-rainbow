@@ -74,7 +74,7 @@ class ClassroomEditMixin(ClassroomMixin):
     permission_required = 'people.edit_classroom'
     def get_success_url(self):
         return reverse_lazy('classroom-roster',
-                            kwargs={'slug':self.classroom.slug})
+                            kwargs={'classroom_slug':self.classroom.slug})
 
 
 class QuerysetInClassroomMixin(ClassroomMixin):
