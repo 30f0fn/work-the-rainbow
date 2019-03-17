@@ -73,9 +73,19 @@ class Role(Group):
 
 class User(AbstractUser):
 
-    active_role = models.ForeignKey(Role, null=True,
+    # todo what if this is null? yuck
+    _active_role = models.ForeignKey(Role, null=True,
                                     on_delete=models.PROTECT,
                                     related_name='active_for')
+
+
+    @property
+    def active_role(self):
+        if self._active_role:
+            return self._active_role
+        else:
+            return next(self.roles)
+
 
     # may have teacher without classroom
     @property
@@ -130,8 +140,6 @@ class User(AbstractUser):
     def save(self, *args, **kwargs):
         if not self.pk:
             super().save(*args, **kwargs)
-        if not self.active_role:
-            self.active_role = self.roles.first()
         super().save(*args, **kwargs)
 
     # @property
