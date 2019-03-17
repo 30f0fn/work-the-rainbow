@@ -74,17 +74,10 @@ class Role(Group):
 class User(AbstractUser):
 
     # todo what if this is null? yuck
-    _active_role = models.ForeignKey(Role, null=True,
+    active_role = models.ForeignKey(Role, null=True,
                                     on_delete=models.PROTECT,
                                     related_name='active_for')
 
-
-    @property
-    def active_role(self):
-        if self._active_role:
-            return self._active_role
-        else:
-            return next(self.roles)
 
 
     # may have teacher without classroom
@@ -129,9 +122,8 @@ class User(AbstractUser):
     @property
     def roles(self):
         # todo must be better way to ensure role membership is correct
-        for role in Role.objects.all():
-            if role.update_membership(self):
-                yield role
+        return [role for role in Role.objects.all()
+                if role.update_membership(self)]
 
     @property
     def has_multi_roles(self):
@@ -140,6 +132,8 @@ class User(AbstractUser):
     def save(self, *args, **kwargs):
         if not self.pk:
             super().save(*args, **kwargs)
+        if not self.active_role:
+            self.active_role = self.roles[0]
         super().save(*args, **kwargs)
 
     # @property
