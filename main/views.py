@@ -336,7 +336,7 @@ class ParentHomeView(UpcomingEventsMixin, RoleHomeMixin, TemplateView):
 # need special handling for multi-classroom teachers
 class TeacherHomeView(RoleHomeMixin,
                       FormView):
-    role = Role.objects.get_or_create(name='teacher')
+    role, created = Role.objects.get_or_create(name='teacher')
     template_name = 'teacher_home.html'
     form_class = main.forms.CommitmentCompletionForm
 
@@ -410,7 +410,7 @@ class TeacherHomeView(RoleHomeMixin,
 
 
 class SchedulerHomeView(RoleHomeMixin, TemplateView):
-    role = Role.objects.get_or_create(name='scheduler')
+    role, created = Role.objects.get_or_create(name='scheduler')
     
     template_name = 'scheduler_home.html'
 
@@ -419,10 +419,16 @@ class SchedulerHomeView(RoleHomeMixin, TemplateView):
         return self.request.user.classrooms.first()
 
     
+
+"""
+add/delete classroom
+edit people of classroom (students, teachers, schedulers)
+create/edit Shifts?  or do that programmatically
+"""
 class AdminHomeView(RoleHomeMixin, TemplateView):
     role, created = Role.objects.get_or_create(name='admin')
-
     template_name = 'admin_home.html'
+    
     
 
 # this just handles general time structuring stuff..

@@ -57,11 +57,14 @@ class Role(Group):
 
     # todo seems sketchy
     def update_membership(self, user):
-        if self._accepts(user):
+        accepts = self._accepts(user)
+        if accepts:
             self.user_set.add(user)
         else:
             self.user_set.remove(user)
         self.save()
+        return accepts
+    
 
     class Meta:
         proxy = True
@@ -112,10 +115,13 @@ class User(AbstractUser):
     def children(self):
         return self.child_set.all()
 
+    # todo remove this decorator!!
     @property
     def roles(self):
-        # return Role.objects.filter()
-        return self.groups.all()
+        # todo must be better way to ensure role membership is correct
+        for role in Role.objects.all():
+            if role.update_membership(self):
+                yield role
 
     @property
     def has_multi_roles(self):

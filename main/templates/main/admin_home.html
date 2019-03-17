@@ -6,31 +6,15 @@
 {% block content %}
 
   <h1>
-    {{view.classroom}}, {{view.date}}
+    admin
   </h1>
 
-  <h2>
-    worktimes
-  </h2>
-  <ul>
-  {% for time, shift in shifts.items %}
-    <li>
-      {{time | time:"g:i"}}: {{shift.commitment.family.nickname}}
-    </li>
+<ul>
+  {% for classroom in user.classrooms_as_admin %}
+    <li><a href="{% url 'edit-roster' classroom.slug %}">{{classroom}}</a></li>
   {% endfor %}
-  </ul>  
+</ul>
 
-  <h2>
-    kids
-  </h2>
-  <ul>
-  {% for careday in view.caredays %}
-    <h3>{{careday.start.time | time:"g:i"}}-{{careday.end.time | time:"g:i"}}</h3>
-    {% for child in careday.children %}
-    <li>{{child.nickname}}
-      {% endfor %} 
-    </li>
-  {% endfor %}
-  </ul>
+ <a href="{% url 'create-classroom' %}">create classroom</a>
 
 {% endblock content %}
