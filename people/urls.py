@@ -42,7 +42,7 @@ classroom_urls = [
 urlpatterns = [
     path('accounts/', include('allauth.urls')),
     path('accounts/profile/',
-         views.ProfileView.as_view(), name='view-profile'),
+         views.ProfileView.as_view(), name='profile'),
     path('accounts/profile/edit',
          views.ProfileEditView.as_view(), name='edit-profile'),
     path('invitations/', include('invitations.urls', namespace='invitations')),

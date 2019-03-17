@@ -1,15 +1,15 @@
 <div id="parent-nav">
   <a href='{% url 'parent-home' %}'>
-    home
+    parent's home
   </a>
   {% for classroom in user.classrooms %}
-    <table>
+    <table >
+      {# <tr>  #}
+      {#   <td>  #}
+      {#     {{classroom.name}}  #}
+      {#   </td>  #}
+      {# </tr>  #}
       {# <tr> #}
-      {#   <td> #}
-      {#     {{classroom}} #}
-      {#   </td> #}
-      {# </tr> #}
-      <tr>
         <td>
           <a href="{% url 'classroom-calendar' classroom.slug %}">
             {{classroom.slug}} calendar
