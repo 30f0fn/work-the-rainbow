@@ -237,7 +237,7 @@ class RelateEmailToObject(models.Model):
         except User.DoesNotExist:
             self.save()
             Invitation.objects.filter(email=self.email).delete()
-            invite = Invitation.create(email)
+            invite = Invitation.create(self.email)
             invite.send_invitation(self.request)
             message = f"sent invite to {self.email}; upon signup the resulting user will be added to {self.related_object}'s {self.relation_name}"
             messages.add_message(self.request, messages.SUCCESS, message)
