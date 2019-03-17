@@ -238,9 +238,9 @@ class RelateEmailToObject(models.Model):
             self.save()
             Invitation.objects.filter(email=self.email).delete()
             invite = Invitation.create(self.email)
-            invite.send_invitation(self.request)
+            invite.send_invitation(request)
             message = f"sent invite to {self.email}; upon signup the resulting user will be added to {self.related_object}'s {self.relation_name}"
-            messages.add_message(self.request, messages.SUCCESS, message)
+            messages.add_message(request, messages.SUCCESS, message)
 
     def execute(self):
         related_user = User.objects.get(models.Q(emailaddress__email=self.email)
