@@ -295,6 +295,8 @@ class MonthlyClassroomCalendarView(ClassroomMixin,
 # all homeviews should be based on upcomingeventsview #
 #######################################################
 
+# todo maybe some of this should be in people app?
+
 class RedirectToHomeView(RedirectView):
     def get_redirect_url(self, **kwargs):
         user = self.request.user
@@ -418,7 +420,7 @@ class SchedulerHomeView(RoleHomeMixin, TemplateView):
 
     
 class AdminHomeView(RoleHomeMixin, TemplateView):
-    role = Role.objects.get_or_create(name='admin')
+    role, created = Role.objects.get_or_create(name='admin')
 
     template_name = 'admin_home.html'
     
@@ -477,6 +479,7 @@ class EditWorktimeCommitmentView(ClassroomEditMixin,
 
     def get_initial(self, *args, **kwargs):
         initial = super().get_initial(*args, **kwargs)
+        occ = 
         data = {'shift_occ': self.commitment().shift_occurrence().serialize()}
         initial.update(data)
         print(initial)
