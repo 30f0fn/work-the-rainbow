@@ -210,8 +210,6 @@ class AddParentToChildView(RelateEmailToObjectView):
         return render(request, 'worktime/404.html', {'child': p})
 
 
-# class ChildDetailView(QuerysetInClassroomMixin, FormView):
-#     model = Child
 
 
 # # edit child
@@ -278,8 +276,9 @@ class PublicProfileView(DetailView):
 
     def get_object(self):
         try:
-            self.kwargs.pop('username')
-        except KeyError:
+            username = self.kwargs.get('username')
+            return User.objects.get(username=username)
+        except User.DoesNotExist:
             raise Http404("User does not exist")
 
 
@@ -300,9 +299,10 @@ class ChildDetailView(LoginRequiredMixin, DetailView):
 
     def get_object(self):
         try:
-            return self.kwargs.pop('nickname')
-        except KeyError:
-            raise Http404("User does not exist")
+            nickname = self.kwargs.get('nickname')
+            return Child.objects.get(nickname=nickname)
+        except Child.DoesNotExist:
+            raise Http404("Item does not exist")
 
     
     
