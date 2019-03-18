@@ -1,5 +1,9 @@
 {% extends "worktime/base.html" %}
 
+{% load people_tags %} 
+{% load rules %}
+
+
 {% block nav %} {% endblock %}
 
 {% block content %}
@@ -11,7 +15,7 @@
       <li>children:
         <ul>
           {% for child in object.child_set.all %}
-            <li>{{child.short_name}}, {{child.classroom}}
+            <li>{% display_child child %} ({{child.classroom}})
               {% if child.parent_set.count > 1%}
                 {% for parent in child.parent_set %}
                   {% if parent != request.user %}

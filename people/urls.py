@@ -8,12 +8,7 @@ classroom_urls = [
          # views.ChildrenListView.as_view(), name='list-children'),
     path('add_kid',
          views.ChildAddView.as_view(), name='add-child'),
-    path('kids/<item_slug>',
-         views.ChildDetailView.as_view(), name='detail-child'),
-    path('kids/<item_slug>/edit',
-         views.ChildEditView.as_view(), name='edit-child'),
-    path('kids/<item_slug>/remove',
-         views.ChildRemoveView.as_view(), name='remove-child'),
+
 
     # path('teachers',
          # views.TeachersListView.as_view(), name='list-teachers'),
@@ -40,21 +35,30 @@ classroom_urls = [
 ]
 
 urlpatterns = [
+
+    path('kids/<slug:nickname>',
+         views.ChildDetailView.as_view(), name='child-detail'),
+
+    path('kids/<slug:nickname>/edit',
+         views.ChildEditView.as_view(), name='edit-child'),
+    path('kids/<slug:nickname>/remove',
+         views.ChildRemoveView.as_view(), name='remove-child'),
+
+
     path('accounts/', include('allauth.urls')),
     path('accounts/profile/',
-         views.ProfileView.as_view(), name='profile'),
+         views.PrivateProfileView.as_view(), name='profile'),
     path('accounts/profile/edit',
          views.ProfileEditView.as_view(), name='edit-profile'),
     path('invitations/', include('invitations.urls', namespace='invitations')),
     path('<slug:classroom_slug>/', include(classroom_urls)),
     path('<slug:classroom_slug>/roster', 
          views.ClassroomView.as_view(), name='classroom-roster'),
-    path('<slug:classroom_slug>/roster/edit', 
-         views.EditRosterView.as_view(), name='edit-roster'),
+    path('<slug:classroom_slug>/manage', 
+         views.ManageClassroomView.as_view(), name='manage-classroom'),
     path('create_classroom', 
          views.ClassroomCreateView.as_view(), name='create-classroom'),
 
-
-    # path('invited/<slug:token>',
-         # views.InviteAcceptView.as_view(), name='accept-invitation'),
+    path('people/<slug:username>',
+         views.PublicProfileView.as_view(), name='public-profile')
 ]

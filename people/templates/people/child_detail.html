@@ -1,0 +1,28 @@
+{% extends "worktime/base.html" %}
+
+{% load people_tags %} 
+{% load rules %}
+
+
+{% block content %}
+{{child.pk}}{{object.pk}}{{object.id}}
+{{object}}
+  {% with object as child %}
+  <h1>{{child}}</h1>
+<p> classroom: {{child.classroom}}
+</p>
+<p> parents:
+  <ul>
+    {% for parent in child.parent_set.all %}
+      <li>{% display_u parent %}</li> 
+    {% endfor %}
+  </ul>
+</p>
+{% if child.birthday %}
+  <p>
+    birthday: {{child.birthday}}
+  </p>
+{% endif %}
+{% endwith %}
+
+{% endblock %}

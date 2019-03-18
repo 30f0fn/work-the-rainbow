@@ -1,29 +1,32 @@
 {% load people_tags %}
 
+{% if user.is_authenticated %}
 
-<div id="auth-panel">
-  <a href="{% url 'account_logout' %}">sign out</a> 
-</div>
+  <div id="auth-panel">
+    <a href="{% url 'account_logout' %}">sign out</a> 
+  </div>
 
-<div id="role-switcher">
-  <a href="{% url 'profile' %}">profile</a>
-  {% if user.has_multi_roles %}
-    {% for role in user.roles %}
-      {% if role != user.active_role %}
-        {% with role.name as role_name %}
-          <a href='{% url role_name|addstr:'-home' %}'>{{role}}</a>
-        {% endwith %}
-      {# {% else %} #}
-        {# <strong id="active_role">{{role}}</strong> #}
-      {% endif %}
-    {% endfor %}
-  {% endif %}
-</div>
+  <div id="role-switcher">
+    <a href="{% url 'profile' %}">profile</a>
+    {% if user.has_multi_roles %}
+      {% for role in user.roles %}
+        {% if role != user.active_role %}
+          {% with role.name as role_name %}
+            <a href='{% url role_name|addstr:'-home' %}'>{{role}}</a>
+          {% endwith %}
+          {# {% else %} #}
+          {# <strong id="active_role">{{role}}</strong> #}
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+  </div>
 
-<div id="role-supplied-nav">
-  {% if user.active_role %}
-    {% with user.active_role.name|addstr:'_nav.html' as role_nav %}
-      {% include role_nav %}
-    {% endwith %}
-  {% endif %}
-</div>
+  <div id="role-supplied-nav">
+    {% if user.active_role %}
+      {% with user.active_role.name|addstr:'_nav.html' as role_nav %}
+        {% include role_nav %}
+      {% endwith %}
+    {% endif %}
+  </div>
+
+{% endif %}

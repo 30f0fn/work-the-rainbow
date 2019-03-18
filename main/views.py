@@ -524,7 +524,8 @@ class WorktimePreferencesSubmitView(ClassroomEditMixin, FormView):
         initial = super().get_initial(*args, **kwargs)
         data = {rank: Shift.objects.filter(
             shiftpreference__family=self.child,
-            shiftpreference__rank=i) 
+            shiftpreference__rank=i,
+            classroom=self.classroom) 
                 for i, rank in enumerate(self.get_form_class().ranks)}
         initial.update(data)
         return initial

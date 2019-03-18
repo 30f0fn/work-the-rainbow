@@ -196,25 +196,29 @@ class CareDayOccurrence(WeeklyEventOccurrence):
 
     def children(self):
         return Child.objects.filter(caredayassignment__end__gte=self.start,
-                             caredayassignment__start__lte=self.end,
-                             caredayassignment__careday=self.careday)
+                                    caredayassignment__start__lte=self.end,
+                                    caredayassignment__careday=self.careday,
+                                    classroom=self.careday.classroom)
     
     def shift_occurrences(self):
         for shift in Shift.objects.filter(weekday=self.careday.weekday,
                                           start_time__lte=self.careday.start_time,
-                                          end_time__gte=self.careday.start_time):
+                                          end_time__gte=self.careday.start_time,
+                                          careday=self.careday):
             yield ShiftOccurrence(shift=shift, date=self.start.date())
 
 
 # HAVE weekdays * (regular/extended) = ten of these
 # maybe do disjoint "regular" and "extension"  rather than "regular" and "extended"
 class CareDay(WeeklyEvent):
+    classroom=models.ForeignKey(Classroom, on_delete=models.CASCADE)
 
     @property
     def shifts(self):
         return Shift.objects.filter(weekday=self.weekday, 
                                     start_time__gte=self.start_time,
-                                    end_time__lte=self.end_time)
+                                    end_time__lte=self.end_time,
+                                    classroom=self.classroom)
 
     def __repr__(self):
         return f"<CareDay {self.pk}: weekday={self.weekday}, start_time={self.start_time}, end_time={self.end_time}>"

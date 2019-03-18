@@ -3,5 +3,3 @@
 {% block content %}
 {% include "worktime/generic_form.html" %}
 {% endblock content %}
-
-<!-- {% include "generic_create.html" %} -->

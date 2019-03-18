@@ -177,7 +177,8 @@ class Child(NamingMixin, models.Model):
     # first_name = models.CharField(max_length=100)
     # last_name = models.CharField(max_length=100)
     nickname = models.CharField(max_length=100)
-    classroom = models.ForeignKey(Classroom, on_delete=models.PROTECT)
+    classroom = models.ForeignKey(Classroom, null=True, blank=True,
+                                  on_delete=models.PROTECT)
     shifts_per_month = models.IntegerField(default=2)
 
     parent_set = models.ManyToManyField(User)

@@ -11,7 +11,7 @@
 
 <ul>
   {% for classroom in user.classrooms_as_admin %}
-    <li><a href="{% url 'edit-roster' classroom.slug %}">{{classroom}}</a></li>
+    <li><a href="{% url 'manage-classroom' classroom.slug %}">{{classroom}}</a></li>
   {% endfor %}
 </ul>
 

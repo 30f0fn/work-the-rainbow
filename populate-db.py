@@ -43,8 +43,18 @@ for w in WEEKDAYS:
             s = Shift.objects.get_or_create(weekday=w,
                                             start_time = st[0],
                                             end_time=st[1],
-                                            classroom=classroom)
+                                            classroom=lrb)
             print(f"created {s}")
+
+# for w in WEEKDAYS:
+#     if int(w) < 5:
+#         for st in shift_timespans:
+#             s = Shift.objects.get_or_create(weekday=w,
+#                                             start_time = st[0],
+#                                             end_time=st[1],
+#                                             classroom=lrb)
+#             print(f"created {s}")
+
 
 
 # cdts, created = CareDayTimeSpan.objects.get_or_create(name='regular', start_time='08:30', end_time='15:30', extended_endtime='17:30')

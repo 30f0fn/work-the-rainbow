@@ -10,7 +10,7 @@ def is_parent_of(user, child):
 
 @rules.predicate
 def is_parent_in_classroom(user, classroom):
-    return classroom in Classroom.objects.filter(child__parents=user)
+    return classroom in Classroom.objects.filter(child__parent_set=user)
     # return user in Classroom.objects.filter(child__parent=profile)
 
 
