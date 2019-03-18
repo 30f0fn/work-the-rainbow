@@ -26,6 +26,21 @@
             {% endfor %}
         </ul>
       {% endif %}
+
+    {% if user.is_teacher %}
+      <li>teacher
+        {% if user.classrooms_as_teacher%} in
+          <ul>
+            {% for classroom in user.classrooms_as_teacher %}
+              <li>
+                {{classroom}
+              </li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+      </li>
+    {% endif %}
+
 </ul>
 
 {# <p><a href={% url 'edit-profile' %}>edit this profile</a> </p> #}
