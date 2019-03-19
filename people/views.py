@@ -218,7 +218,8 @@ class ChildEditView(QuerysetInClassroomMixin, ClassroomEditMixin, UpdateView):
     # form_class = EditChildForm
 
 
-# create child, invite parents by email
+
+# # delete child from db
 class ChildRemoveView(QuerysetInClassroomMixin, ClassroomEditMixin, DeleteView):
     model = Child
 
@@ -279,7 +280,7 @@ class PublicProfileView(DetailView):
             username = self.kwargs.get('username')
             return User.objects.get(username=username)
         except User.DoesNotExist:
-            raise Http404("User does not exist")
+            raise Http404("does not exist")
 
 
 

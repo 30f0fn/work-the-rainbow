@@ -34,6 +34,8 @@ class AddChildForm(Form):
         return [self.cleaned_data[email_field] for email_field in
                 ['parent_email_1', 'parent_email_2'] if self.cleaned_data[email_field]]
 
+    def clean_email(self):
+        check_unique(self, 'nickname', Child)
         
 
 

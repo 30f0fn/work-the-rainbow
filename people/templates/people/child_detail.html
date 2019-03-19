@@ -5,8 +5,7 @@
 
 
 {% block content %}
-{{child.pk}}{{object.pk}}{{object.id}}
-{{object}}
+
   {% with object as child %}
   <h1>{{child}}</h1>
 <p> classroom: {{child.classroom}}
@@ -14,7 +13,7 @@
 <p> parents:
   <ul>
     {% for parent in child.parent_set.all %}
-      <li>{% display_u parent %}</li> 
+      <li>{% display_user parent %}</li> 
     {% endfor %}
   </ul>
 </p>
@@ -24,5 +23,10 @@
   </p>
 {% endif %}
 {% endwith %}
+
+{% has_perm 'people.edit_child' user child as edit_child %}  
+{% if edit_child %}    
+  <a href="{% url 'edit-child' child.nickname %}">edit</a>
+{% endif %}
 
 {% endblock %}
