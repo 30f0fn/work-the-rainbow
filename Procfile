@@ -1,1 +1,1 @@
-web: gunicorn worktime.wsgi
+web: gunicorn work-the-rainbow.wsgi
