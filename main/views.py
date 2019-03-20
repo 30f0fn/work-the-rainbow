@@ -450,8 +450,7 @@ class AdminHomeView(RoleHomeMixin, TemplateView):
 
 
 
-class EditWorktimeCommitmentView(ClassroomEditMixin,
-                                 ClassroomWorktimeMixin,
+class EditWorktimeCommitmentView(ClassroomWorktimeMixin,
                                  # CalendarMixin,
                                  FamilyMixin,
                                  PerFamilyEditWorktimeMixin,

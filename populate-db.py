@@ -46,6 +46,16 @@ for w in WEEKDAYS:
                                             classroom=lrb)
             print(f"created {s}")
 
+for w in WEEKDAYS:
+    if int(w) < 5:
+        for st in shift_timespans:
+            s = Shift.objects.get_or_create(weekday=w,
+                                            start_time = st[0],
+                                            end_time=st[1],
+                                            classroom=rb1)
+            print(f"created {s}")
+
+
 # for w in WEEKDAYS:
 #     if int(w) < 5:
 #         for st in shift_timespans:

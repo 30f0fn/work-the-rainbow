@@ -77,18 +77,6 @@ class ClassroomMixin(LoginRequiredMixin, PermissionRequiredMixin):
 class ClassroomEditMixin(ClassroomMixin):
     permission_required = 'people.edit_classroom'
 
-    # def has_permission(self):
-    #     print("WTFXS")
-    #     obj = self.get_permission_object()
-    #     perms = self.get_permission_required()
-    #     return self.request.user.has_perms(perms, obj)
-
-
-    # def get_premission_object(self):
-    #     print("HELLO", self.classroom)
-    #     return self.classroom
-
-
     def get_success_url(self):
         return reverse_lazy('manage-classroom',
                             kwargs={'classroom_slug':self.classroom.slug})
@@ -213,7 +201,7 @@ class AddParentToChildView(RelateEmailToObjectView):
 
 
 # # edit child
-class ChildEditView(QuerysetInClassroomMixin, ClassroomEditMixin, UpdateView):
+class ChildEditView(QuerysetInClassroomMixin, UpdateView):
     model = Child
     # form_class = EditChildForm
 
