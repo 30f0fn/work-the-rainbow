@@ -35,7 +35,7 @@ def display_user_list(ul):
     return format_html_join(
         ', ',
         # "<a href=\"{}\">{}</a>",
-        '<a href=\'mailto:{}\'>{}</a>',
+        '<a href=\'{}\'>{}</a>',
         ((reverse('public-profile', kwargs={'username' : user.username}),
           user.username)
          for user in ul))
