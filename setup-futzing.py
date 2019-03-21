@@ -32,4 +32,5 @@ teacher_role = Role.objects.get(name='teacher')
 scheduler_role = Role.objects.get(name='scheduler')
 admin_role = Role.objects.get(name='admin')
 
+a_week = datetime.timedelta(days=7)
 

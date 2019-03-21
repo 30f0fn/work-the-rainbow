@@ -23,19 +23,25 @@ def is_teacher_in_classroom(user, classroom):
 def is_scheduler_in_classroom(user, classroom):
     return user in classroom.scheduler_set.all()
 
+@rules.predicate
+def is_scheduler_for_child(user, child):
+    return user in child.classroom.scheduler_set.all()
+
+
 
 @rules.predicate
 def is_admin(user):
     return user.is_superuser
 
 
-rules.add_rule('people.edit_child',
-               is_admin | 
-               is_scheduler_in_classroom |
-               is_parent_of)
+rules.add_perm('people.edit_child',
+               is_parent_of
+               | is_scheduler_for_child
+               | is_admin
+)
 
 
-rules.add_rule('people.create_classroom',
+rules.add_perm('people.create_classroom',
                is_admin)
 
 

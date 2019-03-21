@@ -319,7 +319,7 @@ class CareDayAssignmentManager(WeeklyEventManager):
     def create_careday_assignments(child, caredays, start, end):
         for careday in caredays:
             CareDayAssignment.objects.create(
-                child=child, careday=careday, start=start, end=end)
+                child=child, careday=careday, start=start, end=end)x
 
     def overlaps(self, child, start, end, careday=None):
         o = super().overlaps(start, end).filter(child=child).select_related('careday')

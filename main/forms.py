@@ -1,7 +1,7 @@
 import datetime
 from collections import defaultdict
 
-from django.forms import Form, CharField, EmailField, SlugField, ValidationError, ModelChoiceField, IntegerField, ModelForm, ModelMultipleChoiceField, BooleanField, NullBooleanField, ChoiceField
+from django.forms import Form, CharField, EmailField, SlugField, ValidationError, ModelChoiceField, IntegerField, ModelForm, ModelMultipleChoiceField, BooleanField, NullBooleanField, ChoiceField, DateField
 from django.forms.widgets import CheckboxSelectMultiple, RadioSelect
 
 
@@ -150,3 +150,28 @@ class CommitmentCompletionForm(Form):
             if str(commitment.pk) in self.changed_data:
                 commitment.completed = self.cleaned_data[str(commitment.pk)]
                 commitment.save()
+
+class CreateCareDayAssignmentsForm(Form):
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.child = kwargs.get('child')
+        self.fields['caredays'] = ModelMultipleChoiceField(
+                queryset=CareDay.objects.filter(
+                    classroom=child.classroom),
+                label=label,
+                widget=CheckboxSelectMultiple)
+        self.fields['start'] = DateField()
+        self.fields['end'] = DateField()
+
+    def save(self):
+        caredays = self.cleaned_data['caredays']
+        start = self.cleaned_data['start']
+        end = self.cleaned_data['end']
+        for careday in caredays:
+            main.models.CareDayAssignment.objects.create(
+                child=self.child,
+                careday=careday,
+                start=start,
+                end=end)
+
