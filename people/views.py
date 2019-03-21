@@ -228,7 +228,6 @@ class AddParentToChildView(RelateEmailToObjectView):
 # # edit child
 class ChildEditView(QuerysetInClassroomMixin, UpdateView):
     model = Child
-    
     # form_class = EditChildForm
 
 

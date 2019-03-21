@@ -170,17 +170,17 @@ class ClassroomWorktimeMixin(object):
          for week in self.weeks()]
             
 
-# class FamilyMixin(object):
+class FamilyMixin(object):
 
-#     def dispatch(self, request, *args, **kwargs):
-#         self.family = Child.objects.get(classroom=self.classroom,
-#                                         nickname=self.kwargs.get('child_slug'))
-#         return super().dispatch(request, *args, **kwargs)
+    def dispatch(self, request, *args, **kwargs):
+        self.family = Child.objects.get(classroom=self.classroom,
+                                        nickname=self.kwargs.get('child_slug'))
+        return super().dispatch(request, *args, **kwargs)
 
-#     def get_context_data(self, **kwargs):
-#         context = super().get_context_data(**kwargs)
-#         context.update({'family' : self.family})
-#         return context
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update({'family' : self.family})
+        return context
 
 
 class PerFamilyEditWorktimeMixin(object):
@@ -541,7 +541,7 @@ class WorktimePreferencesSubmitView(FamilyMixin, FormView):
 
 class CareDaysCreateView(FamilyMixin, FormView):
     template_name = 'caredays_create'
-    form_class = main.forms.CreateCareDayForm
+    form_class = main.forms.CreateCareDayAssignmentsForm
     
     def form_valid(self, form):
         new_caredays = form.save()
