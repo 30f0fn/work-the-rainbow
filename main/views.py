@@ -16,9 +16,8 @@ from rules.contrib.views import PermissionRequiredMixin
 
 from main import rules
 from people.models import Child, Classroom, Role
-from people.views import ClassroomMixin, ClassroomEditMixin, ChildEditMixin
+from people.views import ClassroomMixin, ClassroomEditMixin, ChildEditMixin, ChildMixin
 from main.utilities import nearest_monday
-# import main.models
 from main.models import Holiday, Happening, Shift, WorktimeCommitment, CareDayAssignment, CareDay, ShiftOccurrence
 import main.forms
 
@@ -64,9 +63,7 @@ class DateMixin(object):
                 self._date = datetime.date(self.kwargs.pop('year'),
                                      self.kwargs.pop('month'),
                                      self.kwargs.pop('day'))
-                print(f"got date {self._date} from URL!")
             except KeyError:
-                print("failed to get date from URL!!!")
                 self._date = timezone.now().date()
         return self._date
 
@@ -170,20 +167,9 @@ class ClassroomWorktimeMixin(object):
          for week in self.weeks()]
             
 
-class FamilyMixin(object):
-
-    def dispatch(self, request, *args, **kwargs):
-        self.family = Child.objects.get(classroom=self.classroom,
-                                        nickname=self.kwargs.get('child_slug'))
-        return super().dispatch(request, *args, **kwargs)
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context.update({'family' : self.family})
-        return context
 
 
-class PerFamilyEditWorktimeMixin(object):
+class PerChildEditWorktimeMixin(object):
     # requires shifts e.g. from ClassroomWorktimeMixin 
     # todo this does'nt make sense for the ExitWorktimeCommitmentView
 
@@ -194,7 +180,7 @@ class PerFamilyEditWorktimeMixin(object):
             include_commitments=True,
             classrooms=[self.classroom])
         ret =  [sh for day in sh_dict for sh in sh_dict[day].values()
-                if sh.is_available_to_child(self.family)]
+                if sh.is_available_to_child(self.child)]
         return ret
 
 
@@ -246,7 +232,6 @@ class WeeklyClassroomCalendarView(ClassroomMixin,
 
     @property
     def start_date(self):
-        # print("computing start date")
         # most_recent_monday = self.date - datetime.timedelta(days = self.date.weekday())
         return nearest_monday(self.date)
         # return most_recent_monday
@@ -328,7 +313,7 @@ class ParentHomeView(UpcomingEventsMixin, RoleHomeMixin, TemplateView):
         # return ["poop"]
         # today = timezone.now().date(),
         return WorktimeCommitment.objects.filter(
-            family__parent_set=self.request.user,
+            child__parent_set=self.request.user,
             start__range = self.date_range())
 
 
@@ -387,7 +372,6 @@ class TeacherHomeView(RoleHomeMixin,
         data = {str(commitment.pk) : commitment.completed
                 for commitment in self.get_commitments()}
         initial.update(data)
-        # print(f"get_initial : {initial}")
         return initial
 
     def form_valid(self, form):
@@ -445,15 +429,15 @@ class AdminHomeView(RoleHomeMixin, TemplateView):
 
 
 #########################
-# family calendar views #
+# child calendar views #
 #########################
 
 
 
-class EditWorktimeCommitmentView(PerFamilyEditWorktimeMixin,
+class EditWorktimeCommitmentView(PerChildEditWorktimeMixin,
                                  ChildEditMixin,
-                                 ClassroomMixin,
-                                 ClassroomWorktimeMixin,
+                                 # ClassroomMixin,
+                                 # ClassroomWorktimeMixin,
                                  FormView):
     permission_required = 'people.edit_child'
     form_class = main.forms.RescheduleWorktimeCommitmentForm
@@ -469,35 +453,33 @@ class EditWorktimeCommitmentView(PerFamilyEditWorktimeMixin,
         earlier = datetime.timedelta(days=7)
         later = datetime.timedelta(days=7)
         ret = self.commitment().alternatives(earlier, later)
-        print("available method!", list(ret))
-        print("WTC", self.commitment())
         return ret
 
     def get_success_url(self):
-        return self.request.META.get(
-            'HTTP_REFERER', reverse('home'))
+        return reverse('parent-home')
+        # return self.request.META.get(
+            # 'HTTP_REFERER', 
+        # )
 
 
     def get_form_kwargs(self, *args, **kwargs):
         kwargs = super().get_form_kwargs(*args, **kwargs)
-        kwargs.update({'family' : self.child,
+        kwargs.update({'child' : self.child,
                        'current_commitment' : self.commitment(),
                        'available_shifts' : self.available_shifts()})
-        print("AVAILABLE: ", list(self.available_shifts()))
         return kwargs
 
     def get_initial(self, *args, **kwargs):
         initial = super().get_initial(*args, **kwargs)
         data = {'shift_occ': self.commitment().shift_occurrence().serialize()}
         initial.update(data)
-        print(initial)
         return initial
 
     def form_valid(self, form):
         # raise Exception("Form Valid method called")
         revisions = form.execute()
         if revisions:
-            message = "thanks! {family}'s worktime commitment is rescheduled from {old_start} to {new_start}".format(family=self.family, **revisions)
+            message = "thanks! {child}'s worktime commitment is rescheduled from {old_start} to {new_start}".format(child=self.child, **revisions)
             messages.add_message(self.request, messages.SUCCESS, message)
         return super().form_valid(form)
 
@@ -509,7 +491,7 @@ class EditWorktimeCommitmentView(PerFamilyEditWorktimeMixin,
 
 # require selection of at least n shifts, for some n fixed by settings
 # change form so that the fields are the shift instances and the options are the ranks (rather than vice versa)
-class WorktimePreferencesSubmitView(FamilyMixin, FormView): 
+class WorktimePreferencesSubmitView(ChildMixin, FormView): 
     template_name = 'preferences_submit.html'
     form_class = main.forms.PreferenceSubmitForm
 
@@ -521,7 +503,7 @@ class WorktimePreferencesSubmitView(FamilyMixin, FormView):
     def get_initial(self, *args, **kwargs):
         initial = super().get_initial(*args, **kwargs)
         data = {rank: Shift.objects.filter(
-            shiftpreference__family=self.child,
+            shiftpreference__child=self.child,
             shiftpreference__rank=i,
             classroom=self.classroom) 
                 for i, rank in enumerate(self.get_form_class().ranks)}
@@ -539,9 +521,21 @@ class WorktimePreferencesSubmitView(FamilyMixin, FormView):
 # caredays #
 ############
 
-class CareDaysCreateView(FamilyMixin, FormView):
-    template_name = 'caredays_create'
+class CareDayAssignmentsCreateView(ChildMixin, FormView):
     form_class = main.forms.CreateCareDayAssignmentsForm
+    template_name = 'caredays_create.html'
+
+    def get_success_url(self):
+        return reverse('child-profile',
+                       kwargs={'nickname' : self.child.nickname})
+
+    def caredays(self):
+        return CareDay.objects.filter(classroom=self.child.classroom)
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['child'] = self.child
+        return kwargs
     
     def form_valid(self, form):
         new_caredays = form.save()
@@ -571,7 +565,6 @@ class SchedulerCalendarView(ClassroomEditMixin,
     # todo break period into three four-week sections, show active section
     @property
     def start_date(self):
-        # print("computing start date")
         most_recent_monday = self.date - datetime.timedelta(days = self.date.weekday())
         return most_recent_monday
     
@@ -601,12 +594,12 @@ class MakeWorktimeCommitmentsView(ClassroomEditMixin,
                                   ClassroomWorktimeMixin,
                                   CalendarMixin,
                                   ChildEditMixin,
-                                  PerFamilyEditWorktimeMixin,
+                                  PerChildEditWorktimeMixin,
                                   FormView):
     # todo evaluate start_date based on whether mode is monthly
     num_weeks = 4
     template_name = 'make_worktime_commitments.html'
-    form_class = main.forms.MakeFamilyCommitmentsForm
+    form_class = main.forms.MakeChildCommitmentsForm
     unit_name = 'weekly'
 
     def form():
@@ -616,7 +609,6 @@ class MakeWorktimeCommitmentsView(ClassroomEditMixin,
     # else, try to extract this from a period
     @property
     def start_date(self):
-        # print("computing start date")
         most_recent_monday = self.date - datetime.timedelta(days = self.date.weekday())
         return most_recent_monday
     
@@ -627,7 +619,7 @@ class MakeWorktimeCommitmentsView(ClassroomEditMixin,
     def jump_url(self, increment):
         new_date = self.jump_date(increment)
         kwargs= {'classroom_slug' : self.classroom.slug,
-                 'child_slug' : self.family.nickname,
+                 'nickname' : self.child.nickname,
                  'year':new_date.year, 'month':new_date.month, 'day':new_date.day}
         return reverse_lazy('make-worktime-commitments',
                             kwargs=kwargs)
@@ -646,7 +638,7 @@ class MakeWorktimeCommitmentsView(ClassroomEditMixin,
     # todo
     def get_form_kwargs(self, *args, **kwargs):
         kwargs = super().get_form_kwargs(*args, **kwargs)
-        kwargs.update({'family' : self.family,
+        kwargs.update({'child' : self.child,
                        'available_shifts' : self.available_shifts()
         })
         return kwargs
@@ -654,7 +646,7 @@ class MakeWorktimeCommitmentsView(ClassroomEditMixin,
     # todo
     def get_initial(self, *args, **kwargs):
         initial = super().get_initial(*args, **kwargs)
-        data = {sh.serialize() : getattr(sh.commitment, 'family', None) == self.family 
+        data = {sh.serialize() : getattr(sh.commitment, 'child', None) == self.child 
                 for sh in self.available_shifts()}
         initial.update(data)
         return initial

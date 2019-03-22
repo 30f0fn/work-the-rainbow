@@ -90,10 +90,9 @@ class QuerysetInClassroomMixin(ClassroomMixin):
 
 
 class ChildMixin(LoginRequiredMixin, PermissionRequiredMixin):
-    permission_required = 'people.view_child'
+    permission_required = 'people.view_child_profile'
 
     def get_permission_object(self):
-        print("perm_obj", "hmm")
         return self.child
 
     def dispatch(self, request, *args, **kwargs):
@@ -111,8 +110,21 @@ class ChildEditMixin(ChildMixin):
     permission_required = 'people.edit_child'
 
     def get_success_url(self):
-        return reverse_lazy('child-detail',
+        return reverse_lazy('child-profile',
                             kwargs={'nickname':self.child.nickname})
+
+
+# # todo replace all references to family with references to child
+# class FamilyMixin(object):
+
+#     def dispatch(self, request, *args, **kwargs):
+#         self.family = Child.objects.get(nickname=self.kwargs.get('nickname'))
+#         return super().dispatch(request, *args, **kwargs)
+
+#     def get_context_data(self, **kwargs):
+#         context = super().get_context_data(**kwargs)
+#         context.update({'family' : self.family})
+#         return context
 
 
 ########################
@@ -226,8 +238,14 @@ class AddParentToChildView(RelateEmailToObjectView):
 
 
 # # edit child
-class ChildEditView(QuerysetInClassroomMixin, UpdateView):
+class ChildEditView(ChildMixin, UpdateView):
     model = Child
+    fields = ['nickname']
+    template_name = 'generic_create.html'
+
+    def get_object(self, *args, **kwargs):
+        return self.child
+
     # form_class = EditChildForm
 
 
@@ -307,7 +325,7 @@ class PublicProfileView(DetailView):
         # return self.request.user
 
 
-class ChildDetailView(LoginRequiredMixin, DetailView):
+class ChildDetailView(ChildMixin, DetailView):
     model = Child
     template_name = 'child_detail.html'
 

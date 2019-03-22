@@ -14,7 +14,7 @@
           {% for shift in shifts %}  
             <li> 
               {{shift.start |time:"g:i"}}:
-              {{shift.commitment.family | default_if_none:""}} 
+              {{shift.commitment.child | default_if_none:""}} 
             </li> 
           {% endfor %}  
         </ul>

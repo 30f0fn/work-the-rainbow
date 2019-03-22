@@ -11,13 +11,13 @@
 
 <div>
 {# navigating between families #}
-  {% for family in view.classroom.child_set.all %}
-    {% if family != view.family %}
-      <a href='{% url 'make-worktime-commitments' view.classroom.slug family.nickname view.date.year view.date.month view.date.day %}'>
-        {{family}}
+  {% for child in view.classroom.child_set.all %}
+    {% if child != view.child %}
+      <a href='{% url 'make-worktime-commitments' view.classroom.slug child.nickname view.date.year view.date.month view.date.day %}'>
+        {{child}}
       </a>
     {% else %}
-      {{family}}
+      {{child}}
     {% endif %}
   {% endfor %}
 </div>
@@ -46,7 +46,7 @@
                       {{shift.start |time:"g:i"}}
                     </td>
                     <td>
-                      {{shift.commitment.family | default_if_none:""}}
+                      {{shift.commitment.child | default_if_none:""}}
                     </td>
                   </tr>
                 {% endfor %}

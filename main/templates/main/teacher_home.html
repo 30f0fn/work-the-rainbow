@@ -24,7 +24,7 @@
   {% for time, shift in shifts.items %}
     <tr>
       <td>{{time | time:"g:i"}}:</td>
-      <td>{{shift.commitment.family.nickname}}</td>
+      <td>{{shift.commitment.child.nickname}}</td>
       <td>{{form|render_field_from_int:shift.commitment.pk}}</td>
     </tr>
   {% endfor %}

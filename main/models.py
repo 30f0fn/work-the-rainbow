@@ -231,6 +231,10 @@ class CareDay(WeeklyEvent):
     def __repr__(self):
         return f"<CareDay {self.pk}: weekday={self.weekday}, start_time={self.start_time}, end_time={self.end_time}>"
 
+    def __str__(self):
+        return f"{WEEKDAYS[self.weekday]}, {self.start_time} - {self.end_time}"
+
+
 
 class ShiftManager(WeeklyEventManager):
 
@@ -254,9 +258,9 @@ class ShiftManager(WeeklyEventManager):
         results = super().occurrences_by_date_and_time(start, end)
         if include_commitments:
             commitments = WorktimeCommitment.objects.filter( 
-                start__range=(start, end)).select_related("family")
+                start__range=(start, end)).select_related("child")
             if classrooms:
-                commitments = commitments.filter(family__classroom__in=classrooms)
+                commitments = commitments.filter(child__classroom__in=classrooms)
             for commitment in commitments:
                 start = commitment.start
                 results[start.date()][start.time()].commitment = commitment
@@ -403,6 +407,10 @@ class CareDayAssignment(models.Model):
     def __repr__(self):
         return f"<{self.__class__.__name__} {self.pk}>: child={self.child}, careday={self.careday}, start={self.start}, end={self.end}"
 
+    # def __str__(self):
+        # return f"<{self.__class__.__name__} {self.pk}>: child={self.child}, careday={self.careday}, start={self.start}, end={self.end}"
+
+
 
 class ExtraCareDay(Event):
 
@@ -446,11 +454,11 @@ class ShiftOccurrence(WeeklyEventOccurrence):
     # def deserialize()
 
     # dont inherit
-    def create_commitment(self, family):
+    def create_commitment(self, child):
         return WorktimeCommitment.objects.create(
             start = self.start,
             # date = self.date,
-            family = family)
+            child = child)
 
     def is_available_to_child(self, child):
         # todo make configurable from settings
@@ -460,7 +468,7 @@ class ShiftOccurrence(WeeklyEventOccurrence):
         if not self.start.tzinfo:
             self.start = timezone.make_aware(self.start)
         return self.start >= earliest\
-            and (getattr(self, "commitment", None)==None or self.commitment.family==child)
+            and (getattr(self, "commitment", None)==None or self.commitment.child==child)
 
 
     def __str__(self):
@@ -491,7 +499,7 @@ class ShiftOccurrence(WeeklyEventOccurrence):
 # todo this should just have shift and fields?
 # then, override start and end property methods?  seems ugly
 class WorktimeCommitment(Event):
-    family = models.ForeignKey(Child, on_delete=models.CASCADE)
+    child = models.ForeignKey(Child, on_delete=models.CASCADE)
     completed = models.NullBooleanField()
     shift = models.ForeignKey(Shift, on_delete=models.CASCADE)
 
@@ -501,7 +509,7 @@ class WorktimeCommitment(Event):
                                commitment=self)
 
     def save(self, *args, **kwargs):
-        self.shift = Shift.objects.get(classroom=self.family.classroom,
+        self.shift = Shift.objects.get(classroom=self.child.classroom,
                                        start_time=self.start.time(),
                                        weekday=self.start.weekday())
         super().save(*args, **kwargs)
@@ -524,7 +532,7 @@ class WorktimeCommitment(Event):
         dt_max = max(timezone.now(), self.start + later).replace(
             hour=timezone.datetime.max.hour,
             minute=timezone.datetime.max.minute)
-        maybe_alts = self.family.possible_shifts(
+        maybe_alts = self.child.possible_shifts(
             start=dt_min,
             end=dt_max)
         commitments = WorktimeCommitment.objects.by_date_and_time(
@@ -541,21 +549,21 @@ class WorktimeCommitment(Event):
 
 
 class ShiftPreference(models.Model):
-    family = models.ForeignKey(Child, on_delete=models.CASCADE)
+    child = models.ForeignKey(Child, on_delete=models.CASCADE)
     shift = models.ForeignKey(Shift, on_delete=models.CASCADE)
     rank_choices = ((1, 'best'), (2, 'pretty good'), (3, 'acceptable'))
     rank = models.IntegerField(choices=rank_choices, default=3)
     def __repr__(self):
-        return f"<ShiftPreference {self.pk}: {self.family} ranks {self.shift} as {self.rank}>"
+        return f"<ShiftPreference {self.pk}: {self.child} ranks {self.shift} as {self.rank}>"
 
 
 # could be called shiftassignment
 class ShiftAssignment(models.Model):
-    family = models.ForeignKey(Child, on_delete=models.CASCADE)
+    child = models.ForeignKey(Child, on_delete=models.CASCADE)
     period = models.ForeignKey(Period, on_delete=models.CASCADE)
     shift = models.ForeignKey(Shift, on_delete=models.CASCADE)
     def __repr__(self):
-        return f"<WorktimeAssignment {self.pk}: {self.family} assigned {self.shift} in period {self.period}>"
+        return f"<WorktimeAssignment {self.pk}: {self.child} assigned {self.shift} in period {self.period}>"
 
 class ShiftInstance(object):
     pass

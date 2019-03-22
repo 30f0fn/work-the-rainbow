@@ -15,7 +15,7 @@
   <ul>
   {% for time, shift in shifts.items %}
     <li>
-      {{time | time:"g:i"}}: {{shift.commitment.family.nickname}}
+      {{time | time:"g:i"}}: {{shift.commitment.child.nickname}}
     </li>
   {% endfor %}
   </ul>  

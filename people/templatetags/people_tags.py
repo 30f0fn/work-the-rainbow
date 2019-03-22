@@ -14,7 +14,7 @@ def modelname(model):
 def display_child(child):
     nickname = child.nickname
     return format_html("<a href=\"{}\">{}</a>",
-                       reverse('child-detail',
+                       reverse('child-profile',
                                kwargs={'nickname' : nickname }),
                        child.nickname)
 

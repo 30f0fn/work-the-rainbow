@@ -24,9 +24,20 @@
 {% endif %}
 {% endwith %}
 
+care assignments:
+<ul>
+  {% for cda in child.caredayassignment_set.all %}
+    <li>{{cda.start.date }}-{{cda.end.date}}: {{cda.careday}}</li>
+  {% endfor %}
+</ul>
+
+
 {% has_perm 'people.edit_child' user child as edit_child %}  
 {% if edit_child %}    
-  <a href="{% url 'edit-child' child.nickname %}">edit</a>
+  <a href="{% url 'edit-child' child.nickname %}"> edit child info</a>
+  <a href="{% url 'create-careday-assignments' child.nickname %}">add caredays</a>
 {% endif %}
+
+
 
 {% endblock %}

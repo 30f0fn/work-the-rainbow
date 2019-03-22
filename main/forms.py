@@ -56,18 +56,18 @@ class PreferenceSubmitForm(Form):
     def save_prefs(self):
         for rank, prefs in enumerate(self.submitted_prefs()):
             for pref in prefs:
-                main.models.ShiftPreference.objects.create(family=self.child,
+                main.models.ShiftPreference.objects.create(child=self.child,
                                                            shift=pref,
                                                            rank=rank)
 
 
 
 
-class MakeFamilyCommitmentsForm(Form):
+class MakeChildCommitmentsForm(Form):
 
-    def __init__(self, family, available_shifts, *args, **kwargs):
+    def __init__(self, child, available_shifts, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.family = family
+        self.child = child
         self.available_shifts = available_shifts
         self.fields.update({sh.serialize() : BooleanField(required=False)
                             for sh in self.available_shifts})
@@ -77,9 +77,9 @@ class MakeFamilyCommitmentsForm(Form):
         # todo: verify that no commitment exists for each newly added shift
         num_shifts = len([pk for pk in self.cleaned_data
                           if self.cleaned_data[pk]])
-        if monthly and num_shifts > self.family.shifts_per_month:
+        if monthly and num_shifts > self.child.shifts_per_month:
             # maybe only a warning here? 
-            raise ValidationError(f"The family of {self.family} needs only {self.family.shifts_per_month}, but this assigns them {num_shifts}")
+            raise ValidationError(f"The child of {self.child} needs only {self.child.shifts_per_month}, but this assigns them {num_shifts}")
     
     def revise_commitments(self):
         revisions = defaultdict(list)
@@ -88,10 +88,10 @@ class MakeFamilyCommitmentsForm(Form):
             if self.cleaned_data[sh_field]:
                 revisions['added'].append(sh)
                 # current deserializing hits db; avoid this?
-                sh.create_commitment(self.family)
+                sh.create_commitment(self.child)
             else:
                 main.models.WorktimeCommitment.objects.get(
-                    family=self.family,
+                    child=self.child,
                     start=sh.start).delete()
                 revisions['removed'].append(sh)
         return revisions
@@ -99,9 +99,9 @@ class MakeFamilyCommitmentsForm(Form):
 
 class RescheduleWorktimeCommitmentForm(Form):
 
-    def __init__(self, family, current_commitment, available_shifts, *args, **kwargs):
+    def __init__(self, child, current_commitment, available_shifts, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.family = family
+        self.child = child
         self.current_commitment = current_commitment
         self.available_shifts = available_shifts
         choices = ((sh.serialize(), str(sh)) for sh in available_shifts)
@@ -154,13 +154,13 @@ class CommitmentCompletionForm(Form):
 class CreateCareDayAssignmentsForm(Form):
     
     def __init__(self, *args, **kwargs):
+        child = kwargs.pop('child')
         super().__init__(*args, **kwargs)
-        self.child = kwargs.get('child')
+        self.child = child
         self.fields['caredays'] = ModelMultipleChoiceField(
-                queryset=CareDay.objects.filter(
-                    classroom=child.classroom),
-                label=label,
-                widget=CheckboxSelectMultiple)
+            queryset=main.models.CareDay.objects.filter(
+                classroom=self.child.classroom),
+            widget=CheckboxSelectMultiple)
         self.fields['start'] = DateField()
         self.fields['end'] = DateField()
 

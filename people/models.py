@@ -160,7 +160,7 @@ class Classroom(NamingMixin, models.Model):
 
     def worktime_commitments_by_date(self, date):
         return main.models.WorktimeCommitment.objects.filter(
-            family__classroom=self,
+            child__classroom=self,
             shift_instance__date=date)
 
     def get_absolute_url(self):
@@ -200,20 +200,24 @@ class Child(NamingMixin, models.Model):
     def possible_shifts(self, start, end):
         # commitments = [] if not include_commitments else \
             # WorktimeCommitment.objects.filter(start__range=(start, end),
-                                              # family__classroom=child.classroom)
+                                              # child__classroom=child.classroom)
         for careday_occurrence in self.careday_occurrences(start, end):
             for shift_occurrence in careday_occurrence.shift_occurrences():
                 yield shift_occurrence
 
     @property
     def worktime_commitments(self):
-        return main.models.WorktimeCommitment.objects.filter(family=self)
+        return main.models.WorktimeCommitment.objects.filter(child=self)
 
     def __str__(self):
         return f"{self.nickname}"
 
     def __repr__(self):
         return f"<Child {self.pk}: {self.nickname}>"
+
+    def get_absolute_url(self):
+        return reverse('child-profile',
+                       kwargs={'nickname' : self.nickname})
 
     class Meta:
         pass

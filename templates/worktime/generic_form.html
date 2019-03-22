@@ -1,8 +1,3 @@
-{# {% block title %} #}
-{# <h2> add {{ view.model.name }}<> #}
-{# {\# add {{ view.model | modelname }} #\} #}
-{# {% endblock title %} #}
-
 {% block content %}
 <form action="{{request.path}}" method="post">
     {% csrf_token %}

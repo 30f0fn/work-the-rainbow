@@ -11,7 +11,7 @@
     worktime scheduling 
   </h1>
 <h2>
-{{view.family}}, {{view.start_date|date:"n/j"}}-{{view.end_date|date:"n/j"}}
+{{view.child}}, {{view.start_date|date:"n/j"}}-{{view.end_date|date:"n/j"}}
 </h2>
 
 
@@ -31,7 +31,7 @@
               <li> 
                 {{shift.start_time |time:"g:i"}}:
                 {% with shift.commitment as commitment %}
-                  {% if commitment and commitment != view.family %}
+                  {% if commitment and commitment != view.child %}
                     {{commitment.nickname}}
                     {# {% elif shift_instance.pk in form.fields %} #}
                   {% else %}

@@ -27,7 +27,7 @@
                       {{shift.start |time:"g:i"}}
                     </td>
                     <td>
-                      {{shift.commitment.family | default_if_none:""}}
+                      {{shift.commitment.child | default_if_none:""}}
                     </td>
                   </tr>
                 {% endfor %}

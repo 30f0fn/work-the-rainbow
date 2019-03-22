@@ -10,9 +10,7 @@ def is_parent_of(user, child):
 
 @rules.predicate
 def is_parent_in_classroom(user, classroom):
-    return classroom in Classroom.objects.filter(child__parent_set=user)
-    # return user in Classroom.objects.filter(child__parent=profile)
-
+    return user in classroom.parents
 
 @rules.predicate
 def is_teacher_in_classroom(user, classroom):
@@ -27,6 +25,13 @@ def is_scheduler_in_classroom(user, classroom):
 def is_scheduler_for_child(user, child):
     return user in child.classroom.scheduler_set.all()
 
+@rules.predicate
+def is_parent_in_classroom_of(user, child):
+    return user in child.classroom.parents
+
+@rules.predicate
+def is_teacher_of(user, child):
+    return user in child.classroom.teacher_set.all()
 
 
 @rules.predicate
@@ -39,6 +44,16 @@ rules.add_perm('people.edit_child',
                | is_scheduler_for_child
                | is_admin
 )
+
+rules.add_perm('people.view_child_profile',
+               is_admin |
+               is_teacher_of |
+               is_parent_in_classroom_of)
+
+rules.add_perm('people.view_child_personal',
+               is_admin |
+               is_teacher_of |
+               is_parent_of)
 
 
 rules.add_perm('people.create_classroom',
@@ -55,6 +70,8 @@ rules.add_perm('people.view_classroom',
                is_parent_in_classroom |
                is_scheduler_in_classroom |
                is_admin)
+
+
 
 
 

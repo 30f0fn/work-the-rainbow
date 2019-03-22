@@ -11,7 +11,7 @@
     worktime scheduling 
   </h1>
 <h2>
-{{view.family}}, {{view.start_date|date:"n/j"}}-{{view.end_date|date:"n/j"}}
+{{view.child}}, {{view.start_date|date:"n/j"}}-{{view.end_date|date:"n/j"}}
 </h2>
 
 
@@ -20,13 +20,13 @@
 
 <div>
 {# navigating between families #}
-  {% for family in view.classroom.child_set.all %}
-    {% if family != view.family %}
-      <a href='{% url 'make-worktime-commitments' view.classroom.slug family.nickname view.date.year view.date.month view.date.day %}'>
-        {{family}}
+  {% for child in view.classroom.child_set.all %}
+    {% if child != view.child %}
+      <a href='{% url 'make-worktime-commitments' view.classroom.slug child.nickname view.date.year view.date.month view.date.day %}'>
+        {{child}}
       </a>
     {% else %}
-      {{family}}
+      {{child}}
     {% endif %}
   {% endfor %}
 </div>
@@ -69,8 +69,8 @@
                       </td>
                       <td>
                         {% with shift.commitment as commitment %}
-                          {% if commitment and commitment.family != view.family %}
-                            {{commitment.family.nickname}}
+                          {% if commitment and commitment.child != view.child %}
+                            {{commitment.child.nickname}}
                             {# {% elif shift_instance.pk in form.fields %} #}
                           {% else %}
                             {{ form|render_field_from_string:shift.serialize}}

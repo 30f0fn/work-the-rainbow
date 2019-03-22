@@ -69,15 +69,20 @@ for w in WEEKDAYS:
 
 # cdts, created = CareDayTimeSpan.objects.get_or_create(name='regular', start_time='08:30', end_time='15:30', extended_endtime='17:30')
 
-for w in WEEKDAYS:
-    if int(w) < 5:
-        CareDay.objects.get_or_create(weekday=w,
-                                      start_time='8:30',
-                                      end_time='15:30',)
-        CareDay.objects.get_or_create(weekday=w,
-                                      start_time='15:30',
-                                      end_time='17:30',)
+def create_caredays_for_classroom(classroom): 
+    for w in WEEKDAYS:
+        if int(w) < 5:
+            CareDay.objects.get_or_create(weekday=w,
+                                          start_time='8:30',
+                                          end_time='15:30',
+                                          classroom=classroom)
+            CareDay.objects.get_or_create(weekday=w,
+                                          start_time='15:30',
+                                          end_time='17:30',
+                                          classroom=classroom)
 
+for classroom in Classroom.objects.all():
+    create_caredays_for_classroom(classroom)
 
 for c in classroom.child_set.all():
     num_days = random.randrange(2,6)
@@ -107,7 +112,7 @@ for c in classroom.child_set.all():
     shifts = list(itertools.chain.from_iterable([
         careday.shifts for careday in caredays]))
     s = random.choice(shifts)
-    sp = ShiftPreference.objects.get_or_create(family=c, shift=s, rank=1)
+    sp = ShiftPreference.objects.get_or_create(child=c, shift=s, rank=1)
     print(sp)
      
     

@@ -1,4 +1,11 @@
 
+
+dates
+-----
+
+make sure conversion between date and datetime makes sense...
+
+
 Teachers functionality
 ----------------------
 
@@ -8,7 +15,7 @@ Worktime scheduling
 -------------------
 
 - transpose scheduler's scheduling view for parent
-- manage period logic?  ask julia
+
 
 Roles, etc
 ----------

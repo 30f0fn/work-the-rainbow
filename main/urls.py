@@ -55,12 +55,17 @@ classroom_calendar_patterns = [
 ]
 
 child_parenting_patterns = [
+
     path('worktime/preferences',
          views.WorktimePreferencesSubmitView.as_view(),
          name='worktime-preferences'),
     path('worktime/reschedule/<int:pk>',
          views.EditWorktimeCommitmentView.as_view(),
          name='edit-worktime-commitment'),
+
+    path('caredays/assign',
+         views.CareDayAssignmentsCreateView.as_view(),
+         name='create-careday-assignments'),
 ]
 
 classroom_scheduling_patterns = [
@@ -84,11 +89,11 @@ classroom_scheduling_patterns = [
 classroom_patterns = [
     path('', include(classroom_scheduling_patterns)),
     path('calendar/', include(classroom_calendar_patterns)),
-    path('<slug:nickname>/', include(child_parenting_patterns)),
 ]
 
 urlpatterns = [
     path('', include(basic_patterns)),
     # path('scheduling/', include(classroom_scheduling_patterns)),
     path('<slug:classroom_slug>/', include(classroom_patterns)),
+    path('<slug:nickname>/', include(child_parenting_patterns)),
 ]
