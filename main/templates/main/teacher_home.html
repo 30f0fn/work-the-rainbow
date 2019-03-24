@@ -17,10 +17,11 @@
 <form action="{{request.path}}" method="post">
   {% csrf_token %}
   <table>
-    <tr>
-      <td></td>
-      <td></td>
-      <td>completed?</td>
+    {# <tr> #}
+      {# <td></td> #}
+      {# <td></td> #}
+      {# <td>completed?</td> #}
+
   {% for time, shift in shifts.items %}
     <tr>
       <td>{{time | time:"g:i"}}:</td>

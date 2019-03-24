@@ -158,7 +158,7 @@ STATIC_URL = '/static/'
 # EMAIL_USE_TLS = True
 # EMAIL_PORT = 587
 # EMAIL_SENDER = 'the.robot@worktherainbow.org'
-
+DEFAULT_FROM_EMAIL = 'the.robot@worktherainbow.org'
 EMAIL_BACKEND = 'sendgrid_backend.SendgridBackend'
 SENDGRID_API_KEY = os.environ['SENDGRID_API_KEY']
 SENDGRID_SANDBOX_MODE_IN_DEBUG = False
