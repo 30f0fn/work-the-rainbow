@@ -9,8 +9,6 @@ make sure conversion between date and datetime makes sense...
 Teachers functionality
 ----------------------
 
-- worktime completion checkoff
-
 Worktime scheduling
 -------------------
 

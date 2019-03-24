@@ -5,8 +5,8 @@ from worktime.settings.base import *
 
 SECRET_KEY=os.environ.get('DJANGO_SECRET_KEY')
 
-# todo config on heroku
-EMAIL_HOST_PASSWORD=os.environ.get("EMAIL_HOST_PASSWORD")
+# # todo config on heroku
+# EMAIL_HOST_PASSWORD=os.environ.get("EMAIL_HOST_PASSWORD")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True

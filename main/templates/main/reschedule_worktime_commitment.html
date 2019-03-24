@@ -8,19 +8,14 @@
 {% block content %}
 
   <h1>
-    worktime scheduling 
+    reschedule a shift
   </h1>
-<h2>
-{{view.child}}, {{view.start_date|date:"n/j"}}-{{view.end_date|date:"n/j"}}
-</h2>
 
-
-
-{{view.get_initial}}
+Please select an alternative to your current shift for {% display_child view.commitment.child %} ({{view.commitment}}).
 
 <form action="{{request.path}}" method="post">
     {% csrf_token %}
-    {{ form.as_ul }}
+    {{ form.as_table }}
     <input type="submit" value="Submit">
 </form>
 

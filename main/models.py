@@ -472,7 +472,7 @@ class ShiftOccurrence(WeeklyEventOccurrence):
 
 
     def __str__(self):
-        return f"{self.start} shift in {self.classroom.slug}"
+        return f"{self.start.strftime('%-H:%M %a, %-d %b')} ({self.classroom.slug})"
 
     def __repr__(self):
         result = super().__repr__()+f", classroom={self.classroom}"
@@ -513,6 +513,9 @@ class WorktimeCommitment(Event):
                                        start_time=self.start.time(),
                                        weekday=self.start.weekday())
         super().save(*args, **kwargs)
+
+    def __str__(self):
+        return str(self.shift_occurrence())
 
     # @property
     # def start(self):

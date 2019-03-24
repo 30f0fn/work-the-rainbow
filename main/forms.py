@@ -1,9 +1,10 @@
 import datetime
 from collections import defaultdict
 
+
 from django.forms import Form, CharField, EmailField, SlugField, ValidationError, ModelChoiceField, IntegerField, ModelForm, ModelMultipleChoiceField, BooleanField, NullBooleanField, ChoiceField, DateField
 from django.forms.widgets import CheckboxSelectMultiple, RadioSelect
-
+from django.utils import timezone
 
 # import main.views
 import main.schedule_settings
@@ -109,7 +110,8 @@ class RescheduleWorktimeCommitmentForm(Form):
         #     print(choice)
         self.fields.update({'shift_occ' : ChoiceField(
             choices=choices,
-            widget=RadioSelect)})
+            widget=RadioSelect,
+            label="")})
         print('initial: ', kwargs.get('initial'))
         for ch in self.fields['shift_occ'].choices:
             print(ch[0])
@@ -122,11 +124,12 @@ class RescheduleWorktimeCommitmentForm(Form):
             self.cleaned_data.get('shift_occ'))
         old_start = self.current_commitment.start
         if new_shift.start != old_start:
-            self.current_commitment.start = new_shift.start
+            new_start = timezone.make_aware(new_shift.start)
+            self.current_commitment.start = new_start
             self.current_commitment.end = new_shift.end
             self.current_commitment.save()
             return {'old_start' : old_start,
-                    'new_start' : new_shift.start}
+                    'new_start' : new_start}
 
 
 
