@@ -8,6 +8,8 @@ django-debug-toolbar==1.11
 django-heroku==0.3.1
 django-invitations==1.9.2
 django-recurrence==1.9.0
+django-sendgrid-v5==0.7.1
+future==0.17.1
 gunicorn==19.9.0
 idna==2.8
 oauthlib==2.1.0
