@@ -11,6 +11,8 @@ import main.schedule_settings
 import main.models
 import people.models
 
+NA_YES_NO = ((None, 'N/A'), (True, 'Yes'), (False, 'No'))
+
 """
 todo:
 
@@ -142,7 +144,9 @@ class CommitmentCompletionForm(Form):
         print(f"FORM_KWARGS : {kwargs}")
         self.commitments = commitments
         for commitment in self.commitments:
-            self.fields[str(commitment.pk)] = NullBooleanField()
+            self.fields[str(commitment.pk)] = NullBooleanField(
+                # widget=RadioSelect(choices=NA_YES_NO)
+            )
 
 
     def save(self):

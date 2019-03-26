@@ -345,6 +345,7 @@ class TeacherHomeView(RoleHomeMixin,
     # todo!
 
     def caredays(self):
+        # todo FILTER BY CLASSROOM!
         return CareDay.objects.occurrences_for_date_range(self.start,
                                                           self.end)
 
