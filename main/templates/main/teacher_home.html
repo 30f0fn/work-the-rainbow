@@ -24,7 +24,7 @@
         {{time | time:"g:i"}}:
       </td>
       <td>
-        {{commitment.child.nickname|default_if_none:""}}
+        {{commitment.child.nickname | default_if_none:"(nobody)"}}
       </td>
       <td>
         {% if commitment %}
@@ -40,29 +40,6 @@
   <h2>
     kids
   </h2>
-  {# <table> #}
-  {#     <tr> #}
-  {#   {% for careday in view.caredays %} #}
-  {#       <td> #}
-  {#         {{careday.start.time | time:"g:i"}}-{{careday.end.time | time:"g:i"}} #}
-  {#       </td> #}
-  {#   {% endfor %} #}
-  {#     </tr> #}
-  {#   <tr> #}
-  {#     {% for careday in view.caredays %} #}
-  {#       <td> #}
-  {#         <ul> #}
-  {#           {% for kid in careday.children %} #}
-  {#             <li> #}
-  {#               {{kid.nickname}} #}
-  {#             </li> #}
-  {#           {% endfor %} #}
-  {#         </ul> #}
-  {#       </td> #}
-  {#     {% endfor %} #}
-  {#   </tr> #}
-  {# </table> #}
-
   <ul>
   {% for careday in view.caredays %}
     <h3>{{careday.start.time | time:"g:i"}}-{{careday.end.time | time:"g:i"}}</h3>

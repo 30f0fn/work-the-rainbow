@@ -203,10 +203,11 @@ class CareDayOccurrence(WeeklyEventOccurrence):
 
 
     def children(self):
-        return Child.objects.filter(caredayassignment__end__gte=self.start,
-                                    caredayassignment__start__lte=self.end,
+        return Child.objects.filter(classroom=self.careday.classroom,
                                     caredayassignment__careday=self.careday,
-                                    classroom=self.careday.classroom)
+                                    caredayassignment__end__gte=self.start,
+                                    caredayassignment__start__lte=self.end,
+                                    ).distinct()
     
     def shift_occurrences(self):
         for shift in Shift.objects.filter(weekday=self.careday.weekday,

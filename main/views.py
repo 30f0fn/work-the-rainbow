@@ -342,22 +342,12 @@ class TeacherHomeView(RoleHomeMixin,
             classrooms=[self.classroom])
         return shifts_dict[self.start_date]
 
-    # todo!
-
     def caredays(self):
         # todo FILTER BY CLASSROOM!
-        return CareDay.objects.occurrences_for_date_range(self.start,
-                                                          self.end)
-
-
-    # def kids_dict(self):
-    #     k_dict = defaultdict([False, False])
-    #     caredays = CareDay.objects.occurrences_for_date_range(self.start,
-    #                                                           self.end)
-    #     for i, careday in enumerate(caredays):
-    #         for child in careday.children():
-    #             k_dict[child][i] = careday
-    #     return k_dict
+        caredays = CareDay.objects.filter(classroom=self.classroom,
+                                          weekday=self.start.weekday())
+        for careday in caredays:
+            yield careday.initialize_occurrence(self.start)
 
     def get_commitments(self):
         return WorktimeCommitment.objects.filter(
