@@ -1,25 +1,28 @@
 {% load people_tags %}
 
-{% if user.is_authenticated %}
+{# {% if user.is_authenticated %} #}
 
   <div id="auth-panel">
     <a href="{% url 'account_logout' %}">sign out</a> 
+    <a href="{% url 'profile' %}">profile</a>
   </div>
 
+  {% if user.has_multi_roles %}
   <div id="role-switcher">
-    <a href="{% url 'profile' %}">profile</a>
     {% if user.has_multi_roles %}
       {% for role in user.roles %}
         {% if role != user.active_role %}
           {% with role.name as role_name %}
             <a href='{% url role_name|addstr:'-home' %}'>{{role}}</a>
           {% endwith %}
-          {# {% else %} #}
-          {# <strong id="active_role">{{role}}</strong> #}
+          {% else %} 
+            {# <strong id="active_role"> #}
+              {{role}}
+            {# </strong>  #}
         {% endif %}
       {% endfor %}
-    {% endif %}
   </div>
+{% endif %}
 
   <div id="role-supplied-nav">
     {% if user.active_role %}

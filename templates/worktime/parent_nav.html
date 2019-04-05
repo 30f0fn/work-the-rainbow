@@ -23,6 +23,18 @@
           </a>
         </td>
       </tr>
+      {% for child in user.children %}
+        {% if child.classroom == classroom and classroom.solicits_preferences %}
+          <tr>
+            <td>
+              <a href="{% url 'preferences-submit' child.nickname %}">
+                worktime preferences for {{child.nickname}}
+              </a>
+            </td>
+          </tr>
+        {% endif %}
+      {% endfor %}
+
     </table>
   {% endfor %}
 </div>

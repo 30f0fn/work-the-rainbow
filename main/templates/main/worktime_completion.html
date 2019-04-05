@@ -1,0 +1,41 @@
+{% extends "worktime/base.html" %} 
+
+{% load people_tags %} 
+{% load main_tags %}
+
+{% load rules %}
+
+{% block content %}
+
+  <h1>
+    worktime attendance {{classroom.slug}}, {{date}}
+  </h1>
+
+  <h2>
+    worktimes
+  </h2>
+<form action="{{request.path}}" method="post"> 
+{% csrf_token %}
+  <table>
+  {% for time, shift in shifts.items %}
+    {% with shift.commitment as commitment%}
+    <tr>
+      <td>
+        {{time | time:"g:i"}}:
+      </td>
+      <td>
+        {{commitment.child.nickname | default_if_none:"(nobody)"}}
+      </td>
+      <td>
+        {% if commitment %}
+          {{form|render_field_from_int:commitment.pk}}
+        {% endif %}
+      </td> 
+    </tr>
+    {% endwith %}
+  {% endfor %}
+  </table>  
+  <button type="submit", value="Submit">save</button>
+</form>
+
+{% endblock content %}

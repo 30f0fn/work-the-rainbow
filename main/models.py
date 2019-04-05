@@ -53,6 +53,7 @@ shift, careday, holiday, worktimecommitment,
 class EventManager(models.Manager):
 
     def overlaps(self, start, end): 
+        # todo is this the right way to call filter in the manager?x
         return super().get_queryset().filter(start__lte=end, end__gte=start)
     
     def by_date(self, start, end, restriction=None):
@@ -80,12 +81,12 @@ class EventManager(models.Manager):
 
 
 # todo combine start_date and start_time; end_date and end_time
+# todo make event abstract?  
 
 class Event(models.Model):
     start = models.DateTimeField(default=timezone.now)
     # todo below default is dumb because what if start is future?
     end = models.DateTimeField(default=timezone.now)
-
 
     @property
     def date(self):
@@ -233,7 +234,7 @@ class CareDay(WeeklyEvent):
         return f"<CareDay {self.pk}: weekday={self.weekday}, start_time={self.start_time}, end_time={self.end_time}>"
 
     def __str__(self):
-        return f"{WEEKDAYS[self.weekday]}, {self.start_time} - {self.end_time}"
+        return f"{WEEKDAYS[self.weekday][:3]}, {self.start_time} - {self.end_time} ({self.classroom.slug})"
 
 
 
@@ -269,7 +270,15 @@ class ShiftManager(WeeklyEventManager):
                 # print(results[start.date()][start.time()])
                 # print(results[start.date()][start.time()].commitment)
         return results
-        
+
+    def by_weekday_and_time(self, classroom):
+        shifts = Shift.objects.filter(classroom=classroom).order_by(start_time)
+        # for each weekday, list all shifts in order of time
+        shifts_dict = default_dict(list)
+        for shift in shifts:
+            shifts_dict[shift.weekday].append(shift)
+        return shifts_dict
+
 
 class Shift(WeeklyEvent):
 
@@ -311,32 +320,36 @@ class Happening(Event):
 
 class Period(Event):
     classroom = models.ForeignKey(Classroom, on_delete=models.CASCADE)
-    duration = models.DurationField(default=datetime.timedelta(days=7*4*4))
+
+    def clean(self):
+        if Period.objects.overlaps(self).filter(
+                classroom=self.classroom).count() > 0:
+            raise ValueError("an existing period for that classroom overlaps with the proposed one")
+
 
     def __str__(self):
         return f"<Period {self.pk}: {self.start} - {self.end}>"
 
 
-
-
 class CareDayAssignmentManager(WeeklyEventManager):
 
-    def create_careday_assignments(child, caredays, start, end):
+    # not in use
+    def create_multiple(self, child, caredays, start, end):
         for careday in caredays:
             CareDayAssignment.objects.create(
                 child=child, careday=careday, start=start, end=end)
+
+    def create(self, child, careday, start, end):
+        for assignment in self.overlaps(
+                child, start, end,
+                careday=careday):
+            assignment.extend_to(start, end)
 
     def overlaps(self, child, start, end, careday=None):
         o = super().overlaps(start, end).filter(child=child).select_related('careday')
         if careday:
             o = o.filter(careday=careday)
         return o
-
-    def add_child_to_careday_for_range(self, careday, child, start, end):
-        for assignment in self.overlaps(
-                child, start, end,
-                careday=careday):
-            assignment.extend_to(start, end)
 
     def remove_child_from_careday_for_range(self, careday, child, start, end):
         for assignment in self.overlaps(
@@ -367,6 +380,8 @@ class CareDayAssignmentManager(WeeklyEventManager):
 
 
 
+
+
 class CareDayAssignment(models.Model):
     child = models.ForeignKey(Child, on_delete=models.CASCADE) 
     careday = models.ForeignKey(CareDay, on_delete=models.CASCADE)
@@ -377,8 +392,8 @@ class CareDayAssignment(models.Model):
 
     def extend_to(self, start, end):
         # self must weakly overlap [start, end]
-        self.start = min(start, self.start)
-        self.end = max(end, self.end)
+        self.start = min(start, self.start.date())
+        self.end = max(end, self.end.date())
         self.save()
 
     def retract_from(self, start, end):
@@ -407,6 +422,10 @@ class CareDayAssignment(models.Model):
     
     def __repr__(self):
         return f"<{self.__class__.__name__} {self.pk}>: child={self.child}, careday={self.careday}, start={self.start}, end={self.end}"
+
+    class Meta:
+        ordering = ['careday', 'start', 'end']
+
 
     # def __str__(self):
         # return f"<{self.__class__.__name__} {self.pk}>: child={self.child}, careday={self.careday}, start={self.start}, end={self.end}"
@@ -504,6 +523,14 @@ class WorktimeCommitment(Event):
     completed = models.NullBooleanField()
     shift = models.ForeignKey(Shift, on_delete=models.CASCADE)
 
+    completion_status_dict = {True : "complete",
+                              False : "missed",
+                              None : "unscored"}
+
+    def show_completion_status(self):
+        return self.completion_status_dict[self.completed]
+        
+
     def shift_occurrence(self):
         return ShiftOccurrence(shift=self.shift,
                                date=self.start.date(),
@@ -551,25 +578,85 @@ class WorktimeCommitment(Event):
                 yield occ
 
 
+class ShiftPreferenceManager(models.Manager):
+
+# assume shifts_by_weekday_and_time
+
+    def by_shift(self, period):
+        shifts = Shift.objects.filter(classroom=period.classroom)
+        preferences = ShiftPreference.objects.filter(period=period).order_by('rank')
+        prefs_dict = defaultdict(list)
+        for pref in preferences:
+            prefs_dict[preference.shift].append(preference)
+        return prefs_dict
+
+
+    def by_weekday_and_time(self, period):
+        preferences = super.get_queryset().filter(
+            period=period).order_by(shift, rank).select_related(Shift)
+        prefs_dict = defaultdict(list)
+        for pref in preferences:
+            prefs_dict[pref.shift.weekday].append(pref)
+        return prefs_dict
+        
+
+
 
 class ShiftPreference(models.Model):
     child = models.ForeignKey(Child, on_delete=models.CASCADE)
     shift = models.ForeignKey(Shift, on_delete=models.CASCADE)
     rank_choices = ((1, 'best'), (2, 'pretty good'), (3, 'acceptable'))
     rank = models.IntegerField(choices=rank_choices, default=3)
+    period = models.ForeignKey(Period, blank=True, null=True, on_delete=models.PROTECT)
+    
+    objects = ShiftPreferenceManager()
+
     def __repr__(self):
         return f"<ShiftPreference {self.pk}: {self.child} ranks {self.shift} as {self.rank}>"
 
+    class Meta:
+        unique_together = (("child", "shift", "period"), )
 
-# could be called shiftassignment
+
+class ShiftAssignmentCollectionManager(models.Manager):
+    def create_optimal(self, period, no_worse_than = 1):
+        create_optimal_shift_assignments(period, no_worse_than)
+
+
+class ShiftAssignmentCollection(models.Model):
+    date = models.DateTimeField(default=timezone.now)
+    period = models.ForeignKey(Period, on_delete = models.CASCADE)
+    objects = ShiftAssignmentCollectionManager()
+    
+    def score(self):
+    #     # todo this is horribly inefficient but can't see how to combine all these scores into one query 
+        retval = 0
+        prefs = ShiftPreference.objects.filter(period=period)
+        for assn in self.shiftassignment_set.all():
+            for pref in prefs:
+                if pref.child == assn.child and pref.shift == asn.shift:
+                    retval += pref.rank
+                    break
+            retval += float("inf")
+            break
+        return retval
+    
 class ShiftAssignment(models.Model):
     child = models.ForeignKey(Child, on_delete=models.CASCADE)
-    period = models.ForeignKey(Period, on_delete=models.CASCADE)
     shift = models.ForeignKey(Shift, on_delete=models.CASCADE)
-    def __repr__(self):
-        return f"<WorktimeAssignment {self.pk}: {self.child} assigned {self.shift} in period {self.period}>"
+    collection = models.ForeignKey(ShiftAssignmentCollection,
+                                   on_delete=models.CASCADE)
 
-class ShiftInstance(object):
-    pass
+    # def score():
+    #     try:
+    #         ShiftPreference.objects.get(child=self.child,
+    #                                     shift=self.shift,
+    #                                     period=self.collection.period).rank
+    #     except ShiftPreference.DoesNotExist:
+    #         return float("inf")
+
+    def __repr__(self):
+        return f"<Assignment {self.pk} in collection {self.collection.pk}: {self.child.nickname} gets {self.shift}>"
+
 
 

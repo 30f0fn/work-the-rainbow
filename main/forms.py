@@ -7,7 +7,7 @@ from django.forms.widgets import CheckboxSelectMultiple, RadioSelect
 from django.utils import timezone
 
 # import main.views
-import main.schedule_settings
+import main.scheduling_config
 import main.models
 import people.models
 
@@ -33,7 +33,7 @@ class PreferenceSubmitForm(Form):
         self.child = child
         for rank, label in zip(self.ranks, self.rank_labels): 
             self.fields[rank] = ModelMultipleChoiceField(
-                queryset=self.child.shifts,
+                queryset=main.models.Shift.objects.filter(classroom=child.classroom),
                 label=label,
                 widget=CheckboxSelectMultiple)
 
@@ -45,7 +45,7 @@ class PreferenceSubmitForm(Form):
         prefs = self.submitted_prefs()
         prefs_flattened = [shift for rank in prefs for shift in rank]
         num_prefs = len(set(prefs_flattened))
-        min_prefs = main.schedule_settings.SHIFTPREFERENCE_MIN
+        min_prefs = main.scheduling_config.SHIFTPREFERENCE_MIN
         if num_prefs < min_prefs:
             raise ValidationError("Please suggest at least {min_prefs} preferences!",
                                   params={'min_prefs'})
@@ -136,7 +136,7 @@ class RescheduleWorktimeCommitmentForm(Form):
 
 
 
-class CommitmentCompletionForm(Form):
+class WorktimeAttendanceForm(Form):
 
     def __init__(self, *args, **kwargs):
         commitments = kwargs.pop('commitments')
@@ -145,6 +145,7 @@ class CommitmentCompletionForm(Form):
         self.commitments = commitments
         for commitment in self.commitments:
             self.fields[str(commitment.pk)] = NullBooleanField(
+                label=commitment.child.nickname
                 # widget=RadioSelect(choices=NA_YES_NO)
             )
 
@@ -181,4 +182,23 @@ class CreateCareDayAssignmentsForm(Form):
                 careday=careday,
                 start=start,
                 end=end)
+
+class GenerateShiftAssignmentsForm(Form):
+    worst_rank_choices = ((1, '1'), (2, '2'), (3, '3'))
+    no_worse_than = ChoiceField(choices=worst_rank_choices,
+                                initial=1,
+                                label="require each rank to be no worse than")
+
+    def __init__(self, *args, **kwargs):
+        period = kwargs.pop('period')
+        super().__init__(*args, **kwargs)
+        self.period = period
+
+    def clean(self, *args, **kwargs):
+        super().clean(*args, **kwargs)
+        all_assignments = ShiftAssignmentCollection.objects.create_optimal(self.period,
+                                                                           no_worse_than)
+        if len(all_assignments) == 0:
+            raise ValidationError(f"There is no way to assign everybody a shift they rank no worse than {self.cleaned_data['no_worse_than']}")
+            
 

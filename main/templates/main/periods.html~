@@ -1,0 +1,18 @@
+{% extends "worktime/base.html" %}
+
+{% load people_tags %} 
+{% load rules %}
+
+{% block content %}
+  <h1>shift preferences ({{view.classroom.slug}})</h1>
+
+{# todo date display and navigation #}
+
+<ul>
+  {% for period in object_list %}
+    <li>
+      {% peroid %}
+      </li>
+</ul>
+
+{% endblock content %}

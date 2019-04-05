@@ -1,0 +1,27 @@
+{% extends "worktime/base.html" %}
+
+{% load people_tags %} 
+{% load rules %}
+
+{% block content %}
+  <h1>{{classroom.slug}}
+    worktime period -
+    {# {{object.start | date:"j"}} #}
+    {{object.start | date:"j b y"}} - {{object.end | date:"j b y"}}  
+  </h1>
+
+{# todo navigate forward / backward in period list #}
+
+{# <a href='{% url 'solicit-preferences' classroom.slug period.pk %}'>solicit preferences</a> #}
+{# <a href='{% url 'nag-preferences' classroom.slug period.pk %}'>nag preferences</a> #}
+<a href='{% url 'display-preferences' classroom.slug view.date.year view.date.month view.date.day %}'>see shift preferences</a>  
+{# <a href='{% url 'update-period' classroom.slug period.pk %}'>revise period dates</a>    #}
+{# <a href='{% url 'delete-period' classroom.slug period.pk %}'>delete period</a>   #}
+
+{# preferences : solicit, nag, view #}
+{# shift-assignment : build, generate, view #}
+{# worktime-assignment : build, generate, view #}
+{# publish assignments (is_published attribute of Period) #}
+
+
+{% endblock content %}

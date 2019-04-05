@@ -1,0 +1,25 @@
+{% extends "worktime/base.html" %}
+
+{% load people_tags %}
+{% load main_tags %}
+
+{% load rules %}
+
+{% block content %}
+
+  <h1>
+    score attendance
+  </h1>
+
+Please select an alternative to your current shift for {% display_child view.commitment.child %} ({{view.commitment}}).
+
+<form action="{{request.path}}" method="post">
+    {% csrf_token %}
+    {{ form.as_table }}
+    <input type="submit" value="Submit">
+</form>
+
+
+
+{% endblock content %}
+  

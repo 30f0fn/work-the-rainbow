@@ -2,24 +2,22 @@
   <a href='{% url 'scheduler-home' %}'>
     scheduler's home
   </a>
-  {% for classroom in user.classrooms_as_scheduler %}
-    <table>
-      {# <tr>  #}
-      {#   <td>   #}
-      {#   <a href="{% url 'scheduling' classroom.slug %}"> admin </a> #}
-      {#   </td>   #}
-      {# </tr>  #}
-      <tr> 
+  <table>
+    {% for classroom in user.classrooms_as_scheduler %}
+      <tr>
+        <th>
+          {{classroom.name}}
+        </th>
         <td>  
-        <a href="{% url 'scheduler-calendar' classroom.slug %}"> manage schedule </a>
+          <a href="{% url 'scheduler-calendar' classroom.slug %}"> schedule </a>
         </td>  
-      </tr> 
-      <tr> 
         <td>  
-        <a href="{% url 'manage-classroom' classroom.slug %}"> manage roster </a>
+          <a href="{% url 'list-periods' classroom.slug %}"> periods </a>
         </td>  
-      </tr> 
-      <tr> 
-    </table>
-  {% endfor %}
+        <td>  
+          <a href="{% url 'manage-classroom' classroom.slug %}"> roster </a>
+        </td>  
+      </tr>
+    {% endfor %}
+  </table>
 </div>

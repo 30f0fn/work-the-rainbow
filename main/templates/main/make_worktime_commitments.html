@@ -11,12 +11,11 @@
     worktime scheduling 
   </h1>
 <h2>
-{{view.child}}, {{view.start_date|date:"n/j"}}-{{view.end_date|date:"n/j"}}
+{# {{view.child}}, {{view.start_date|date:"n/j"}}-{{view.end_date|date:"n/j"}} #}
+{# {{view.child}}, {{view.start_date|date:"j/y"}}-{{view.end_date|date:"n/j"}} #}
+{{view.child}}, {{view.date|date:"F Y"}}
 </h2>
 
-
-{# navigating between dates #}
-{# todo - implement navigation between dates #}
 
 <div>
 {# navigating between families #}
@@ -60,6 +59,7 @@
         <tr>
           {% for day, shifts in week.items %}
             <td>
+              {% if day.month == view.date.month %} 
                 {{day|date:"j"}}
                 <table>
                   {% for shift in shifts %}
@@ -82,6 +82,7 @@
                     </tr>
                   {% endfor %}
                 </table>
+                {% endif %} 
             </td>
           {% endfor %}
         </tr>

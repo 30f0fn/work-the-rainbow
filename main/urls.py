@@ -10,29 +10,28 @@ basic_patterns = [
          views.SplashView.as_view(),
          name='splash'),
 
-    path('parents',
+    path('parenting',
          views.ParentHomeView.as_view(),
          name='parent-home'),
-    path('teachers',
+    path('teaching',
          views.TeacherHomeView.as_view(),
          name='teacher-home'),
-    path('schedulers',
+    path('scheduling',
          views.SchedulerHomeView.as_view(),
          name='scheduler-home'),
-    path('admins',
+    path('admin',
          views.AdminHomeView.as_view(),
          name='admin-home'),
-
 ]
 
 
 
 
 classroom_calendar_patterns = [
+
     path('',
          views.WeeklyClassroomCalendarView.as_view(),
          name='classroom-calendar'),
-
     path('daily',
          views.DailyClassroomCalendarView.as_view(),
          name='daily-classroom-calendar'),
@@ -55,23 +54,60 @@ classroom_calendar_patterns = [
 ]
 
 child_parenting_patterns = [
-
-    path('worktime/preferences',
-         views.WorktimePreferencesSubmitView.as_view(),
-         name='worktime-preferences'),
     path('worktime/reschedule/<int:pk>',
          views.EditWorktimeCommitmentView.as_view(),
          name='edit-worktime-commitment'),
-
     path('caredays/assign',
          views.CareDayAssignmentsCreateView.as_view(),
          name='create-careday-assignments'),
+    path('worktime/preferences/submit',
+         views.WorktimePreferencesSubmitView.as_view(),
+         name='preferences-submit'),
 ]
 
 classroom_scheduling_patterns = [
     path('scheduling',
-         views.SchedulerView.as_view(),
+         views.SchedulerHomeView.as_view(),
          name='scheduling'),
+
+    path('scheduling/periods/list',
+         views.PeriodListView.as_view(),
+         name='list-periods'),
+
+    path('scheduling/periods/detail/<int:year>/<int:month>/<int:day>',
+         views.PeriodDetailView.as_view(),
+         name='manage-period'),
+
+    path('scheduling/periods/create',
+         views.PeriodCreateView.as_view(),
+         name='create-period'),
+
+    path('scheduling/periods/edit/<int:year>/<int:month>/<int:day>',
+         views.PeriodUpdateView.as_view(),
+         name='update-period'),
+
+    path('scheduling/periods/delete/<int:year>/<int:month>/<int:day>',
+         views.PeriodDeleteView.as_view(),
+         name='delete-period'),
+
+    # todo all below paths should be relativized to period
+
+    # path('scheduling/preferences/solicit',
+    #      views.PreferencesSolicitView.as_view(),
+    #      name='solicit-preferences'),
+
+    # # path('scheduling/preferences/nag',
+    #      # views.PreferencesNagView.as_view(),
+    #      # name='nag-preferences'),
+
+    path('scheduling/preferences/display/<int:year>/<int:month>/<int:day>',
+         views.PreferencesDisplayView.as_view(),
+         name='display-preferences'),
+
+    path('scheduling/shiftassignments/list//<int:year>/<int:month>/<int:day>',
+         views.ShiftAssignmentsListView.as_view(),
+         name='list-shiftassignments'),
+
 
     path('scheduling/calendar',
          views.SchedulerCalendarView.as_view(),
@@ -89,6 +125,13 @@ classroom_scheduling_patterns = [
 classroom_patterns = [
     path('', include(classroom_scheduling_patterns)),
     path('calendar/', include(classroom_calendar_patterns)),
+    path('worktime/attendance',
+         views.WorktimeAttendanceView.as_view(),
+         name='worktime-attendance'),
+    path('worktime-attendance/<int:year>/<int:month>/<int:day>',
+         views.WorktimeAttendanceView.as_view(),
+         name='worktime-attendance'),
+
 ]
 
 urlpatterns = [

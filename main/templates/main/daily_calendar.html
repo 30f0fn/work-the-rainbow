@@ -1,17 +1,54 @@
 {% extends "worktime/base.html" %}
 
 {% load people_tags %} 
+{% load main_tags %}
 {% load rules %}
 
+
+
 {% block content %}
+      {% has_perm 'main.score_worktime_attendance' user classroom as can_score_worktime_attendance %}
+
+
 <h1> {{view.classroom.name}} - {{view.date|date:"l, n/j/y"}}</h1>
   {% include 'calendar-nav.html' %}
-  <ul> 
-    {% for shift in view.shifts %}
-      <li>
-        {{shift.start_time}}: {{shift.commitment.nickname}}
-      </li>
-    {% endfor %}
+
+  <h2>
+    worktimes
+  </h2>
+  {% if commitments %}
+    <ul>
+      {% for commitment in commitments %}
+        <li>
+          {{ commitment.shift.start_time |time:"g:i" }}: {{ commitment.child.nickname }}
+          {% if can_score_worktime_attendance %}
+            [{{commitment.show_completion_status}}]
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+    {% if can_score_worktime_attendance %}
+      <a href="{% url 'worktime-attendance' classroom.slug view.date.year view.date.month view.date.day %}">score attendance </a>
+    {% endif %}
+  {% else %}
+    none today
+  {% endif %}
+
+  <h2>
+    kids
+  </h2>
+  <ul>
+    {% for careday in view.caredays %}
+      <h3>{{careday.start.time | time:"g:i"}}-{{careday.end.time | time:"g:i"}}</h3>
+      {% for child in careday.children %}
+        <li>{{child.nickname}} 
+      {% endfor %} 
+        </li>
+      {% endfor %}
   </ul>
 
 {% endblock content %}
+
+
+
+

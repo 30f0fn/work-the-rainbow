@@ -317,13 +317,6 @@ class PublicProfileView(DetailView):
 
     template_name = 'profile_detail.html'
 
-    # @method_decorator(login_required)
-    # def get(self, request, *args, **kwargs):
-        # return super().get(self, request, *args, **kwargs)
-
-    # def get_object(self):
-        # return self.request.user
-
 
 class ChildDetailView(ChildMixin, DetailView):
     model = Child
@@ -335,8 +328,6 @@ class ChildDetailView(ChildMixin, DetailView):
             return Child.objects.get(nickname=nickname)
         except Child.DoesNotExist:
             raise Http404("Item does not exist")
-
-    
     
 
 class ProfileEditView(UpdateView):
