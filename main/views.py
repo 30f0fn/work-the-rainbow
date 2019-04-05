@@ -431,7 +431,8 @@ class DailyClassroomCalendarView(ClassroomMixin,
                                  TemplateView):
     template_name = 'daily_calendar.html'
     unit_name = 'daily'
-
+    view_name = 'daily-classroom-calendar'
+    
     def commitments(self):
         return WorktimeCommitment.objects.filter(
             start__gte=self.start, end__lte=self.end,
@@ -474,7 +475,7 @@ class WeeklyClassroomCalendarView(ClassroomMixin,
     template_name = 'weekly_calendar.html'
     unit_name = 'weekly' # for CalendarMixin
     num_weeks = 1 # for WeekApportioningMixin
-    view_name = 'daily-classroom-calendar'
+    view_name = 'weekly-classroom-calendar'
 
     def commitments(self):
         return WorktimeCommitment.objects.filter(
@@ -612,7 +613,7 @@ class ParentHomeView(UpcomingEventsMixin,
 # need special handling for multi-classroom teachers
 class TeacherHomeView(RoleHomeMixin,
                       RedirectView):
-    role, created = Role.objects.get_or_create(name='parent')
+    role, created = Role.objects.get_or_create(name='teacher')
 
     # todo bug breaks if user teaches in multiple classrooms
     def get_redirect_url(self, *args, **kwargs):
