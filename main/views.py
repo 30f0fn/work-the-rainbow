@@ -221,7 +221,7 @@ class DailyClassroomCalendarView(ClassroomMixin,
 
     def commitments(self):
         return WorktimeCommitment.objects.filter(
-            start__gte=self.start, end__lte=self.end,
+            start__date=self.date(),
             child__classroom=self.classroom)
 
     def caredays(self):
@@ -264,6 +264,7 @@ class WeeklyClassroomCalendarView(ClassroomMixin,
     template_name = 'weekly_calendar.html'
     unit_name = 'weekly' # for CalendarMixin
     view_name = 'weekly-classroom-calendar'
+    num_weeks = 1
 
     @property
     def start_date(self):
@@ -872,7 +873,8 @@ class WorktimeAttendanceView(DateIntervalMixin,
 
     def get_commitments(self):
         return WorktimeCommitment.objects.filter(
-            start__gte=self.start, end__lte=self.end)
+            child__classroom=self.classroom,
+            start__date=self.date())
 
     def get_form_kwargs(self, *args, **kwargs):
         kwargs = super().get_form_kwargs(*args, **kwargs)

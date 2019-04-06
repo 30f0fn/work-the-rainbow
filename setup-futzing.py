@@ -34,3 +34,4 @@ admin_role = Role.objects.get(name='admin')
 
 a_week = datetime.timedelta(days=7)
 
+lrb = Classroom.objects.get(slug='lrb')

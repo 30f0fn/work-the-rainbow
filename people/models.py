@@ -64,6 +64,9 @@ class Role(Group):
             self.user_set.remove(user)
         self.save()
         return accepts
+
+    def accepts(self, user):
+        return getattr(user, self._membership_predicate())
     
 
     class Meta:
@@ -123,7 +126,7 @@ class User(AbstractUser):
     def roles(self):
         # todo must be better way to ensure role membership is correct
         return [role for role in Role.objects.all()
-                if role.update_membership(self)]
+                if role.accepts(self)]
 
     @property
     def has_multi_roles(self):
