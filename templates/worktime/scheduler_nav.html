@@ -5,9 +5,9 @@
   <table>
     {% for classroom in user.classrooms_as_scheduler %}
       <tr>
-        <th>
-          {{classroom.name}}
-        </th>
+        {# <th> #}
+          {# {{classroom.name}} #}
+        {# </th> #}
         <td>  
           <a href="{% url 'scheduler-calendar' classroom.slug %}"> schedule </a>
         </td>  

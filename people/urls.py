@@ -38,7 +38,6 @@ urlpatterns = [
 
     path('kids/<slug:nickname>',
          views.ChildDetailView.as_view(), name='child-profile'),
-
     path('kids/<slug:nickname>/edit',
          views.ChildEditView.as_view(), name='edit-child'),
     path('kids/<slug:nickname>/remove',

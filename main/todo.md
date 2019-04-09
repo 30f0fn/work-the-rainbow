@@ -1,4 +1,6 @@
 
+give all role an 'upcoming' page as default home
+
 preference request / submission
 -----
 
@@ -56,7 +58,7 @@ Roles, etc
 
 - make sure a user's roles are correctly identified, in user.roles etc
 - fix synchronization of user's role set... way too expensive now
-- maybe hook update of user's permissions fields into RelateEmailToObject (or to the add-to-teachers/schedulers/etc function)
+- maybe hook update of user's permissions fields into RelateEmailToObject (or to the add-to-teachers/schedulers/etc function) 
 
 worktime assignment scheduling
 ------------------------------

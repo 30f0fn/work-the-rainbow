@@ -53,8 +53,15 @@ shift, careday, holiday, worktimecommitment,
 class EventManager(models.Manager):
 
     def overlaps(self, start, end): 
-        # todo is this the right way to call filter in the manager?x
-        return super().get_queryset().filter(start__lte=end, end__gte=start)
+        # todo is this the right way to call filter in the manager?
+        return super().get_queryset().filter(start__lte=end,
+                                             end__gte=start)
+
+    def spans(self, start, end): 
+        # todo is this the right way to call filter in the manager?
+        return super().get_queryset().filter(start__lte=start,
+                                             end__gte=end)
+
     
     def by_date(self, start, end, restriction=None):
         events = super().get_queryset().filter(start__lte=end,
@@ -149,7 +156,7 @@ class WeeklyEventManager(EventManager):
 
 
 class WeeklyEvent(models.Model):
-    start_time = models.TimeField() # todo for some reason this might not be timezone-aware?
+    start_time = models.TimeField() # todo timezone-aware?
     end_time = models.TimeField()
     weekday = WeekdayField()
 
@@ -181,8 +188,8 @@ class WeeklyEvent(models.Model):
         abstract = True
         ordering = ['weekday', 'start_time']
 
-
-
+    def weekday_str(self):
+        return WEEKDAYS[self.weekday]
 
 
 """
@@ -320,11 +327,7 @@ class Happening(Event):
 
 class Period(Event):
     classroom = models.ForeignKey(Classroom, on_delete=models.CASCADE)
-
-    def clean(self):
-        if Period.objects.overlaps(self).filter(
-                classroom=self.classroom).count() > 0:
-            raise ValueError("an existing period for that classroom overlaps with the proposed one")
+    solicits_preferences = models.BooleanField(default=True)
 
 
     def __str__(self):
@@ -340,16 +343,25 @@ class CareDayAssignmentManager(WeeklyEventManager):
                 child=child, careday=careday, start=start, end=end)
 
     def create(self, child, careday, start, end):
-        for assignment in self.overlaps(
-                child, start, end,
-                careday=careday):
+        overlaps = self.overlaps(child, start, end, careday=careday)
+        for assignment in overlaps:
             assignment.extend_to(start, end)
+        if not overlaps:
+            super().create(child=child, careday=careday, start=start, end=end)
 
     def overlaps(self, child, start, end, careday=None):
-        o = super().overlaps(start, end).filter(child=child).select_related('careday')
+        #TODO something worng here
+        o = super().overlaps(start, end).filter(
+            child=child).select_related('careday')
         if careday:
             o = o.filter(careday=careday)
         return o
+
+    def spans(self, start, end): 
+        # todo is this the right way to call filter in the manager?
+        return super().filter(start__lte=start,
+                              end__gte=end)
+
 
     def remove_child_from_careday_for_range(self, careday, child, start, end):
         for assignment in self.overlaps(
@@ -598,7 +610,7 @@ class ShiftPreferenceManager(models.Manager):
         for pref in preferences:
             prefs_dict[pref.shift.weekday].append(pref)
         return prefs_dict
-        
+
 
 
 
@@ -606,7 +618,8 @@ class ShiftPreference(models.Model):
     child = models.ForeignKey(Child, on_delete=models.CASCADE)
     shift = models.ForeignKey(Shift, on_delete=models.CASCADE)
     rank_choices = ((1, 'best'), (2, 'pretty good'), (3, 'acceptable'))
-    rank = models.IntegerField(choices=rank_choices, default=3)
+    rank = models.IntegerField(choices=rank_choices, default=3,
+                               null=True, blank=True)
     period = models.ForeignKey(Period, blank=True, null=True, on_delete=models.PROTECT)
     
     objects = ShiftPreferenceManager()
@@ -616,7 +629,7 @@ class ShiftPreference(models.Model):
 
     class Meta:
         unique_together = (("child", "shift", "period"), )
-
+        ordering = ('period', 'rank', 'shift')
 
 class ShiftAssignmentCollectionManager(models.Manager):
     def create_optimal(self, period, no_worse_than = 1):

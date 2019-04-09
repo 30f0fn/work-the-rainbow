@@ -1,6 +1,6 @@
 <div id="parent-nav">
   <a href='{% url 'parent-home' %}'>
-    parent's home
+    upcoming
   </a>
   {% for classroom in user.classrooms %}
     <table >
@@ -9,7 +9,7 @@
       {#     {{classroom.name}}  #}
       {#   </td>  #}
       {# </tr>  #}
-      {# <tr> #}
+      <tr> 
         <td>
           <a href="{% url 'classroom-calendar' classroom.slug %}">
             {{classroom.slug}} calendar
@@ -23,17 +23,15 @@
           </a>
         </td>
       </tr>
-      {% for child in user.children %}
-        {% if child.classroom == classroom and classroom.solicits_preferences %}
-          <tr>
-            <td>
-              <a href="{% url 'preferences-submit' child.nickname %}">
-                worktime preferences for {{child.nickname}}
-              </a>
-            </td>
-          </tr>
-        {% endif %}
-      {% endfor %}
+      {% for child in user.children %} 
+          <tr> 
+            <td> 
+              <a href="{% url 'child-profile' child.nickname %}"> 
+                {{child.nickname}}'s profile
+              </a> 
+            </td> 
+          </tr> 
+      {% endfor %} 
 
     </table>
   {% endfor %}

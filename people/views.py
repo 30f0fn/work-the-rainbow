@@ -20,6 +20,7 @@ from rules.contrib.views import PermissionRequiredMixin
 
 from . import forms
 from people.models import Classroom, Child, User, RelateEmailToObject
+import main.models
 from . import rules
 
 
@@ -328,6 +329,11 @@ class ChildDetailView(ChildMixin, DetailView):
             return Child.objects.get(nickname=nickname)
         except Child.DoesNotExist:
             raise Http404("Item does not exist")
+
+    def periods_soliciting_preferences(self):
+        return main.models.Period.objects.filter(
+            classroom=self.child.classroom,
+            solicits_preferences=True)
     
 
 class ProfileEditView(UpdateView):

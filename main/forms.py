@@ -12,6 +12,7 @@ import main.models
 import people.models
 
 NA_YES_NO = ((None, 'N/A'), (True, 'Yes'), (False, 'No'))
+SHIFT_RANKS = ((1, '1'), (2, '2'), (3, '3'), (None, 'No'))
 
 """
 todo:
@@ -21,47 +22,54 @@ todo:
 
 
 class PreferenceSubmitForm(Form):
-    # override in init to restrict choices
-    # should be on contracted days for child
-    # maybe also relative to classroom
-
-    ranks = ['first_ranked', 'second_ranked', 'third_ranked']
-    rank_labels = ["best", "second-best", "third-best"]
-
-    def __init__(self, child, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
+        for attr in ('shifts_dict',
+                     'child',
+                     'period',
+                     'existing_prefs'):
+            setattr(self, attr, kwargs.pop(attr))
         super().__init__(*args, **kwargs)
-        self.child = child
-        for rank, label in zip(self.ranks, self.rank_labels): 
-            self.fields[rank] = ModelMultipleChoiceField(
-                queryset=main.models.Shift.objects.filter(classroom=child.classroom),
-                label=label,
-                widget=CheckboxSelectMultiple)
+        self.fields.update({str(sh_pk) : ChoiceField(choices=SHIFT_RANKS,
+                                                     widget=RadioSelect,
+                                                     initial=None,
+                                                     label=str(self.shifts_dict[sh_pk]),
+                                                     required=False)
+                            for sh_pk in self.shifts_dict})
 
-    def submitted_prefs(self):
-        return [self.cleaned_data[rank] for rank in self.ranks]
 
     def clean(self, *args, **kwargs):
         super().clean(*args, **kwargs)
-        prefs = self.submitted_prefs()
-        prefs_flattened = [shift for rank in prefs for shift in rank]
-        num_prefs = len(set(prefs_flattened))
+        num_ranked = sum(1 for value in self.cleaned_data.items()
+                         if value is not None)
         min_prefs = main.scheduling_config.SHIFTPREFERENCE_MIN
-        if num_prefs < min_prefs:
-            raise ValidationError("Please suggest at least {min_prefs} preferences!",
-                                  params={'min_prefs'})
-        if num_prefs < len(prefs_flattened):
-            raise ValidationError("You must have assigned multiple ranks to some shift.  I wouldn't know what to do with that...")
-        if len(prefs[0]) == 0:
-            raise ValidationError("Please assign at least one shift the rank 1.  Else you'd be less likely to get any of your favorite shifts.")
-        if len(prefs[1]) == 0 and len(prefs[2]) > 0:
-            raise ValidationError("Please move at least one of your 3-ranked slots to the rank 2.  Else you'd be less likely to get any of your listed slots.")
+        if num_ranked < min_prefs:
+            raise ValidationError(f"Please give at least {min_prefs} preferences!")
 
-    def save_prefs(self):
-        for rank, prefs in enumerate(self.submitted_prefs()):
-            for pref in prefs:
-                main.models.ShiftPreference.objects.create(child=self.child,
-                                                           shift=pref,
-                                                           rank=rank)
+    def save(self):
+        print("CHANGED_DATA: ", self.changed_data)
+        print("CLEANED_DATA: ", self.cleaned_data)
+        print("EXISTING_PREFS: ", self.existing_prefs)
+        for sh_pk_str in self.changed_data:
+            if self.cleaned_data[sh_pk_str] == "":
+                self.existing_prefs[int(sh_pk_str)].delete()
+                # print("deleted something")
+            else:
+                # print("trying to change something")
+                try:
+                    # print("self.existing_prefs[int(sh_pk_str)] :" , self.existing_prefs[int(sh_pk_str)])
+                    # print("self.cleaned_data[sh_pk_str]", self.cleaned_data[sh_pk_str])
+                    new_pref = self.existing_prefs[int(sh_pk_str)]
+                    new_pref.rank = self.cleaned_data[sh_pk_str]
+                    new_pref.save()
+                    # self.existing_prefs[int(sh_pk_str)].rank\
+                        # = self.cleaned_data[sh_pk_str]
+                except KeyError:
+                    # print("creating a new preference")
+                    main.models.ShiftPreference.objects.create(
+                        child = self.child,
+                        shift = self.shifts_dict[int(sh_pk_str)],
+                        rank = self.cleaned_data[sh_pk_str],
+                        period = self.period)
 
 
 
@@ -78,12 +86,14 @@ class MakeChildCommitmentsForm(Form):
     def clean(self, *args, monthly=False, **kwargs):
         super().clean(*args, **kwargs)
         # todo: verify that no commitment exists for each newly added shift
-        num_shifts = len([pk for pk in self.cleaned_data
-                          if self.cleaned_data[pk]])
-        if monthly and num_shifts > self.child.shifts_per_month:
-            # maybe only a warning here? 
-            raise ValidationError(f"The child of {self.child} needs only {self.child.shifts_per_month}, but this assigns them {num_shifts}")
-    
+        # todo: below check is buggy
+        # num_shifts = len([pk for pk in self.cleaned_data
+        #                   if self.cleaned_data[pk]])
+        # if monthly and num_shifts > self.child.shifts_per_month:
+        #     # maybe only a warning here? 
+        #     raise ValidationError(f"The child of {self.child} needs only {self.child.shifts_per_month}, but this assigns them {num_shifts}")
+
+    # todo reduce db hits?
     def revise_commitments(self):
         revisions = defaultdict(list)
         for sh_field in self.changed_data:
@@ -107,6 +117,7 @@ class RescheduleWorktimeCommitmentForm(Form):
         self.child = child
         self.current_commitment = current_commitment
         self.available_shifts = available_shifts
+        # todo can't i just use pk instead of serialize?
         choices = ((sh.serialize(), str(sh)) for sh in available_shifts)
         # for choice in choices:
         #     print(choice)
@@ -114,9 +125,9 @@ class RescheduleWorktimeCommitmentForm(Form):
             choices=choices,
             widget=RadioSelect,
             label="")})
-        print('initial: ', kwargs.get('initial'))
-        for ch in self.fields['shift_occ'].choices:
-            print(ch[0])
+        # print('initial: ', kwargs.get('initial'))
+        # for ch in self.fields['shift_occ'].choices:
+            # print(ch[0])
         # print(self.fields['shift_occ'].choices)
 
 
@@ -182,6 +193,7 @@ class CreateCareDayAssignmentsForm(Form):
                 careday=careday,
                 start=start,
                 end=end)
+            print("CAREDAY", careday)
 
 class GenerateShiftAssignmentsForm(Form):
     worst_rank_choices = ((1, '1'), (2, '2'), (3, '3'))
@@ -202,3 +214,27 @@ class GenerateShiftAssignmentsForm(Form):
             raise ValidationError(f"There is no way to assign everybody a shift they rank no worse than {self.cleaned_data['no_worse_than']}")
             
 
+class PeriodForm(ModelForm):
+
+    def __init__(self, *args, **kwargs):
+        self.classroom = kwargs.pop('classroom')
+        super().__init__(*args, **kwargs)
+
+    def clean(self):
+        self.instance.classroom = self.classroom
+        # print(self.instance)
+        # print(self.instance.start)
+        # print(self.instance.end)
+        # overlaps = main.models.Period.objects.overlaps(
+        #     self.instance.start, self.instance.end).filter(
+        #         classroom=self.classroom)
+        # print(overlaps)
+        # if main.models.Period.objects.overlaps(
+        #         self.instance.start, self.instance.end).filter(
+        #             classroom=self.classroom).exists():
+        #     raise ValidationError("an existing period for that classroom overlaps with the proposed one")
+        super().clean()
+
+    class Meta:
+        model = main.models.Period
+        fields = ['start', 'end', 'solicits_preferences']

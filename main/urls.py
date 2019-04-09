@@ -60,9 +60,15 @@ child_parenting_patterns = [
     path('caredays/assign',
          views.CareDayAssignmentsCreateView.as_view(),
          name='create-careday-assignments'),
-    path('worktime/preferences/submit',
+    path('caredays/create/<int:pk>',
+          views.CareDayAssignmentDeleteView.as_view(),
+          name='delete-caredayassignment'),
+    path('caredays/edit/<int:pk>',
+          views.CareDayAssignmentEditView.as_view(),
+          name='edit-caredayassignment'),
+    path('worktime/preferences/submit/<int:pk>',
          views.WorktimePreferencesSubmitView.as_view(),
-         name='preferences-submit'),
+         name='submit-preferences'),
 ]
 
 classroom_scheduling_patterns = [
@@ -74,7 +80,7 @@ classroom_scheduling_patterns = [
          views.PeriodListView.as_view(),
          name='list-periods'),
 
-    path('scheduling/periods/detail/<int:year>/<int:month>/<int:day>',
+    path('scheduling/periods/detail/<int:pk>',
          views.PeriodDetailView.as_view(),
          name='manage-period'),
 
@@ -82,11 +88,11 @@ classroom_scheduling_patterns = [
          views.PeriodCreateView.as_view(),
          name='create-period'),
 
-    path('scheduling/periods/edit/<int:year>/<int:month>/<int:day>',
+    path('scheduling/periods/edit/<int:pk>',
          views.PeriodUpdateView.as_view(),
          name='update-period'),
 
-    path('scheduling/periods/delete/<int:year>/<int:month>/<int:day>',
+    path('scheduling/periods/delete/<int:pk>',
          views.PeriodDeleteView.as_view(),
          name='delete-period'),
 
@@ -100,11 +106,11 @@ classroom_scheduling_patterns = [
     #      # views.PreferencesNagView.as_view(),
     #      # name='nag-preferences'),
 
-    path('scheduling/preferences/display/<int:year>/<int:month>/<int:day>',
+    path('scheduling/preferences/display/<int:pk>',
          views.PreferencesDisplayView.as_view(),
          name='display-preferences'),
 
-    path('scheduling/shiftassignments/list//<int:year>/<int:month>/<int:day>',
+    path('scheduling/shiftassignments/list/<int:period_pk>',
          views.ShiftAssignmentsListView.as_view(),
          name='list-shiftassignments'),
 

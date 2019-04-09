@@ -7,7 +7,7 @@
 {% block content %}
 
   {% with object as child %}
-  <h1>{{child}}</h1>
+    <h1>{{child}}</h1>
 <p> classroom: {{child.classroom}}
 </p>
 <p> parents:
@@ -24,10 +24,53 @@
 {% endif %}
 {% endwith %}
 
-care assignments:
+
+
+{% with view.periods_soliciting_preferences as periods %}
+  {% if periods %}
+    <p>worktime preferences:
+      <ul>
+        {% for period in periods %}
+          <li>
+            <a href={% url 'submit-preferences' child.nickname period.pk %}>
+              {{ period.start | date:"j M y"}} - {{ period.end | date:"j M y" }}
+            </a>
+            {% with period.shiftpreference_set.all as prefs %}
+              {% if prefs %}
+                {% regroup prefs by rank as prefs_by_rank %}
+                <ol>
+                  {% for rank, prefs in prefs_by_rank %}
+                    <li>
+                      {# {{rank}} : #}
+                      <ul>
+                        {% for pref in prefs %}
+                          <li>
+                            {{pref.shift.weekday_str}}
+                            {{pref.shift.start_time | time:"f"}}
+                          </li>
+                        {% endfor %}
+                      </ul>
+                    </li>
+                  {% endfor %}
+                </ol>
+              {% endif %}
+            {% endwith %}
+          </li>
+        {% endfor %}
+      </ul>
+    </p>
+  {% endif %}
+{% endwith %}
+
+care times:
 <ul>
-  {% for cda in child.caredayassignment_set.all %}
-    <li>{{cda.start.date }}-{{cda.end.date}}: {{cda.careday}}</li>
+  {% for cda in child.caredayassignment_set.all.distinct %}
+    <li>
+      {{cda.start.date | date:"j M y" }} - {{cda.end.date | date:"j M y"}}:
+      {{cda.careday.weekday_str}}, {{cda.careday.start_time}} - {{cda.careday.end_time}}
+      [<a href="{% url 'edit-caredayassignment' child.nickname cda.pk %}">edit</a>]
+      [<a href="{% url 'delete-caredayassignment' child.nickname cda.pk %}">delete</a>]
+    </li>
   {% endfor %}
 </ul>
 
@@ -37,7 +80,5 @@ care assignments:
   <a href="{% url 'edit-child' child.nickname %}"> edit child info</a>
   <a href="{% url 'create-careday-assignments' child.nickname %}">add caredays</a>
 {% endif %}
-
-
 
 {% endblock %}

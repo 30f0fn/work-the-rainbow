@@ -81,8 +81,6 @@ class User(AbstractUser):
                                     on_delete=models.PROTECT,
                                     related_name='active_for')
 
-
-
     # may have teacher without classroom
     @property
     def is_teacher(self):
@@ -156,7 +154,7 @@ class Classroom(NamingMixin, models.Model):
                                       related_name='_classrooms_as_teacher')
     scheduler_set = models.ManyToManyField(User,
                                         related_name='_classrooms_as_scheduler')
-    solicits_preferences = models.BooleanField(default=True)
+    # solicits_preferences = models.BooleanField(default=True)
 
     @property
     def parents(self):
@@ -166,11 +164,6 @@ class Classroom(NamingMixin, models.Model):
         return main.models.WorktimeCommitment.objects.filter(
             child__classroom=self,
             shift_instance__date=date)
-
-    def get_period(self, date):
-        return main.models.Period.objects.get(start__lte=date,
-                                              end__gte=date)
-    
         
 
     def get_absolute_url(self):

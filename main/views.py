@@ -2,6 +2,7 @@ import datetime
 import calendar
 from dateutil import parser as dateutil_parser, relativedelta
 from collections import defaultdict
+from itertools import chain
 
 from django.shortcuts import render
 from django.views.generic import TemplateView, ListView, FormView, UpdateView, RedirectView, DetailView, DeleteView, CreateView
@@ -15,11 +16,11 @@ from django.http import HttpResponseRedirect
 
 from rules.contrib.views import PermissionRequiredMixin
 
-from main import rules
+from main import rules, scheduling_config
 from people.models import Child, Classroom, Role
 from people.views import ClassroomMixin, ClassroomEditMixin, ChildEditMixin, ChildMixin
 from main.utilities import nearest_monday
-from main.models import Holiday, Happening, Shift, WorktimeCommitment, CareDayAssignment, CareDay, ShiftOccurrence, Period
+from main.models import Holiday, Happening, Shift, WorktimeCommitment, CareDayAssignment, CareDay, ShiftOccurrence, Period, ShiftPreference
 from main.model_fields import WEEKDAYS
 import main.forms
 
@@ -61,11 +62,6 @@ class DateMixin(object):
     # todo this is called about 748 times per request
     def date(self):
         self.is_dated = 'day' in self.kwargs
-        # print(self.kwargs)
-        # print("initially dated?", 'day' in self.kwargs)
-        # try:
-        #     return getattr(self, '_date')
-        # except AttributeError:
         try:
             self._date = datetime.date(self.kwargs.get('year'),
                                        self.kwargs.get('month'),
@@ -203,6 +199,18 @@ class TimedURLMixin(object):
 
 
 
+class PeriodFromDateMixin(object):
+    # needs classroom or child
+    def get_period(self):
+        try:
+            return Period.objects.get(start__date = self.date(),
+                                      classroom=self.classroom)
+        except AttributeError:
+            return Period.objects.get(classroom=self.child.classroom,
+                                      date=self.date())
+
+    def get_object(self, *args, **kwargs):
+        return self.get_period()
 
 
 
@@ -280,7 +288,7 @@ class WeeklyClassroomCalendarView(ClassroomMixin,
 
 class MonthlyCalendarMixin(object):
     unit_name = 'monthly' # for CalendarMixin
-
+ 
     def weeks(self):
         cal = calendar.Calendar().monthdatescalendar(
             self.date().year, self.date().month)
@@ -358,7 +366,7 @@ class ParentHomeView(UpcomingEventsMixin,
 # need special handling for multi-classroom teachers
 class TeacherHomeView(RoleHomeMixin,
                       RedirectView):
-    role, created = Role.objects.get_or_create(name='parent')
+    role, created = Role.objects.get_or_create(name='teacher')
 
     # todo bug breaks if user teaches in multiple classrooms
     def get_redirect_url(self, *args, **kwargs):
@@ -449,7 +457,8 @@ class EditWorktimeCommitmentView(PerChildEditWorktimeMixin,
         # raise Exception("Form Valid method called")
         revisions = form.execute()
         if revisions:
-            message = "thanks! {child}'s worktime commitment is rescheduled from {old_start} to {new_start}".format(child=self.child, **revisions)
+            strformat = '%-I:%M on %-B %-d'
+            message = f"thanks! {self.child}'s worktime commitment is rescheduled from {revisions['old_start'].strftime(strformat)} to {revisions['new_start'].strftime(strformat)}."
             messages.add_message(self.request, messages.SUCCESS, message)
         return super().form_valid(form)
 
@@ -461,31 +470,64 @@ class EditWorktimeCommitmentView(PerChildEditWorktimeMixin,
 
 # require selection of at least n shifts, for some n fixed by settings
 # change form so that the fields are the shift instances and the options are the ranks (rather than vice versa)
-class WorktimePreferencesSubmitView(ChildMixin, FormView): 
+class WorktimePreferencesSubmitView(ChildEditMixin,
+                                    SingleObjectMixin,
+                                    FormView): 
 
     template_name = 'preferences_submit.html'
     form_class = main.forms.PreferenceSubmitForm
+    model = Period
+
+    def get_success_url(self):
+        return reverse('child-profile',
+                       kwargs={'nickname' : self.child.nickname})
+
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        self.shifts = self.shifts()
+        return super().get(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        self.shifts = self.shifts()
+        return super().post(request, *args, **kwargs)
+
+    def shifts(self):
+        assignments = CareDayAssignment.objects.spans(
+            self.object.start, self.object.end).filter(
+                child=self.child).select_related('careday')
+        return list(chain.from_iterable(a.careday.shifts for a in assignments))
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+        context['min_shifts'] = scheduling_config.SHIFTPREFERENCE_MIN
+        context['shifts'] = self.shifts
+        return context
 
     def get_form_kwargs(self, *args, **kwargs):
+        # todo shrink the shifts field using ContractedCareDayAssignment
         kwargs = super().get_form_kwargs(*args, **kwargs)
-        kwargs['child'] = self.child
+        extras = {'shifts_dict' : {shift.pk : shift
+                                   for shift in self.shifts},
+                  'child' : self.child,
+                  'period' : self.object,
+                  'existing_prefs' : {pref.shift.pk : pref for pref in
+                                      kwargs['initial']['existing_prefs']}}
+        kwargs.update(extras)
         return kwargs
 
     def get_initial(self, *args, **kwargs):
         initial = super().get_initial(*args, **kwargs)
-        data = {rank: Shift.objects.filter(
-            shiftpreference__child=self.child,
-            shiftpreference__rank=i,
-            classroom=self.child.classroom) 
-                for i, rank in enumerate(self.get_form_class().ranks)}
+        existing_prefs = ShiftPreference.objects.filter(child=self.child,
+                                                        period=self.object)
+        data = {str(pref.shift.pk) : pref.rank for pref in existing_prefs}
+        data.update({'existing_prefs' : existing_prefs})
         initial.update(data)
         return initial
 
     def form_valid(self, form):
-        revisions = form.save_prefs()
-        # todo message changes here
+        form.save()
         return super().form_valid(form)
-
 
 
 
@@ -494,7 +536,7 @@ class WorktimePreferencesSubmitView(ChildMixin, FormView):
 # caredays #
 ############
 
-class CareDayAssignmentsCreateView(ChildMixin, FormView):
+class CareDayAssignmentsCreateView(ChildEditMixin, FormView):
     form_class = main.forms.CreateCareDayAssignmentsForm
     template_name = 'caredays_create.html'
 
@@ -514,6 +556,30 @@ class CareDayAssignmentsCreateView(ChildMixin, FormView):
         new_caredays = form.save()
         # message = "thanks! {} {}".format(child=self.child, **new_caredays)
         return super().form_valid(form)
+
+
+class CareDayAssignmentEditView(ChildEditMixin,
+                                UpdateView):
+    model = CareDayAssignment
+    fields = ['start','end']
+    template_name = 'generic_update.html'
+
+    def get_success_url(self):
+        return reverse('child-profile',
+                       kwargs={'nickname' : self.child.nickname})
+
+
+class CareDayAssignmentDeleteView(ChildEditMixin,
+                                  DeleteView):
+    model = CareDayAssignment
+    template_name = 'generic_delete.html'
+
+
+    def get_success_url(self):
+        return reverse('child-profile',
+                       kwargs={'nickname' : self.child.nickname})
+
+
 
 
 #######################
@@ -645,18 +711,12 @@ class PeriodListView(ClassroomMixin,
         return Period.objects.filter(classroom=self.classroom).order_by('-start')
 
 
-class PeriodFromDateMixin(object):
-    def get_object(self, *args, **kwargs):
-        return Period.objects.get(classroom=self.classroom,
-                                  start=self.date()) 
    
 
 
-class PeriodDetailView(PeriodFromDateMixin,
-                       ClassroomMixin,
-                       DateMixin,
+class PeriodDetailView(ClassroomMixin,
                        DetailView):
-    pass
+    model = Period
 
 
 class PeriodUpdateView(ClassroomEditMixin,
@@ -664,7 +724,13 @@ class PeriodUpdateView(ClassroomEditMixin,
                        UpdateView):
     model = Period
     template_name = 'generic_update.html'
-    fields = ['start', 'end']
+    form_class = main.forms.PeriodForm
+
+    def get_form_kwargs(self, *args, **kwargs):
+        kwargs = super().get_form_kwargs(*args, **kwargs)
+        kwargs['classroom'] = self.classroom
+        return kwargs
+
 
 
 class PeriodDeleteView(ClassroomEditMixin,
@@ -679,37 +745,43 @@ class PeriodCreateView(ClassroomEditMixin,
     # todo require periods not overlap
     model = Period
     template_name = 'generic_create.html'
-    fields = ['start', 'end']
+    form_class = main.forms.PeriodForm
 
-    def form_valid(self, form):
-        form.instance.classroom = self.classroom
-        return super().form_valid(form)
-
-
-class PreferencesSolicitView(PeriodFromDateMixin,
-                             ClassroomEditMixin,
-                             DateMixin,
-                             FormView):
-    pass
-
-class PreferencesNagView(PeriodFromDateMixin,
-                         ClassroomEditMixin,
-                         DateMixin,
-                         FormView):
-    pass
-
-class PreferencesDisplayView(PeriodFromDateMixin,
-                             ClassroomEditMixin,
-                             DateMixin,
-                             FormView):
-
-    # form is simple submit button to generate assignment from preferences
-    template_name = 'preferences_for_scheduler.html'
-    form_class = main.forms.GenerateShiftAssignmentsForm
+    def get_success_url(self):
+        return reverse('list-periods',
+                       kwargs = {'classroom_slug' : self.classroom.slug})
 
     def get_form_kwargs(self, *args, **kwargs):
         kwargs = super().get_form_kwargs(*args, **kwargs)
-        kwargs['period'] = self.get_period()
+        kwargs['classroom'] = self.classroom
+        return kwargs
+
+
+
+class PreferencesSolicitView(ClassroomEditMixin,
+                             SingleObjectMixin,
+                             FormView):
+    model = Period
+
+class PreferencesNagView(ClassroomEditMixin,
+                         SingleObjectMixin,
+                         FormView):
+    model = Period
+
+class PreferencesDisplayView(ClassroomEditMixin,
+                             SingleObjectMixin,
+                             FormView):
+    # form is simple submit button to generate assignment from preferences
+    template_name = 'preferences_for_scheduler.html'
+    form_class = main.forms.GenerateShiftAssignmentsForm
+    model = Period
+
+    # def get_queryset(self):
+        # return Period.objects.filter(classroom=self.classroom)
+    
+    def get_form_kwargs(self, *args, **kwargs):
+        kwargs = super().get_form_kwargs(*args, **kwargs)
+        kwargs['period'] = self.get_object()
         return kwargs
 
     def get_success_url(self):
@@ -721,50 +793,38 @@ class PreferencesDisplayView(PeriodFromDateMixin,
 
     def form_valid(self, form):
         no_worse_than = form.cleaned_data['no_worse_than']
-        ShiftAssignmentCollection.objects.create_optimal(self.get_period(),
+        ShiftAssignmentCollection.objects.create_optimal(self.get_object(),
                                                          no_worse_than)
         super().form_valid(*args, **kwargs)
 
-    def get(self, *args, **kwargs):
-        try:
-            self.get_period()
-            return super().get(*args, **kwargs)
-        except Period.DoesNotExist:
-            # add message to create peroid with given date
-            return HttpResponseRedirect(reverse('list-periods',
-                                                kwargs={'classroom_slug' : self.classroom.slug}))
-
-    def get_period(self):
-        return self.classroom.get_period(self.date())
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        return super().get(request, *args, **kwargs)
 
     def prefs_dict(self):
-        return ShiftPreference.objects.by_shift(self.get_period())
+        return ShiftPreference.objects.by_shift(self.object)
 
     def weekdays(self):
         return WEEKDAYS
 
 
-class ShiftAssignmentsListView(PeriodFromDateMixin,
-                               ClassroomEditMixin,
-                               DateMixin,
+class ShiftAssignmentsListView(ClassroomEditMixin,
+                               SingleObjectMixin,
                                TemplateView):
 
     template_name = 'shiftassignments_list.html'
+    model = Period
 
-    def get_queryset(self):
-        return ShiftAssignmentCollection.objects.filter(period=super().get_period())
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        return super().get(request, *args, **kwargs)
     
 
-# class ShiftAssignmentCreateView(FormView):
-#     # form for manually building the map  of children to shifts
-#     pass
-
-class ShiftAssignmentDetailView(PeriodFromDateMixin,
-                                ClassroomEditMixin,
-                                DateMixin,
+class ShiftAssignmentDetailView(ClassroomEditMixin,
                                 DetailView):
+    model = Period
     # link to generate commitments from ShiftAssignment
-    pass
+
 
 
 

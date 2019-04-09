@@ -12,7 +12,7 @@
   <li> email: {{object.email}}
   <li> username: {{object.username}}
     {% if user.is_parent %}
-      <li>children:
+      <li>parent of...
         <ul>
           {% for child in object.child_set.all %}
             <li>{% display_child child %} ({{child.classroom}})

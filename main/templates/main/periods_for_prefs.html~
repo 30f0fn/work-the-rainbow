@@ -4,12 +4,12 @@
 {% load rules %}
 
 {% block content %}
-  <h1>periods ({{view.classroom.slug}})</h1>
+  <h1>shift preferences ({{view.classroom.slug}})</h1>
 
 <ul>
   {% for period in object_list %}
     <li>
-      <a href={% url 'manage-period' classroom.slug period.pk %}>
+      <a href={% url 'manage-period' classroom.slug period.start.year period.start.month period.start.day %}>
         {{ period.start | date:"j b y"}} - {{ period.end | date:"j b y" }}
       </a>
     </li>
