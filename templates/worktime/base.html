@@ -8,26 +8,31 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    {# <link rel="stylesheet" href="style.css">  #}
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>work the rainbow</title>
+    <link rel="stylesheet" href="https://unpkg.com/awsm.css/dist/awsm.min.css">
   </head>
-
   <body>
+    <header>
+      {% include 'base_nav.html' %}
+    </header>
+    <main>
 
-    {% include 'base_nav.html' %}
 
-    <div id="messages">
-      {% for message in messages %}
+      <div id="messages">
+        {% for message in messages %}
         <p{% if message.tags %} class="{{ message.tags }}"{% endif %}>
           {{ message }}
         </p>
-      {% endfor %}
-    </div>
+        {% endfor %}
+      </div>
 
-    <div id="content">
-      {% block content %}
-      {% endblock %}
-    </div>
+      <div id="content">
+        {% block content %}
+        {% endblock %}
+      </div>
+    </main>
   </body>
 </html>
 

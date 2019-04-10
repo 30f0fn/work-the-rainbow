@@ -39,5 +39,7 @@ lrb = Classroom.objects.get(slug='lrb')
 
     
 for weekday in WEEKDAYS:
-    
-    Shift.objects.filter(start_time=datetime.time(15,30))
+    Shift.objects.create(classroom=lrb,
+                         start_time=datetime.time(13,30),
+                         end_time=datetime.time(15,30),
+                         weekday=weekday)

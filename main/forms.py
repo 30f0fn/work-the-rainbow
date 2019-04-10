@@ -20,6 +20,13 @@ todo:
 - adjust rescheduling boundaries from CLASSROOM_SETTINGS
 """
 
+from django.utils.safestring import mark_safe
+
+# class HorizontalRadioRenderer(RadioSelect.renderer):
+#   def render(self):
+#     return mark_safe(u'\n'.join([u'%s\n' % w for w in self]))
+
+
 
 class PreferenceSubmitForm(Form):
     def __init__(self, *args, **kwargs):
@@ -30,7 +37,9 @@ class PreferenceSubmitForm(Form):
             setattr(self, attr, kwargs.pop(attr))
         super().__init__(*args, **kwargs)
         self.fields.update({str(sh_pk) : ChoiceField(choices=SHIFT_RANKS,
-                                                     widget=RadioSelect,
+                                                     widget=RadioSelect(
+                                                         # renderer=HorizontalRadioRendere
+                                                     ),
                                                      initial=None,
                                                      label=str(self.shifts_dict[sh_pk]),
                                                      required=False)
@@ -39,32 +48,23 @@ class PreferenceSubmitForm(Form):
 
     def clean(self, *args, **kwargs):
         super().clean(*args, **kwargs)
-        num_ranked = sum(1 for value in self.cleaned_data.items()
-                         if value is not None)
+        num_ranked = sum(1 for value in self.cleaned_data.values()
+                         if value != "")
+        print("self.cleaned_data.items()", self.cleaned_data.items())
         min_prefs = main.scheduling_config.SHIFTPREFERENCE_MIN
         if num_ranked < min_prefs:
             raise ValidationError(f"Please give at least {min_prefs} preferences!")
 
     def save(self):
-        print("CHANGED_DATA: ", self.changed_data)
-        print("CLEANED_DATA: ", self.cleaned_data)
-        print("EXISTING_PREFS: ", self.existing_prefs)
         for sh_pk_str in self.changed_data:
             if self.cleaned_data[sh_pk_str] == "":
                 self.existing_prefs[int(sh_pk_str)].delete()
-                # print("deleted something")
             else:
-                # print("trying to change something")
                 try:
-                    # print("self.existing_prefs[int(sh_pk_str)] :" , self.existing_prefs[int(sh_pk_str)])
-                    # print("self.cleaned_data[sh_pk_str]", self.cleaned_data[sh_pk_str])
                     new_pref = self.existing_prefs[int(sh_pk_str)]
                     new_pref.rank = self.cleaned_data[sh_pk_str]
                     new_pref.save()
-                    # self.existing_prefs[int(sh_pk_str)].rank\
-                        # = self.cleaned_data[sh_pk_str]
                 except KeyError:
-                    # print("creating a new preference")
                     main.models.ShiftPreference.objects.create(
                         child = self.child,
                         shift = self.shifts_dict[int(sh_pk_str)],
@@ -76,38 +76,38 @@ class PreferenceSubmitForm(Form):
 
 class MakeChildCommitmentsForm(Form):
 
-    def __init__(self, child, available_shifts, *args, **kwargs):
+    # todo REDO THIS ALONG THE LINES OF SubmitPreferencesForm
+
+    def __init__(self, *args, **kwargs):
+        for attr in ('child',
+                     'available_shifts',
+                     'existing_shifts'):
+            setattr(self, attr, kwargs.pop(attr))
         super().__init__(*args, **kwargs)
-        self.child = child
-        self.available_shifts = available_shifts
-        self.fields.update({sh.serialize() : BooleanField(required=False)
+        self.fields.update({str(sh.pk) : BooleanField(required=False)
                             for sh in self.available_shifts})
 
     def clean(self, *args, monthly=False, **kwargs):
         super().clean(*args, **kwargs)
-        # todo: verify that no commitment exists for each newly added shift
-        # todo: below check is buggy
-        # num_shifts = len([pk for pk in self.cleaned_data
-        #                   if self.cleaned_data[pk]])
-        # if monthly and num_shifts > self.child.shifts_per_month:
-        #     # maybe only a warning here? 
-        #     raise ValidationError(f"The child of {self.child} needs only {self.child.shifts_per_month}, but this assigns them {num_shifts}")
+        # make sure nobody else took the requested shift 
+        # this is kind of crappy but not sure how to improve
+        for sh_pk_str in self.changed_data:
+            if self.cleaned_data[sh_pk_str]:
+                sh_occ = self.available_shifts[sh_pk_str]
+                if WorktimeCommitment.objects.filter(
+                        shift = sh_occ,
+                        start = sh_occ.start).exists():
+                    raise ValidationError(
+                        f"somebody just took the {sh_occ} shift!")
 
-    # todo reduce db hits?
-    def revise_commitments(self):
-        revisions = defaultdict(list)
-        for sh_field in self.changed_data:
-            sh = main.models.ShiftOccurrence.deserialize(sh_field)
-            if self.cleaned_data[sh_field]:
-                revisions['added'].append(sh)
-                # current deserializing hits db; avoid this?
-                sh.create_commitment(self.child)
+    def save(self):
+        for sh_pk_str in self.changed_data:
+            if self.cleaned_data[sh_pk_str]: 
+                sh_occurrence = self.available_shifts[sh_pk_str]
+                sh_occurrence.create_commitment(self.child)
             else:
-                main.models.WorktimeCommitment.objects.get(
-                    child=self.child,
-                    start=sh.start).delete()
-                revisions['removed'].append(sh)
-        return revisions
+                existing_commitment = self.existing_commitments['sh_pk_str']
+                existing_commitment.delete()
 
 
 class RescheduleWorktimeCommitmentForm(Form):
