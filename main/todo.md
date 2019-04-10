@@ -1,4 +1,9 @@
 
+auth views need to inherit styling but not navigation panels
+separate base.html (with styling) from authenticated_page.html
+
+home page for each classroom (to post pictures...)
+
 give all role an 'upcoming' page as default home
 
 preference request / submission

@@ -14,12 +14,12 @@
     <link rel="stylesheet" href="https://unpkg.com/awsm.css/dist/awsm.min.css">
   </head>
   <body>
-    <header>
+    <header style="margin-top:-20px;" >
       {% include 'base_nav.html' %}
     </header>
-    <main>
+    <main style="margin-top:-70px;" >
 
-
+      {% if messages %}
       <div id="messages">
         {% for message in messages %}
         <p{% if message.tags %} class="{{ message.tags }}"{% endif %}>
@@ -27,6 +27,7 @@
         </p>
         {% endfor %}
       </div>
+      {% endif %}
 
       <div id="content">
         {% block content %}

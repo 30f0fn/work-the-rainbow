@@ -8,9 +8,6 @@
       <li>
         <a href="{% url 'account_logout' %}">sign out</a> 
       </li>
-      <li>
-        <a href="{% url 'profile' %}">profile</a>
-      </li>
       {% if user.has_multi_roles %}
         {% for role in user.roles %}
           {% if role != user.active_role %}
@@ -27,6 +24,9 @@
         {% endfor %}
       {% endif %}
       <br>
+      <li>
+        <a href="{% url 'profile' %}">profile</a>
+      </li>
       {% if user.active_role %}
         {% with user.active_role.name|addstr:'_nav.html' as role_nav %}
           {% include role_nav %}
