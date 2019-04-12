@@ -10,35 +10,39 @@
   <h1>
     worktime scheduling 
   </h1>
-<h2>
-{# {{view.child}}, {{view.start_date|date:"n/j"}}-{{view.end_date|date:"n/j"}} #}
-{# {{view.child}}, {{view.start_date|date:"j/y"}}-{{view.end_date|date:"n/j"}} #}
-{{view.child}}, {{view.date|date:"F Y"}}
-</h2>
+  <h2>
+    {{view.child}}, {{view.date|date:"F Y"}}
+  </h2>
 
 
-<div>
-{# navigating between families #}
-  {% for child in view.classroom.child_set.all %}
-    {% if child != view.child %}
-      <a href='{% url 'make-worktime-commitments' view.classroom.slug child.nickname view.date.year view.date.month view.date.day %}'>
-        {{child}}
-      </a>
-    {% else %}
-      {{child}}
-    {% endif %}
-  {% endfor %}
-</div>
+  <div>
+    {# navigating between families #}
+    <nav>
+      <ul>
+        {% for child in view.classroom.child_set.all %}
+          <li>
+          {% if child != view.child %}
+              <a href='{% url 'make-worktime-commitments' view.classroom.slug child.nickname view.date.year view.date.month view.date.day %}'>
+                {{child}}
+              </a>
+            {% else %}
+              {{child}}
+            {% endif %}
+            </li>
+          {% endfor %}
+      </ul>
+    </nav>
+  </div>
 
 
-<div>
-<a href="{{view.previous}}">
-  &lt;  
-</a>
-<a href="{{view.next}}"> 
-  &gt;   
-</a> 
-</div>
+  <div>
+    <a href="{{view.previous}}">
+      &lt;  
+    </a>
+    <a href="{{view.next}}"> 
+      &gt;   
+    </a> 
+  </div>
 
 
 
@@ -47,52 +51,52 @@
   <form action="{{request.path}}" method="post">
     {% csrf_token %}
     {% with view.shifts_by_week as shifts_by_week %}
-    <table>
-      <tr>
-        {% for day in shifts_by_week.0 %}
-          <td>
-            {{ day|date:"l" }}
-          </td>
-        {% endfor %}
-      </tr>
-      {% for week in shifts_by_week %}
+      <table>
         <tr>
-          {% for day, shifts in week.items %}
+          {% for day in shifts_by_week.0 %}
             <td>
-              {% if day.month == view.date.month %} 
-                {{day|date:"j"}}
-                <table>
-                  {% for shift in shifts %}
-                    <tr>
-                      <td>
-                        {{shift.start |time:"g:i"}}
-                      </td>
-                      <td>
-                        {% with shift.commitment as commitment %}
-                          {% if commitment and commitment.child != view.child %}
-                            {{commitment.child.nickname}}
-                            {# {% elif shift_instance.pk in form.fields %} #}
-                          {% else %}
-                            {{ form|render_field_from_string:shift.serialize}}
-                            {# {{ form|render_field_from_int:shift.pk }} #}
-                            &nbsp;
-                          {% endif %}
-                        {% endwith %}
-                      </td>
-                    </tr>
-                  {% endfor %}
-                </table>
-                {% endif %} 
+              {{ day|date:"l" }}
             </td>
           {% endfor %}
         </tr>
-      {% endfor %}
-    </table>
+        {% for week in shifts_by_week %}
+          <tr>
+            {% for day, shifts in week.items %}
+              <td>
+                {% if day.month == view.date.month %} 
+                  {{day|date:"j"}}
+                  <table>
+                    {% for shift in shifts %}
+                      <tr>
+                        <td>
+                          {{shift.start |time:"g:i"}}
+                        </td>
+                        <td>
+                          {% with shift.commitment as commitment %}
+                            {% if commitment and commitment.child != view.child %}
+                              {{commitment.child.nickname}}
+                              {# {% elif shift_instance.pk in form.fields %} #}
+                            {% else %}
+                              {{ form|render_field_from_string:shift.serialize}}
+                              {# {{ form|render_field_from_int:shift.pk }} #}
+                              &nbsp;
+                            {% endif %}
+                          {% endwith %}
+                        </td>
+                      </tr>
+                    {% endfor %}
+                  </table>
+                {% endif %} 
+              </td>
+            {% endfor %}
+          </tr>
+        {% endfor %}
+      </table>
     {% endwith %}
     <button type="submit", value="Submit">save</button>
   </form>
 {% endblock content %}
-  
+
 
 
 
