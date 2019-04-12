@@ -20,6 +20,17 @@ def render_field_from_int(form, n):
 def get_item(dictionary, key):
     return dictionary.get(key)
 
+@register.filter
+def model_name(model):
+    return getattr(model, '__name__',
+                   model.__class__.__name__)
+    # return model.__name__
+
+@register.inclusion_tag('smart_link.html')
+def smart_link(linked_url, link_text, request):
+    return locals()
+
+
 
 # @register.filter
 # def modelname(model):

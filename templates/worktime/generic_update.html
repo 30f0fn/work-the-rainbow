@@ -1,13 +1,25 @@
+{% extends "worktime/base.html" %}
+
+{% load main_tags %}
+
 {% block title %}
-editing
+    {{view.model|model_name}} update
 {% endblock title %}
 
 {% block content %}
-<form action="{{request.path}}" method="post">
+  <h1>
+    {{view.model|model_name}} update
+  </h1>
+  {% block instructions %}
+  {% endblock instructions %}
+
+  <form action="{{request.path}}" method="post">
     {% csrf_token %}
     {{ form }}
-    <input type="submit" value="Submit">
-</form>
+    <input type="submit" value="do it">
+    <a href="{{ view.get_success_url }}">fuhgeddaboudit</a>
+  </form>
+
 {% endblock content %}
 
 

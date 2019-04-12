@@ -1,16 +1,38 @@
-<li>
-  <a href='{% url 'scheduler-home' %}'>
-    scheduler's home
-  </a>
-</li>
+{% load main_tags %}
+
+{# {% url 'scheduler-home' as linked_url %}   #}
+{# {% smart_link linked_url 'scheduling' view.request %}   #}
+
 {% for classroom in user.classrooms_as_scheduler %}
-  <li>      
-    <a href="{% url 'scheduler-calendar' classroom.slug %}"> schedule </a>
-  </li>
-<li>
-  <a href="{% url 'list-periods' classroom.slug %}"> periods </a>
-</li>
-<li>
-  <a href="{% url 'manage-classroom' classroom.slug %}"> roster </a>
-</li>
+  {% url 'scheduler-calendar' classroom.slug as linked_url %}
+  {% with classroom.slug|add:' calendar' as link_text %}
+    {% smart_link linked_url link_text view.request %}
+  {% endwith %}
+  {% url 'list-periods' classroom.slug as linked_url %}
+  {% with classroom.slug|add:' periods' as link_text %}
+    {% smart_link linked_url link_text view.request %}
+  {% endwith %}
+  {% url 'manage-classroom' classroom.slug as linked_url %}
+  {% with classroom.slug|add:' roster' as link_text %}
+    {% smart_link linked_url link_text view.request %}
+  {% endwith %}
 {% endfor %}
+
+
+
+{# {\# <li> #\} #}
+{# {\#   <a href='{% url 'scheduler-home' %}'> #\} #}
+{# {\#     scheduler's home #\} #}
+{# {\#   </a> #\} #}
+{# {\# </li> #\} #}
+{# {% for classroom in user.classrooms_as_scheduler %} #}
+{#   <li>       #}
+{#     <a href="{% url 'scheduler-calendar' classroom.slug %}"> schedule </a> #}
+{#   </li> #}
+{# <li> #}
+{#   <a href="{% url 'list-periods' classroom.slug %}"> periods </a> #}
+{# </li> #}
+{# <li> #}
+{#   <a href="{% url 'manage-classroom' classroom.slug %}"> roster </a> #}
+{# </li> #}
+{# {% endfor %} #}

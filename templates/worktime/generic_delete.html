@@ -1,11 +1,20 @@
-{% block title %}deleting {{ view.model }}{% endblock title %}
+{% extends "worktime/base.html" %}
+{% load main_tags %}
+
+{% block title %}
+  {{ view.model|model_name }} deletion
+{% endblock title %}
 
 {% block content %}
-Are you sure you want to delete the {{model_name}} {{object}}?
+
+{% block confirmation %}
+{% endblock confirmation %}
+
+Are you sure you want to delete the {{view.model|model_name}} {{object}}?
 <form action="{{request.path}}" method="post">
     {% csrf_token %}
     {{ form }}
-    <input type="submit" value="Submit">
+    <input type="submit" value="yes">
 </form>
 {% endblock content %}
 

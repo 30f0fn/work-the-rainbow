@@ -10,16 +10,19 @@
     <table>
       <tr>
         {% for day in shifts_by_week.0 %}
-          <td>
+          <th>
             {{ day|date:"l" }}
-          </td>
+          </th>
         {% endfor %}
       </tr>
       {% for week in shifts_by_week %}
         <tr>
           {% for day, shifts in week.items %}
             <td>
-              {{day|date:"j"}}
+              {# <p> #}
+                {{day|date:"j"}}
+              {# </p> #}
+              <br>
               <table>
                 {% for shift in shifts %}
                   <tr>

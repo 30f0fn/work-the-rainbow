@@ -1,0 +1,8 @@
+<li>
+  {% url 'classroom-calendar' classroom.slug as linked_url %} 
+  {% if linked_url in request.path %}
+  {{classroom.slug}} calendar
+  {% else %}
+  <a href="{{linked_url}}">{{classroom.slug}} calendar</a>
+  {% endif %}
+</li>

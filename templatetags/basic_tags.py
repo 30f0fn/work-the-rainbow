@@ -12,8 +12,6 @@ register = template.Library()
 {% endwith %}
 
 
-@register.tag
-def 
 
 # @register.filter
 # def render_field_from_string(form, s):

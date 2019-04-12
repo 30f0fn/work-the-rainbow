@@ -11,6 +11,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.utils.decorators import method_decorator
 
+from collections import namedtuple
+
 # from allauth.account.views import LoginView
 # from allauth.account.views import SignupView as LocalSignupView
 from allauth.account.models import EmailAddress
@@ -334,7 +336,21 @@ class ChildDetailView(ChildMixin, DetailView):
         return main.models.Period.objects.filter(
             classroom=self.child.classroom,
             solicits_preferences=True)
-    
+
+    def prefs_by_period(self):
+        PbyP = namedtuple('PbyP', ['period', 'preferences'])
+        for period in self.periods_soliciting_preferences():
+            preferences = main.models.ShiftPreference.objects.filter(
+                child=self.child,
+                period=period)
+            print("preferences", preferences)
+            yield PbyP(period, preferences)
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+        context['prefs_by_period'] = self.prefs_by_period()
+        return context
+
 
 class ProfileEditView(UpdateView):
     model = User

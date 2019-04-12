@@ -24,45 +24,35 @@
 {% endif %}
 {% endwith %}
 
-
-
-{% with view.periods_soliciting_preferences as periods %}
-  {% if periods %}
-    <p>worktime preferences:
-      <ul>
-        {% for period in periods %}
+worktime preferences:
+{% for pp in prefs_by_period %}
+  <li>
+    <a href={% url 'submit-preferences' child.nickname pp.period.pk %}>
+      {{ pp.period.start | date:"j M y"}} - {{ pp.period.end | date:"j M y" }}
+    </a>
+    {% if pp.preferences %}
+      {% regroup pp.preferences by rank as prefs_by_rank %}
+      <ol>
+        {% for rank, prefs in prefs_by_rank %}
           <li>
-            <a href={% url 'submit-preferences' child.nickname period.pk %}>
-              {{ period.start | date:"j M y"}} - {{ period.end | date:"j M y" }}
-            </a>
-            {% with period.shiftpreference_set.all as prefs %}
-              {% if prefs %}
-                {% regroup prefs by rank as prefs_by_rank %}
-                <ol>
-                  {% for rank, prefs in prefs_by_rank %}
-                    <li>
-                      {# {{rank}} : #}
-                      <ul>
-                        {% for pref in prefs %}
-                          <li>
-                            {{pref.shift.weekday_str}}
-                            {{pref.shift.start_time | time:"f"}}
-                          </li>
-                        {% endfor %}
-                      </ul>
-                    </li>
-                  {% endfor %}
-                </ol>
-              {% endif %}
-            {% endwith %}
+            {# {{rank}} : #}
+            {# <ul> #}
+              {% for pref in prefs %}
+                {# <li> #}
+                {{pref.shift.weekday_str}}
+                {{pref.shift.start_time | time:"f"}}
+                {% if not forloop.last%},{% endif %}
+                {# </li> #}
+              {% endfor %}
+            {# </ul> #}
           </li>
         {% endfor %}
-      </ul>
-    </p>
-  {% endif %}
-{% endwith %}
+      </ol>
+    {% endif %}
+  </li>        
+{% endfor %}
 
-care times:
+<p>care times:
 <ul>
   {% for cda in child.caredayassignment_set.all.distinct %}
     <li>
@@ -73,7 +63,7 @@ care times:
     </li>
   {% endfor %}
 </ul>
-
+</p>
 
 {% has_perm 'people.edit_child' user child as edit_child %}  
 {% if edit_child %}    

@@ -1,26 +1,44 @@
-<li>
-  <a href="{% url 'parent-home' %}">
-    upcoming
-  </a>
-</li>
-{% for classroom in user.classrooms %}
-  <li>
-    <a href="{% url 'classroom-calendar' classroom.slug %}">
-      {{classroom.slug}} calendar
-    </a>
-  </li>
-<li>
-  <a href="{% url 'classroom-roster' classroom.slug %}">
-    {{classroom.slug}} roster
-  </a>
-</li>
+{% load main_tags %}
+
+
+{% url 'parent-home' as linked_url %} 
+{% smart_link linked_url 'upcoming' view.request %} 
+
+{% for classroom in user.classrooms %} 
+  {% url 'classroom-calendar' classroom.slug as linked_url %}
+  {% with classroom.slug|add:' calendar' as link_text %}
+    {% smart_link linked_url link_text view.request %}
+  {% endwith %}
+  {% url 'classroom-roster' classroom.slug as linked_url %}
+  {% with classroom.slug|add:' roster' as link_text %}
+    {% smart_link linked_url link_text view.request %}
+  {% endwith %}
 {% endfor %}
+
 {% for child in user.children %} 
-  <li>
-    <a href="{% url 'child-profile' child.nickname %}"> 
-      {{child.nickname}}'s profile
-    </a>
-  </li>
+  {% url 'child-profile' child.nickname as linked_url %}
+  {% smart_link linked_url child.nickname view.request %}
 {% endfor %}
+
+
+{# {% for classroom in user.classrooms %} #}
+{#   <li> #}
+{#     <a href="{% url 'classroom-calendar' classroom.slug %}"> #}
+{#       {{classroom.slug}} calendar #}
+{#     </a> #}
+{#   </li> #}
+{# <li> #}
+{#   <a href="{% url 'classroom-roster' classroom.slug %}"> #}
+{#     {{classroom.slug}} roster #}
+{#   </a> #}
+{# </li> #}
+{# {% endfor %} #}
+{# {% for child in user.children %}  #}
+{#   <li> #}
+{#     <a href="{% url 'child-profile' child.nickname %}">  #}
+{#       {{child.nickname}} #}
+{#     </a> #}
+{#   </li> #}
+{# {% endfor %} #}
 
 

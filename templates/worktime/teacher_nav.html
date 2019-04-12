@@ -1,18 +1,72 @@
-<li>
-  <a href='{% url 'teacher-home' %}'>
-    home
-  </a>
-</li>
-{% for classroom in user.classrooms %}
-<li>
-  <a href="{% url 'classroom-calendar' classroom.slug %}">
-    {{classroom.slug}} calendar
-  </a>
-</li>
-<li>
-  <a href="{% url 'classroom-roster' classroom.slug %}">
-    {{classroom.slug}} roster
-  </a>
-</li>
+{% load main_tags %}
+
+{% for classroom in user.classrooms %} 
+  {% url 'classroom-calendar' classroom.slug as linked_url %}
+  {% with classroom.slug|add:' calendar' as link_text %}
+    {% smart_link linked_url link_text view.request %}
+  {% endwith %}
+  {% url 'classroom-roster' classroom.slug as linked_url %}
+  {% with classroom.slug|add:' roster' as link_text %}
+    {% smart_link linked_url link_text view.request %}
+  {% endwith %}
 {% endfor %}
+
+{#     {% if linked_url in request.path %} #}
+{#       {{classroom.slug}} calendar #}
+{#     {% else %} #}
+{#       <a href="{{linked_url}}">{{classroom.slug}} calendar</a> #}
+{#     {% endif %} #}
+{#   </li> #}
+{# <li> #}
+{#   {% url 'classroom-roster' classroom.slug as linked_url %} #}
+{#   {% if linked_url in request.path %} #}
+{#     {{classroom.slug}} roster #}
+{#   {% else %} #}
+{#     <a href="{{linked_url}}"> #}
+{#       {{classroom.slug}} roster #}
+{#     </a> #}
+{#   {% endif %} #}
+{# </li> #}
+{# {% endfor %} #}
+
+{# <li>{% if calendar_url == request.path %}{{calendar_url}}</li> #}
+
+{# <li> #}
+{#   <a href='{% url 'teacher-home' %}'> #}
+{#     home #}
+{#   </a> #}
+{# </li> #}
+{# {% for classroom in user.classrooms %} #}
+{# <li> #}
+{#   <a href="{% url 'classroom-calendar' classroom.slug %}"> #}
+{#     {{classroom.slug}} calendar #}
+{#   </a> #}
+{# </li> #}
+{# <li> #}
+{#   <a href="{% url 'classroom-roster' classroom.slug %}"> #}
+{#     {{classroom.slug}} roster #}
+{#   </a> #}
+{# </li> #}
+{# {% endfor %} #}
+
+
+
+
+{# <li> #}
+{#   <a href='{% url 'teacher-home' %}'> #}
+{#     home #}
+{#   </a> #}
+{# </li> #}
+{# {% for classroom in user.classrooms %} #}
+{# <li> #}
+{#   <a href="{% url 'classroom-calendar' classroom.slug %}"> #}
+{#     {{classroom.slug}} calendar #}
+{#   </a> #}
+{# </li> #}
+{# <li> #}
+{#   <a href="{% url 'classroom-roster' classroom.slug %}"> #}
+{#     {{classroom.slug}} roster #}
+{#   </a> #}
+{# </li> #}
+{# {% endfor %} #}
 

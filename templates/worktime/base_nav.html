@@ -1,13 +1,15 @@
 {% load people_tags %}
-
+{% load main_tags %}
 {# {% if user.is_authenticated %} #}
 
 <div id="auth-panel">
   <nav>
     <ul>
+
       <li>
         <a href="{% url 'account_logout' %}">sign out</a> 
       </li>
+{# todo reduce db hits here, it's like (for user with three roles, anyway) #}
       {% if user.has_multi_roles %}
         {% for role in user.roles %}
           {% if role != user.active_role %}
@@ -24,14 +26,16 @@
         {% endfor %}
       {% endif %}
       <br>
-      <li>
-        <a href="{% url 'profile' %}">profile</a>
-      </li>
+
+      {% url 'profile' as linked_url %} 
+      {% smart_link linked_url 'profile' view.request %} 
+
       {% if user.active_role %}
         {% with user.active_role.name|addstr:'_nav.html' as role_nav %}
           {% include role_nav %}
         {% endwith %}
       {% endif %}
+
     </ul>
   </nav>
 </div>

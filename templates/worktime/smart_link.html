@@ -1,0 +1,7 @@
+<li>
+  {% if linked_url in request.path %} 
+    {{link_text}}
+  {% else %}
+    <a href="{{linked_url}}">{{link_text}}</a>
+  {% endif %}
+</li>

@@ -588,16 +588,30 @@ class CareDayAssignmentDeleteView(ChildEditMixin,
 
 
 class SchedulerHomeView(RoleHomeMixin,
-                        DateIntervalMixin,
-                        TemplateView):
+                        RedirectView):
     role, created = Role.objects.get_or_create(name='scheduler')
-    # todo similar issue as with teacher... what if person is scheduler to multiple classrooms?
-    
-    template_name = 'scheduler_home.html'
 
-    @property
-    def classroom(self):
-        return self.request.user.classrooms.first()
+    # todo bug breaks if user schedules in multiple classrooms
+    def get_redirect_url(self, *args, **kwargs):
+        classrooms = self.request.user.classrooms_as_scheduler()
+        if classrooms.count() >= 1:
+            return reverse('scheduler-calendar',
+                           kwargs = {'classroom_slug' : classrooms.first().slug})
+        else:
+            return reverse('profile')
+
+
+# class SchedulerHomeView(RoleHomeMixin,
+#                         DateIntervalMixin,
+#                         TemplateView):
+#     role, created = Role.objects.get_or_create(name='scheduler')
+#     # todo similar issue as with teacher... what if person is scheduler to multiple classrooms?
+    
+#     template_name = 'scheduler_home.html'
+
+#     @property
+#     def classroom(self):
+#         return self.request.user.classrooms.first()
 
 
 # todo is this the correct inheritance order?
@@ -878,7 +892,7 @@ class FourWeekMakeWorktimeCommitmentsView(MonthlyCalendarMixin,
     def get_success_url(self):
         return self.request.path
 
-    # todo
+    # todo mimic prefsubmitview
     def get_form_kwargs(self, *args, **kwargs):
         kwargs = super().get_form_kwargs(*args, **kwargs)
         kwargs.update({'child' : self.child,

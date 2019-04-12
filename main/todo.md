@@ -1,9 +1,16 @@
 
+tag to change display of active link in navbar
+
+fix make_commitments view of scheduler
+
+extra css style sheet - shrink header fonts, remove table cell borders
 auth views need to inherit styling but not navigation panels
 separate base.html (with styling) from authenticated_page.html
 
+
 home page for each classroom (to post pictures...)
 
+all roles need a home view, scheduler doesn't have one; teacher defaults to daily-calendar
 give all role an 'upcoming' page as default home
 
 preference request / submission

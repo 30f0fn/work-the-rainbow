@@ -1,14 +1,23 @@
+{% extends "worktime/base.html" %}
+
 {% block title %}
-add {{ view.model }}
-{# add {{ view.model | modelname }} #}
+  {{ view.model|model_name }} creation
 {% endblock title %}
 
 {% block content %}
-<form action="{{request.path}}" method="post">
+  <h1>
+    {{view.model|model_name}} creation
+  </h1>
+
+  {% block instructions %}
+  {% endblock instructions %}
+
+  <form action="{{request.path}}" method="post">
     {% csrf_token %}
     {{ form }}
     <input type="submit" value="Submit">
-</form>
+  </form>
+
 {% endblock content %}
 
 
