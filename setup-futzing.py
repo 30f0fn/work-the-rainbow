@@ -37,9 +37,3 @@ a_week = datetime.timedelta(days=7)
 lrb = Classroom.objects.get(slug='lrb')
 
 
-    
-# for weekday in WEEKDAYS:
-#     Shift.objects.create(classroom=lrb,
-#                          start_time=datetime.time(13,30),
-#                          end_time=datetime.time(15,30),
-#                          weekday=weekday)

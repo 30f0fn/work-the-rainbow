@@ -16,7 +16,7 @@
           {% for child in object.child_set.all %}
             <li>{% display_child child %} ({{child.classroom}})
               {% if child.parent_set.count > 1%}
-                {% for parent in child.parent_set %}
+                {% for parent in child.parent_set.all %}
                   {% if parent != request.user %}
                     {{parent}}
                   {% endif %}
