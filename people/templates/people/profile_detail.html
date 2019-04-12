@@ -7,10 +7,9 @@
 {% block nav %} {% endblock %}
 
 {% block content %}
-<h2>profile</h2>
+<h1>{{object.username}}'s profile</h1>
 <ul>
-  <li> email: {{object.email}}
-  <li> username: {{object.username}}
+<li>email: {{object.email}}
     {% if user.is_parent %}
       <li>parent of...
         <ul>

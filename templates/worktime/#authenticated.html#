@@ -8,7 +8,6 @@
 {% load rules %}
 
 {% block header %}
-{% load main_tags %}
   <!-- {% include 'base_nav.html' %} -->
 {% endblock header %}
 

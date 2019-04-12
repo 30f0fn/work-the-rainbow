@@ -1,10 +1,14 @@
 {% extends "authenticated.html" %}
+{% load main_tags %}
+
 
 {% block title %}
   {{ view.model|model_name }} creation
 {% endblock title %}
 
 {% block content %}
+
+
   <h1>
     {{view.model|model_name}} creation
   </h1>
