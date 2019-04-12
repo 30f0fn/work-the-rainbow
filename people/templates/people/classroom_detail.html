@@ -9,14 +9,18 @@
     {{classroom.name}} 
   </h1>
 
-<h2>teachers</h2> 
+<!-- <h2>teachers</h2>  -->
+<p>
+  teachers
 <ul>  
   {% for teacher in object.teacher_set.all %}  
     <li> {{ teacher }}  
   {% endfor %}  
 </ul>  
+</p>
 
-<h2>kids</h2>   
+<!-- <h2>kids</h2>    -->
+<p>
 <ul>   
   {% for kid in object.child_set.all %}   
     <li> {{ kid.nickname }}  
@@ -26,9 +30,11 @@
     </li>  
   {% endfor %}  
 </ul>   
+</p>
 
-
-<h2>scheduler</h2> 
+<p>
+<!-- <h2>scheduler</h2>  -->
+scheduler
 <ul> 
   {% for scheduler in object.scheduler_set.all %} 
     <li> 
@@ -36,4 +42,6 @@
     </li> 
   {% endfor %} 
 </ul> 
+</p>
+
 {% endblock content %}
