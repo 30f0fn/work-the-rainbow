@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+
+{# base.html #}
+{# each template of a view which does not require authentication should inherit from this template  #}
+
+{% load people_tags %}
+{% load rules %}
+
+{% block header %}
+
+{% endblock header %}
+
+{% block main %}
+
+  {% block content %}
+  {% endblock content %}
+
+{% endblock main %}

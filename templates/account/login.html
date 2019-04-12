@@ -1,14 +1,7 @@
+{% extends 'unauthenticated.html' %}
+
 {% load i18n %}
 {% load account socialaccount %}
-{# {% load people_tags %} #}
-{# {% load rules %} #}
-<!DOCTYPE html>
-{# <html lang="en"> #}
-{# <head> #}
-{# <link rel="stylesheet" href="style.css">   #}
-{# <title>work the rainbow</title> #}
-{# </head> #}
-
 
   {# {% block head_title %}{% trans "Sign In" %}{% endblock %} #}
 
@@ -51,9 +44,7 @@
     <button class="primaryAction" type="submit">{% trans "Sign In" %}</button>
   </form>
 
-{% endblock %}
-</body>
-</html>
+{% endblock content %}
 
 
 

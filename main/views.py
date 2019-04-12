@@ -188,7 +188,6 @@ class PerChildEditWorktimeMixin(object):
                 if sh.is_available_to_child(self.child)]
         return ret
 
-
 class TimedURLMixin(object):
 
     @property
@@ -684,35 +683,36 @@ class MakeWorktimeCommitmentsView(MonthlyCalendarMixin,
         kwargs.update({'nickname' : self.child.nickname})
         return kwargs
 
-    def form():
-        return self.form_class()
 
-    # todo
+    # todo avoid duplicate calls to available_shifts()
     def get_form_kwargs(self, *args, **kwargs):
         kwargs = super().get_form_kwargs(*args, **kwargs)
+        sh_occ_deserializer = {sh_occ.serialize() : sh_occ
+                               for sh_occ in self.available_shifts()}
         kwargs.update({'child' : self.child,
-                       'available_shifts' : self.available_shifts()
+                       'sh_occ_deserializer' : sh_occ_deserializer,
         })
         return kwargs
 
     # todo
     def get_initial(self, *args, **kwargs):
         initial = super().get_initial(*args, **kwargs)
-        data = {sh.serialize() : getattr(sh.commitment, 'child', None) == self.child 
-                for sh in self.available_shifts()}
+        data = {sh_occ.serialize() : getattr(sh_occ.commitment, 'child', None) == self.child 
+                for sh_occ in self.available_shifts()}
         initial.update(data)
         return initial
 
     def form_valid(self, form):
-        revisions = form.revise_commitments()
-        added_repr = ', '.join([str(sh) for sh in revisions['added']])
-        if added_repr:
-            message1 = "shifts added: "+ added_repr
-            messages.add_message(self.request, messages.SUCCESS, message1)
-        removed_repr = ', '.join([str(sh) for sh in revisions['removed']])
-        if removed_repr:
-            message2 = "shifts removed: "+ ', '.join([str(sh) for sh in revisions['removed']])
-            messages.add_message(self.request, messages.SUCCESS, message2)
+        form.save()
+        # revisions = form.revise_commitments()
+        # added_repr = ', '.join([str(sh) for sh in revisions['added']])
+        # if added_repr:
+        #     message1 = "shifts added: "+ added_repr
+        #     messages.add_message(self.request, messages.SUCCESS, message1)
+        # removed_repr = ', '.join([str(sh) for sh in revisions['removed']])
+        # if removed_repr:
+        #     message2 = "shifts removed: "+ ', '.join([str(sh) for sh in revisions['removed']])
+        #     messages.add_message(self.request, messages.SUCCESS, message2)
         return super().form_valid(form)
 
 

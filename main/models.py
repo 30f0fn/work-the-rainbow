@@ -524,8 +524,11 @@ class ShiftOccurrence(WeeklyEventOccurrence):
     @staticmethod
     def deserialize(repr_string):
         repr_dict = ast.literal_eval(repr_string)
-        return ShiftOccurrence(Shift.objects.get(pk = repr_dict['shift']),
-                               deserialize_datetime(repr_dict['start']))
+        shift = Shift.objects.get(pk = repr_dict['shift'])
+        dt = deserialize_datetime(repr_dict['start'])
+        commitment = WorktimeCommitment.objects.get(pk=repr_dict['commitment']) \
+            if 'commitment' in repr_dict else None
+        return ShiftOccurrence(shift, dt, commitment=commitment)
         
 
 # todo this should just have shift and fields?

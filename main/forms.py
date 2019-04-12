@@ -80,33 +80,36 @@ class MakeChildCommitmentsForm(Form):
 
     def __init__(self, *args, **kwargs):
         for attr in ('child',
-                     'available_shifts',
-                     'existing_shifts'):
+                     # 'available_shifts',
+                     'sh_occ_deserializer'):
             setattr(self, attr, kwargs.pop(attr))
         super().__init__(*args, **kwargs)
-        self.fields.update({str(sh.pk) : BooleanField(required=False)
-                            for sh in self.available_shifts})
+        self.fields.update({sh_occ_str : BooleanField(required=False)
+                            for sh_occ_str in self.sh_occ_deserializer})
+
+    # todo right now i deserialize the changed fields in both clean and save methods
+    # instead pass sh_occ_deserializer dict to form
 
     def clean(self, *args, monthly=False, **kwargs):
         super().clean(*args, **kwargs)
         # make sure nobody else took the requested shift 
         # this is kind of crappy but not sure how to improve
-        for sh_pk_str in self.changed_data:
-            if self.cleaned_data[sh_pk_str]:
-                sh_occ = self.available_shifts[sh_pk_str]
-                if WorktimeCommitment.objects.filter(
-                        shift = sh_occ,
+        for sh_occ_str in self.changed_data:
+            if self.cleaned_data[sh_occ_str]: # i.e. if it's to be created
+                sh_occ = self.sh_occ_deserializer[sh_occ_str]
+                if main.models.WorktimeCommitment.objects.filter(
+                        shift = sh_occ.shift,
                         start = sh_occ.start).exists():
                     raise ValidationError(
-                        f"somebody just took the {sh_occ} shift!")
+                        f"somebody already has the {sh_occ} shift!")
 
     def save(self):
-        for sh_pk_str in self.changed_data:
-            if self.cleaned_data[sh_pk_str]: 
-                sh_occurrence = self.available_shifts[sh_pk_str]
-                sh_occurrence.create_commitment(self.child)
+        for sh_occ_str in self.changed_data:
+            sh_occ = self.sh_occ_deserializer[sh_occ_str]
+            if self.cleaned_data[sh_occ_str]: # i.e., it's to be created
+                sh_occ.create_commitment(self.child)
             else:
-                existing_commitment = self.existing_commitments['sh_pk_str']
+                existing_commitment = sh_occ.commitment
                 existing_commitment.delete()
 
 

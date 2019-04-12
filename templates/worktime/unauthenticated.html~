@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+
+{# base.html #}
+{# all views which invoke this template require authentication #}
+{# todo this should be split into auth-neutral formatting layer and authenticated layer with navs #}
+
+{% load people_tags %}
+{% load rules %}
+
+{% block header %}
+  {% include 'base_nav.html' %}
+{% endblock header %}
+
+{% block main %}
+
+  {% block content %}
+  {% endblock content %}
+
+{% endblock main %}
