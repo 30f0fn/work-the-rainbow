@@ -15,6 +15,7 @@ Are you sure you want to delete the {{view.model|model_name}} {{object}}?
     {% csrf_token %}
     {{ form }}
     <input type="submit" value="yes">
+    <a href="{{view.get_success_url}}">never mind</a>
 </form>
 {% endblock content %}
 

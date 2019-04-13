@@ -351,7 +351,6 @@ class CareDayAssignmentManager(WeeklyEventManager):
             super().create(child=child, careday=careday, start=start, end=end)
 
     def overlaps(self, child, start, end, careday=None):
-        #TODO something worng here
         o = super().overlaps(start, end).filter(
             child=child).select_related('careday')
         if careday:
@@ -435,6 +434,9 @@ class CareDayAssignment(models.Model):
     
     def __repr__(self):
         return f"<{self.__class__.__name__} {self.pk}>: child={self.child}, careday={self.careday}, start={self.start}, end={self.end}"
+
+    def __str__(self):
+        return f"{self.careday} for {self.child}, from {self.start.date()} through {self.end.date()}"
 
     class Meta:
         ordering = ['careday', 'start', 'end']

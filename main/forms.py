@@ -209,15 +209,7 @@ class CreateCareDayAssignmentsForm(Form):
                                            # widget=DatePickerInput())
 
     def save(self):
-        # caredays = self.cleaned_data['caredays']
-        # start_year = self.cleaned_data['start_year']
-        # start_month = self.cleaned_data['start_month']
-        # start_day = self.cleaned_data['start_day']
-        # end_year = self.cleaned_data['end_year']
-        # end_month = self.cleaned_data['end_month']
-        # end_day = self.cleaned_data['end_day']
-        # start = datetime.date(start_year, start_month, start_day)
-        # end = datetime.date(end_year, end_month, end_day)
+        caredays = self.cleaned_data['caredays']
         start = self.cleaned_data['start']
         end = self.cleaned_data['end']
         for careday in caredays:
@@ -226,7 +218,6 @@ class CreateCareDayAssignmentsForm(Form):
                 careday=careday,
                 start=start,
                 end=end)
-            # print("CAREDAY", careday)
 
 class GenerateShiftAssignmentsForm(Form):
     worst_rank_choices = ((1, '1'), (2, '2'), (3, '3'))
