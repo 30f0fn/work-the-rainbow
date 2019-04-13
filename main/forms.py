@@ -178,14 +178,6 @@ class WorktimeAttendanceForm(Form):
 
 
 
-# ChoiceField(choices=SHIFT_RANKS,
-#                                                      widget=RadioSelect(
-#                                                          # renderer=HorizontalRadioRendere
-#                                                      ),
-#                                                      initial=None,
-#                                                      label=str(self.shifts_dict[sh_pk]),
-#                                                      required=False)
-
 
 class CreateCareDayAssignmentsForm(Form):
     
@@ -197,16 +189,8 @@ class CreateCareDayAssignmentsForm(Form):
             queryset=main.models.CareDay.objects.filter(
                 classroom=self.child.classroom),
             widget=CheckboxSelectMultiple)
-        # self.fields['start_year'] = ChoiceField(choices=START_YEARS)
-        # self.fields['start_month'] = ChoiceField(choices=START_MONTHS)
-        # self.fields['start'] = DateField()
         self.fields['start'] = DateField(label="From (YYYY-MM-DD)")
         self.fields['end'] = DateField(label="Until (inclusive)")
-
-        # self.fields['start'] = DateField(input_formats=['%d/%m/%Y %H:%M'],
-                                             # widget=DatePickerInput())
-        # self.fields['end'] = DateField(input_formats=['%d/%m/%Y %H:%M'],
-                                           # widget=DatePickerInput())
 
     def save(self):
         caredays = self.cleaned_data['caredays']
@@ -246,19 +230,17 @@ class PeriodForm(ModelForm):
 
     def clean(self):
         self.instance.classroom = self.classroom
-        # print(self.instance)
-        # print(self.instance.start)
-        # print(self.instance.end)
-        # overlaps = main.models.Period.objects.overlaps(
-        #     self.instance.start, self.instance.end).filter(
-        #         classroom=self.classroom)
-        # print(overlaps)
-        # if main.models.Period.objects.overlaps(
-        #         self.instance.start, self.instance.end).filter(
-        #             classroom=self.classroom).exists():
-        #     raise ValidationError("an existing period for that classroom overlaps with the proposed one")
         super().clean()
 
     class Meta:
         model = main.models.Period
         fields = ['start', 'end', 'solicits_preferences']
+
+
+class CareDayAssignmentUpdateForm(ModelForm):
+    start = DateField()
+    end = DateField()
+    class Meta:
+        model = main.models.Period
+        fields = ['start', 'end']
+    

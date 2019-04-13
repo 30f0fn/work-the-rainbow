@@ -1,18 +1,20 @@
 
+
+
+
 ESSENTIAL
 
 * which unauthenticated layers need signin link?
 
-
-
-* fix make_commitments view of scheduler
-
-* extra css style sheet - shrink header fonts, remove table cell borders
+* caredayassignments should be bounded by dates not datetimes
+* this borks the super call to overlap from event
 
 
 
 
 BONUS
+
+
 
 * pref submission page formatting
 

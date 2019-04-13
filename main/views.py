@@ -561,8 +561,17 @@ class CareDayAssignmentsCreateView(ChildEditMixin, FormView):
 class CareDayAssignmentEditView(ChildEditMixin,
                                 UpdateView):
     model = CareDayAssignment
-    fields = ['start','end']
+    # fields = ['start','end']
     template_name = 'generic_update.html'
+    form_class = main.forms.CareDayAssignmentUpdateForm
+
+    def get_initial(self, *args, **kwargs):
+        initial = super().get_initial(*args, **kwargs)
+        data = {'start': self.object.start.date(),
+                'end': self.object.end.date(),
+        }
+        initial.update(data)
+        return initial
 
     def get_success_url(self):
         return reverse('child-profile',
