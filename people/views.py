@@ -85,6 +85,7 @@ class ClassroomEditMixin(ClassroomMixin):
                             kwargs={'classroom_slug':self.classroom.slug})
 
 
+
 class QuerysetInClassroomMixin(ClassroomMixin):
     def get_queryset(self):
         return self.model.objects.filter(classroom=self.classroom,
@@ -117,6 +118,14 @@ class ChildEditMixin(ChildMixin):
                             kwargs={'nickname':self.child.nickname})
 
 
+class AdminMixin(object):
+    permission_required = 'people.admin'
+
+
+
+
+
+
 # # todo replace all references to family with references to child
 # class FamilyMixin(object):
 
@@ -128,6 +137,8 @@ class ChildEditMixin(ChildMixin):
 #         context = super().get_context_data(**kwargs)
 #         context.update({'family' : self.family})
 #         return context
+
+
 
 
 ########################
@@ -339,12 +350,17 @@ class ChildDetailView(ChildMixin, DetailView):
 
     def prefs_by_period(self):
         PbyP = namedtuple('PbyP', ['period', 'preferences'])
-        for period in self.periods_soliciting_preferences():
-            preferences = main.models.ShiftPreference.objects.filter(
-                child=self.child,
-                period=period)
-            print("preferences", preferences)
-            yield PbyP(period, preferences)
+        periods = self.periods_soliciting_preferences()
+        preferences = list(main.models.ShiftPreference.objects.filter(
+            child=self.child,
+            period__in=periods).select_related('shift').order_by('-period'))
+        for period in periods:
+            pp = PbyP(period, [])
+            while preferences and preferences[-1].period:
+                pp.preferences.append(preferences.pop())
+            yield pp
+
+
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)

@@ -18,7 +18,7 @@ from rules.contrib.views import PermissionRequiredMixin
 
 from main import rules, scheduling_config
 from people.models import Child, Classroom, Role
-from people.views import ClassroomMixin, ClassroomEditMixin, ChildEditMixin, ChildMixin
+from people.views import ClassroomMixin, ClassroomEditMixin, ChildEditMixin, ChildMixin, AdminMixin
 from main.utilities import nearest_monday
 from main.models import Holiday, Happening, Shift, WorktimeCommitment, CareDayAssignment, CareDay, ShiftOccurrence, Period, ShiftPreference
 from main.model_fields import WEEKDAYS
@@ -391,8 +391,15 @@ class AdminHomeView(RoleHomeMixin,
     role, created = Role.objects.get_or_create(name='admin')
     template_name = 'admin_home.html'
     
-    
-
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+        # holidays = Holiday.objects.all()
+        # happenings = Happening.objects.all()
+        # classrooms = Classroom.objects.all()
+        context.update({'holidays' : Holiday.objects.all(),
+                        'happenings' : Happening.objects.all(),
+                        'classrooms' : Classroom.objects.all()})
+        return context
 # this just handles general time structuring stuff..
 # for content, use mixins below
 
@@ -400,9 +407,62 @@ class AdminHomeView(RoleHomeMixin,
 
 
 
+class HolidayCreateView(AdminMixin,
+                        CreateView):
+    model = Holiday
+    template_name = 'generic_create.html'
+    fields = ['name', 'start', 'end']
+
+    def get_success_url(self):
+        return reverse('admin-home')
 
 
+class HolidayUpdateView(AdminMixin,
+                        UpdateView):
+    model = Holiday
+    template_name = 'generic_update.html'
+    fields = ['name', 'start', 'end']
 
+    def get_success_url(self):
+        return reverse('admin-home')
+
+
+class HolidayDeleteView(AdminMixin,
+                        DeleteView):
+    model = Holiday
+    template_name = 'generic_delete.html'
+    
+    def get_success_url(self):
+        return reverse('admin-home')
+
+
+class HappeningCreateView(AdminMixin,
+                        CreateView):
+    model = Happening
+    template_name = 'generic_create.html'
+    fields = ['name', 'start', 'end']
+
+    def get_success_url(self):
+        return reverse('admin-home')
+
+
+class HappeningUpdateView(AdminMixin,
+                        CreateView):
+    model = Happening
+    template_name = 'generic_update.html'
+    fields = ['name', 'start', 'end']
+
+    def get_success_url(self):
+        return reverse('admin-home')
+
+
+class HappeningDeleteView(AdminMixin,
+                        DeleteView):
+    model = Happening
+    template_name = 'generic_delete.html'
+
+    def get_success_url(self):
+        return reverse('admin-home')
 
 
 

@@ -134,7 +134,7 @@ class User(AbstractUser):
         if not self.pk:
             super().save(*args, **kwargs)
         if not self.active_role:
-            self.active_role = self.roles[0]
+            self.active_role = self.roles.get(0, None)
         super().save(*args, **kwargs)
 
     # @property
@@ -207,6 +207,9 @@ class Child(NamingMixin, models.Model):
         for careday_occurrence in self.careday_occurrences(start, end):
             for shift_occurrence in careday_occurrence.shift_occurrences():
                 yield shift_occurrence
+
+    def careday_assignments(self):
+        return self.caredayassignment_set.all().distinct().select_related('careday')
 
     @property
     def worktime_commitments(self):

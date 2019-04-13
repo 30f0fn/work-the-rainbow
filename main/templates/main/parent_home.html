@@ -53,9 +53,9 @@
     <ul>
       {% for holiday in view.holidays %}
         <li>
-          {{holiday}}
-          {{holiday.date}}
-          {% if holiday.end_date %} - {{ event.end_date }} {% endif %}
+          {{holiday.name}},
+          {{holiday.start.date}}
+          {% if holiday.end.date != holiday.start.date %} - {{ holiday.end.date }} {% endif %}
         </li>
       {% endfor %}
     </ul>

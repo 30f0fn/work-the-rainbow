@@ -9,33 +9,34 @@
       <li>
         <a href="{% url 'account_logout' %}">sign out</a> 
       </li>
-{# todo reduce db hits here, it's like (for user with three roles, anyway) #}
-      {% if user.has_multi_roles %}
-        {% for role in user.roles %}
-          {% if role != user.active_role %}
-            {% with role.name as role_name %}
+      {# todo reduce db hits here #}
+      {% with user.active_role as active_role %}
+        {% if user.has_multi_roles %}
+          {% for role in user.roles %}
+            {% if role != active_role %}
+              {% with role.name as role_name %}
+                <li>
+                  <a href='{% url role_name|addstr:'-home' %}'>{{role}}</a>
+                </li>
+              {% endwith %}
+            {% else %}
               <li>
-                <a href='{% url role_name|addstr:'-home' %}'>{{role}}</a>
+                {{role}}
               </li>
-            {% endwith %}
-          {% else %}
-            <li>
-              {{role}}
-            </li>
-          {% endif %}
-        {% endfor %}
-      {% endif %}
-      <br>
+            {% endif %}
+          {% endfor %}
+        {% endif %}
+        <br>
 
-      {% url 'profile' as linked_url %} 
-      {% smart_link linked_url 'profile' view.request %} 
+        {% url 'profile' as linked_url %} 
+        {% smart_link linked_url 'profile' view.request %} 
 
-      {% if user.active_role %}
-        {% with user.active_role.name|addstr:'_nav.html' as role_nav %}
-          {% include role_nav %}
-        {% endwith %}
-      {% endif %}
-
+        {% if active_role %}
+          {% with active_role.name|addstr:'_nav.html' as role_nav %}
+            {% include role_nav %}
+          {% endwith %}
+        {% endif %}
+      {% endwith %}
     </ul>
   </nav>
 </div>

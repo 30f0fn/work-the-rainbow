@@ -71,6 +71,8 @@ rules.add_perm('people.view_classroom',
                is_scheduler_in_classroom |
                is_admin)
 
+rules.add_perm('admin',
+               is_admin)
 
 
 

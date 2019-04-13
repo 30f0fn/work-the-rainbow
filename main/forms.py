@@ -190,7 +190,7 @@ class CreateCareDayAssignmentsForm(Form):
                 classroom=self.child.classroom),
             widget=CheckboxSelectMultiple)
         self.fields['start'] = DateField(label="From (YYYY-MM-DD)")
-        self.fields['end'] = DateField(label="Until (inclusive)")
+        self.fields['end'] = DateField(label="Until (YYYY-MM-DD, inclusive)")
 
     def save(self):
         caredays = self.cleaned_data['caredays']
@@ -238,8 +238,8 @@ class PeriodForm(ModelForm):
 
 
 class CareDayAssignmentUpdateForm(ModelForm):
-    start = DateField()
-    end = DateField()
+    start = DateField(label="From (YYYY-MM-DD)")
+    end = DateField(label="Until (YYYY-MM-DD, inclusive)")
     class Meta:
         model = main.models.Period
         fields = ['start', 'end']

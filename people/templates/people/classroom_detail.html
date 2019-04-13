@@ -22,7 +22,7 @@
 <p>
 <ul>   
   {% for kid in object.child_set.all %}   
-    <li> {% display_child kid  %} 
+    <li> {% display_child kid  %}
       {% if kid.parent_set.all %} 
           ({{ kid.parent_set.all|display_user_list | safe }})  
       {% endif %}
@@ -36,7 +36,7 @@
 <ul> 
   {% for scheduler in object.scheduler_set.all %} 
     <li> 
-      {{ scheduler }} 
+      {% display_user scheduler %} 
     </li> 
   {% endfor %} 
 </ul> 

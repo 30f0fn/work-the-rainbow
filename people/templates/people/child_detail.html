@@ -25,6 +25,7 @@
 {% endwith %}
 
 worktime preferences:
+
 {% for pp in prefs_by_period %}
   <li>
     <a href={% url 'submit-preferences' child.nickname pp.period.pk %}>
@@ -54,7 +55,8 @@ worktime preferences:
 
 <p>care times:
 <ul>
-  {% for cda in child.caredayassignment_set.all.distinct %}
+  {# {% for cda in child.caredayassignment_set.all.distinct %} #}
+  {% for cda in child.careday_assignments %}
     <li>
       {{cda.start.date | date:"j M y" }} - {{cda.end.date | date:"j M y"}}:
       {{cda.careday.weekday_str}}, {{cda.careday.start_time}} - {{cda.careday.end_time}}

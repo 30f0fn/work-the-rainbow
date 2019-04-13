@@ -22,6 +22,26 @@ basic_patterns = [
     path('admin',
          views.AdminHomeView.as_view(),
          name='admin-home'),
+
+    path('admin/holidays/create',
+         views.HolidayCreateView.as_view(),
+         name='create-holiday'),
+    path('admin/holidays/edit/<int:pk>',
+         views.HolidayUpdateView.as_view(),
+         name='update-holiday'),
+    path('admin/holidays/delete/<int:pk>',
+         views.HolidayDeleteView.as_view(),
+         name='delete-holiday'),
+
+    path('admin/happenings/create',
+         views.HappeningCreateView.as_view(),
+         name='create-happening'),
+    path('admin/happenings/edit/<int:pk>',
+         views.HappeningUpdateView.as_view(),
+         name='update-happening'),
+    path('admin/happenings/delete/<int:pk>',
+         views.HappeningDeleteView.as_view(),
+         name='delete-happening'),
 ]
 
 

@@ -9,12 +9,50 @@
     admin
   </h1>
 
-<ul>
-  {% for classroom in user.classrooms_as_admin %}
-    <li><a href="{% url 'manage-classroom' classroom.slug %}">{{classroom}}</a></li>
-  {% endfor %}
-</ul>
 
- <a href="{% url 'create-classroom' %}">create classroom</a>
+  <h2>
+    classrooms
+  </h2>
+<p>
+  <ul>
+    {# {% for classroom in user.classrooms_as_admin %} #}
+    {% for classroom in classrooms %}
+      <li><a href="{% url 'manage-classroom' classroom.slug %}">{{classroom}}</a></li>
+    {% endfor %}
+  </ul>
+  <a href="{% url 'create-classroom' %}">create classroom</a>
+</p>
+
+  <h2>
+    holidays
+  </h2>
+<p>
+  <ul>
+    {% for holiday in holidays %}
+      <li><a href="{% url 'update-holiday' holiday.pk %}">
+          {{holiday.name}} - {{holiday.start.date}}
+          [<a href="{%url 'delete-holiday' holiday.pk %}">delete</a>]
+        </a>
+      </li>
+    {% endfor %}
+  </ul>
+  <a href="{% url 'create-holiday' %}">create holiday</a>
+</p>
+  <h2>
+    happenings
+  </h2>
+  <p>
+<ul>
+    {% for happening in happenings %}
+      <li><a href="{% url 'update-happening' happening.pk %}">
+          {{happening.name}}
+        </a>
+        [<a href="{%url 'delete-happening' happening.pk %}">delete</a>]
+      </li>
+    {% endfor %}
+  </ul>
+  <a href="{% url 'create-happening' %}">create happening</a>
+</p>
+
 
 {% endblock content %}
