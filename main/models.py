@@ -261,6 +261,7 @@ class ShiftManager(WeeklyEventManager):
             if occ not in exdates:
                 yield occ
 
+    # todo this should be implemented generically
     def occurrences_by_date_and_time(self, start, end,
                                      include_commitments=False,
                                      classrooms=[]):

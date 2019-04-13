@@ -158,7 +158,7 @@ class CalendarMixin(DateIntervalMixin):
 
 class ClassroomWorktimeMixin(object):
     # requires ClassroomMixin
-    # requires the datetimes start, end as bounds of the occurrence dict
+    # requires the datetimes start and end as bounds of the occurrence dict
     # for this, CalendarMixin is enough
 
     def shifts_dict(self):
@@ -167,6 +167,7 @@ class ClassroomWorktimeMixin(object):
             include_commitments=True,
             classrooms=[self.classroom])
 
+    # todo use just occurrences_for_date_range instead of shifts_dict here
     def shifts_by_week(self):
         shifts = self.shifts_dict()
         return [{date : shifts[date].values() for date in week}

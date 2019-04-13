@@ -226,6 +226,10 @@ class Child(NamingMixin, models.Model):
         pass
 
 
+# admin wants to add person x as e.g. parent of c regardless of whether x has account
+# so, enter email of x; if account exists for it simply add it as parent
+# else, send invite and listen for save of user account with that address
+# upon save, then add account as parent of c
 class RelateEmailToObject(models.Model):
     email = models.EmailField()
     relation = models.CharField(max_length=50)
