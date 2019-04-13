@@ -1,0 +1,25 @@
+{% extends "authenticated.html" %}
+
+{% block content %}
+
+  <h1>
+    Add care days for {{child}}
+  </h1>
+
+{# <!-- The id_date is the default ID Django generates for the form fields (id_ + name). --> #}
+
+{# <script> #}
+{#   $(function () { #}
+{#     $("#id_start").datepicker({ #}
+{#       format:'dd/mm/yyyy', #}
+{#     }); #}
+{#   }); #}
+{#   $(function () { #}
+{#     $("#id_end").datepicker({ #}
+{#       format:'dd/mm/yyyy', #}
+{#     }); #}
+{#   }); #}
+{# </script> #}
+
+{% include "worktime/generic_form.html" %}
+{% endblock content %}

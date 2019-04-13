@@ -538,7 +538,7 @@ class WorktimePreferencesSubmitView(ChildEditMixin,
 
 class CareDayAssignmentsCreateView(ChildEditMixin, FormView):
     form_class = main.forms.CreateCareDayAssignmentsForm
-    template_name = 'caredays_create.html'
+    template_name = 'caredayassignments_create.html'
 
     def get_success_url(self):
         return reverse('child-profile',

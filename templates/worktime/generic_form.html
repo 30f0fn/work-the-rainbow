@@ -1,7 +1,7 @@
 {% block content %}
 <form action="{{request.path}}" method="post">
     {% csrf_token %}
-    {{ form.as_ul }}
+    {{ form.as_table }}
     <input type="submit" value="Submit">
 </form>
 {% endblock content %}

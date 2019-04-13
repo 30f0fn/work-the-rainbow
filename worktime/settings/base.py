@@ -69,6 +69,7 @@ TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': ['templates/worktime',
+                 'templates/widgets',
                  'people/templates/people',
                  'main/templates/main',
                  'templates/allauth',

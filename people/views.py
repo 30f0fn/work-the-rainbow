@@ -244,7 +244,7 @@ class AddParentToChildView(RelateEmailToObjectView):
 class ChildEditView(ChildMixin, UpdateView):
     model = Child
     fields = ['nickname']
-    template_name = 'generic_create.html'
+    template_name = 'generic_update.html'
 
     def get_object(self, *args, **kwargs):
         return self.child

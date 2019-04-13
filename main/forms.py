@@ -2,7 +2,7 @@ import datetime
 from collections import defaultdict
 
 
-from django.forms import Form, CharField, EmailField, SlugField, ValidationError, ModelChoiceField, IntegerField, ModelForm, ModelMultipleChoiceField, BooleanField, NullBooleanField, ChoiceField, DateField
+from django.forms import Form, CharField, EmailField, SlugField, ValidationError, ModelChoiceField, IntegerField, ModelForm, ModelMultipleChoiceField, BooleanField, NullBooleanField, ChoiceField, DateField, DateTimeField
 from django.forms.widgets import CheckboxSelectMultiple, RadioSelect
 from django.utils import timezone
 
@@ -10,6 +10,9 @@ from django.utils import timezone
 import main.scheduling_config
 import main.models
 import people.models
+
+from main.widgets import DatePickerInput
+
 
 NA_YES_NO = ((None, 'N/A'), (True, 'Yes'), (False, 'No'))
 SHIFT_RANKS = ((1, '1'), (2, '2'), (3, '3'), (None, 'No'))
@@ -173,6 +176,17 @@ class WorktimeAttendanceForm(Form):
                 commitment.completed = self.cleaned_data[str(commitment.pk)]
                 commitment.save()
 
+
+
+# ChoiceField(choices=SHIFT_RANKS,
+#                                                      widget=RadioSelect(
+#                                                          # renderer=HorizontalRadioRendere
+#                                                      ),
+#                                                      initial=None,
+#                                                      label=str(self.shifts_dict[sh_pk]),
+#                                                      required=False)
+
+
 class CreateCareDayAssignmentsForm(Form):
     
     def __init__(self, *args, **kwargs):
@@ -183,11 +197,27 @@ class CreateCareDayAssignmentsForm(Form):
             queryset=main.models.CareDay.objects.filter(
                 classroom=self.child.classroom),
             widget=CheckboxSelectMultiple)
-        self.fields['start'] = DateField()
-        self.fields['end'] = DateField()
+        # self.fields['start_year'] = ChoiceField(choices=START_YEARS)
+        # self.fields['start_month'] = ChoiceField(choices=START_MONTHS)
+        # self.fields['start'] = DateField()
+        self.fields['start'] = DateField(label="From (YYYY-MM-DD)")
+        self.fields['end'] = DateField(label="Until (inclusive)")
+
+        # self.fields['start'] = DateField(input_formats=['%d/%m/%Y %H:%M'],
+                                             # widget=DatePickerInput())
+        # self.fields['end'] = DateField(input_formats=['%d/%m/%Y %H:%M'],
+                                           # widget=DatePickerInput())
 
     def save(self):
-        caredays = self.cleaned_data['caredays']
+        # caredays = self.cleaned_data['caredays']
+        # start_year = self.cleaned_data['start_year']
+        # start_month = self.cleaned_data['start_month']
+        # start_day = self.cleaned_data['start_day']
+        # end_year = self.cleaned_data['end_year']
+        # end_month = self.cleaned_data['end_month']
+        # end_day = self.cleaned_data['end_day']
+        # start = datetime.date(start_year, start_month, start_day)
+        # end = datetime.date(end_year, end_month, end_day)
         start = self.cleaned_data['start']
         end = self.cleaned_data['end']
         for careday in caredays:
@@ -196,7 +226,7 @@ class CreateCareDayAssignmentsForm(Form):
                 careday=careday,
                 start=start,
                 end=end)
-            print("CAREDAY", careday)
+            # print("CAREDAY", careday)
 
 class GenerateShiftAssignmentsForm(Form):
     worst_rank_choices = ((1, '1'), (2, '2'), (3, '3'))
