@@ -41,3 +41,4 @@ DATABASES = {'default' : dj_database_url.config()}
 import django_heroku
 django_heroku.settings(locals())
 
+SECURE_SSL_REDIRECT = True
