@@ -6,7 +6,7 @@
 
 {% block content %}
 
-{% has_perm 'people.edit_child' user child as edit_child %}  
+  {% has_perm 'people.edit_child' user child as edit_child %}  
 
   {% with object as child %}
     <h1>{{child}}</h1>
@@ -18,9 +18,9 @@
       <li>{% display_user parent %}</li> 
     {% endfor %}
   </ul>
-{% if edit_child %}
-  <a href="{% url 'add-parent' child.slug %}">add parent</a>
-{% endif %}
+  {% if edit_child %}
+    <a href="{% url 'add-parent' child.slug %}">add a parent</a>
+  {% endif %}
 </p>
 {% if child.birthday %}
   <p>
@@ -29,20 +29,22 @@
 {% endif %}
 {% endwith %}
 
-worktime preferences:
-
-{% for pp in prefs_by_period %}
-  <li>
-    <a href={% url 'submit-preferences' child.slug pp.period.pk %}>
-      {{ pp.period.start | date:"j M y"}} - {{ pp.period.end | date:"j M y" }}
-    </a>
-    {% if pp.preferences %}
-      {% regroup pp.preferences by rank as prefs_by_rank %}
-      <ol>
-        {% for rank, prefs in prefs_by_rank %}
-          <li>
-            {# {{rank}} : #}
-            {# <ul> #}
+{% if edit_child %} 
+  {# {% if false %} #}
+  worktime preferences:
+  {% for pp in prefs_by_period %}
+    <li>
+      <a href={% url 'submit-preferences' child.slug pp.period.pk %}>
+        {{ pp.period.start | date:"j M y"}} - {{ pp.period.end | date:"j M y" }}
+      </a>
+      
+      {% if pp.preferences %}
+        {% regroup pp.preferences by rank as prefs_by_rank %}
+        <ol>
+          {% for rank, prefs in prefs_by_rank %}
+            <li>
+              {# {{rank}} : #}
+              {# <ul> #}
               {% for pref in prefs %}
                 {# <li> #}
                 {{pref.shift.weekday_str}}
@@ -50,33 +52,34 @@ worktime preferences:
                 {% if not forloop.last%},{% endif %}
                 {# </li> #}
               {% endfor %}
-            {# </ul> #}
-          </li>
-        {% endfor %}
-      </ol>
-    {% endif %}
-  </li>        
-{% endfor %}
+              {# </ul> #}
+            </li>
+          {% endfor %}
+        </ol>
+      {% endif %}
+    </li>        
+  {% endfor %}
+{% endif %}
 
 {% if edit_child %}
-<p>care times:
-<ul>
-  {# {% for cda in child.caredayassignment_set.all.distinct %} #}
-  {% for cda in child.careday_assignments %}
-    <li>
-      {{cda.start.date | date:"j M y" }} - {{cda.end.date | date:"j M y"}}:
-      {{cda.careday.weekday_str}}, {{cda.careday.start_time}} - {{cda.careday.end_time}}
-      [<a href="{% url 'edit-caredayassignment' child.slug cda.pk %}">edit</a>]
-      [<a href="{% url 'delete-caredayassignment' child.slug cda.pk %}">delete</a>]
-    </li>
-  {% endfor %}
-</ul>
-  <a href="{% url 'create-careday-assignments' child.slug %}">add caredays</a>
-</p>
+  <p>care days:
+    <ul>
+      {# {% for cda in child.caredayassignment_set.all.distinct %} #}
+      {% for cda in child.careday_assignments %}
+        <li>
+          {{cda.start.date | date:"j M y" }} - {{cda.end.date | date:"j M y"}}:
+          {{cda.careday.weekday_str}}, {{cda.careday.start_time}} - {{cda.careday.end_time}}
+          [<a href="{% url 'edit-caredayassignment' child.slug cda.pk %}">edit</a>]
+          [<a href="{% url 'delete-caredayassignment' child.slug cda.pk %}">delete</a>]
+        </li>
+      {% endfor %}
+    </ul>
+    <a href="{% url 'create-careday-assignments' child.slug %}">add care days</a>
+  </p>
   
-<p>
-  <a href="{% url 'edit-child' child.slug %}">edit child info</a>
-</p>
+  <p>
+    <a href="{% url 'edit-child' child.slug %}">edit child info</a>
+  </p>
 {% endif %}
 
 {% endblock %}

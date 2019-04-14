@@ -14,11 +14,13 @@
       <li>parent of...
         <ul>
           {% for child in object.child_set.all %}
-            <li>{% display_child child %} ({{child.classroom}})
+            <li>{% display_child child %} ({{child.classroom.slug}})
               {% if child.parent_set.count > 1%}
+                with
                 {% for parent in child.parent_set.all %}
                   {% if parent != request.user %}
-                    {{parent}}
+                    {% display_user parent %}
+                    {% if not forloop.last %},{% endif %}
                   {% endif %}
                 {% endfor %}
               {% endif %}
