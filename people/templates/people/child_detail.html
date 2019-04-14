@@ -6,6 +6,8 @@
 
 {% block content %}
 
+{% has_perm 'people.edit_child' user child as edit_child %}  
+
   {% with object as child %}
     <h1>{{child}}</h1>
 <p> classroom: {{child.classroom}}
@@ -16,6 +18,9 @@
       <li>{% display_user parent %}</li> 
     {% endfor %}
   </ul>
+{% if edit_child %}
+  <a href="{% url 'add-parent' child.slug %}">add parent</a>
+{% endif %}
 </p>
 {% if child.birthday %}
   <p>
@@ -53,6 +58,7 @@ worktime preferences:
   </li>        
 {% endfor %}
 
+{% if edit_child %}
 <p>care times:
 <ul>
   {# {% for cda in child.caredayassignment_set.all.distinct %} #}
@@ -65,12 +71,12 @@ worktime preferences:
     </li>
   {% endfor %}
 </ul>
-</p>
-
-{% has_perm 'people.edit_child' user child as edit_child %}  
-{% if edit_child %}    
-  <a href="{% url 'edit-child' child.slug %}"> edit child info</a>
   <a href="{% url 'create-careday-assignments' child.slug %}">add caredays</a>
+</p>
+  
+<p>
+  <a href="{% url 'edit-child' child.slug %}">edit child info</a>
+</p>
 {% endif %}
 
 {% endblock %}

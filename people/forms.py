@@ -1,8 +1,9 @@
-from django.forms import Form, CharField, EmailField, SlugField, ValidationError, ModelChoiceField, IntegerField, ModelForm
+from django.forms import Form, CharField, EmailField, SlugField, ValidationError, ModelChoiceField, IntegerField, ModelForm, DateField
+
 # from django.forms.widgets import HiddenInput
 
 
-from people.models import Classroom, RelateEmailToObject
+from people.models import Classroom, RelateEmailToObject, Child
 
 # forms for initial classroom setup
 
@@ -85,3 +86,11 @@ def check_unique(form_instance, field_name, model, error_message=None):
         value = value.casefold()  # pragma: no cover
     if model._default_manager.filter(**{f'{field_name}__iexact': value}).exists():
         raise ValidationError(error_message, code='unique')
+
+
+class ChildUpdateForm(ModelForm):
+    birthday = DateField(label="birthday (YYYY-MM-DD)")
+    class Meta:
+        model = Child
+        fields = ['nickname', 'birthday']
+    

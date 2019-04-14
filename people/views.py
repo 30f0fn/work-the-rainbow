@@ -240,7 +240,10 @@ class ChildAddView(ClassroomEditMixin, FormView):
         return super().form_valid(form)
 
 
-class AddParentToChildView(RelateEmailToObjectView):
+class AddParentToChildView(ChildEditMixin, RelateEmailToObjectView):
+    template_name = 'add_parent_to_child.html'
+    relation = 'parent_set'
+
     def get_related_object(self):
         try:
             return Child.objects.get(slug=self.kwargs['child_slug'])
@@ -254,7 +257,7 @@ class AddParentToChildView(RelateEmailToObjectView):
 # # edit child
 class ChildEditView(ChildMixin, UpdateView):
     model = Child
-    fields = ['nickname']
+    form_class = forms.ChildUpdateForm
     template_name = 'generic_update.html'
 
     def get_object(self, *args, **kwargs):

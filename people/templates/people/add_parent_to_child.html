@@ -1,0 +1,27 @@
+{% extends "authenticated.html" %}
+{% load main_tags %}
+
+
+{% block title %}
+  add a parent to {{view.child}}
+{% endblock title %}
+
+{% block content %}
+
+
+  <h1>
+    add a parent for {{view.child}}
+  </h1>
+
+  {% block instructions %}
+  {% endblock instructions %}
+
+  <form action="{{request.path}}" method="post">
+    {% csrf_token %}
+    {{ form }}
+    <input type="submit" value="Submit">
+  </form>
+
+{% endblock content %}
+
+

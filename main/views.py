@@ -354,13 +354,11 @@ class ParentHomeView(UpcomingEventsMixin,
     role, created = Role.objects.get_or_create(name='parent')
     template_name = 'parent_home.html'
 
-    # fix this
     def worktime_commitments(self):
-        # return ["poop"]
         # today = timezone.now().date(),
         return WorktimeCommitment.objects.filter(
             child__parent_set=self.request.user,
-            start__range = self.date_range())
+            start__range = self.date_range()).select_related('child__classroom')
 
 # for teachers with a single classroom; 
 # need special handling for multi-classroom teachers

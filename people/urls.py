@@ -39,8 +39,12 @@ urlpatterns = [
          views.ChildDetailView.as_view(), name='child-profile'),
     path('kids/<slug:child_slug>/edit',
          views.ChildEditView.as_view(), name='edit-child'),
+    path('kids/<slug:child_slug>/add-parent',
+         views.AddParentToChildView.as_view(),
+         name='add-parent'),
     path('kids/<slug:child_slug>/remove',
          views.ChildRemoveView.as_view(), name='remove-child'),
+
 
 
     path('accounts/', include('allauth.urls')),

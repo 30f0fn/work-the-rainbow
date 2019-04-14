@@ -166,7 +166,6 @@ class WorktimeAttendanceForm(Form):
                 # widget=RadioSelect(choices=NA_YES_NO)
             )
 
-
     def save(self):
         # print("FORM SAVE METHOD CALLED!")
         # raise Exception("form save method called")

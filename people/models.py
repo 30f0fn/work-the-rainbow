@@ -186,6 +186,7 @@ class Child(NamingMixin, models.Model):
     shifts_per_month = models.IntegerField(default=2)
     slug = models.SlugField(unique=True, null=True)
     parent_set = models.ManyToManyField(User)
+    birthday = models.DateField(blank=True, null=True)
 
     # todo test this
     def has_careday_occurrence(self, occ):

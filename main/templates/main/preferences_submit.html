@@ -19,5 +19,6 @@
     {{ form.as_table }}
   {# {% endfor %} #}
     <input type="submit" value="Submit">
+    <a href="{{view.get_success_url}}">not now</a>
 </form>
 {% endblock content %}
