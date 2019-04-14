@@ -7,23 +7,25 @@
 {% block nav %} {% endblock %}
 
 {% block content %}
-  <h1>{{object.username}}'s profile</h1>
+{% with object as profiled_user %}
+
+
+  <h1>{{profiled_user.username}}'s profile</h1>
 
   email: 
   <ul>
-    <li>{{object.email}}</li>
+    <li>{{profiled_user.email}}</li>
   </ul>
 
-
-  {% if user.is_parent %}
+  {% if profiled_user.is_parent %}
     parent of...
     <ul>
-      {% for child in object.child_set.all %}
+      {% for child in profiled_user.child_set.all %}
         <li>{% display_child child %} ({{child.classroom.slug}})
           {% if child.parent_set.count > 1%}
             with
             {% for parent in child.parent_set.all %}
-              {% if parent != request.user %}
+              {% if parent != profiled_user %}
                 {% display_user parent %}
                 {% if not forloop.last %},{% endif %}
               {% endif %}
@@ -33,11 +35,11 @@
     </ul>
   {% endif %}
 
-  {% if user.is_teacher %}
+  {% if profiled_user.is_teacher %}
     teacher
-    {% if user.classrooms_as_teacher%} in
+    {% if profiled_user.classrooms_as_teacher%} in
       <ul>
-        {% for classroom in user.classrooms_as_teacher %}
+        {% for classroom in profiled_user.classrooms_as_teacher %}
           <li>
             {{classroom}}
           </li>
@@ -50,5 +52,7 @@
   <p><a href = {% url 'account_change_password' %}> change password </a></p>
 <p><a href = {% url 'account_email' %}> change email address </a></p>
 <p><a href = {% url 'socialaccount_connections' %} > manage social network connections </a></p>
+
+{% endwith %}
 
 {% endblock %}
