@@ -52,6 +52,8 @@ urlpatterns = [
          views.PrivateProfileView.as_view(), name='profile'),
     path('accounts/profile/edit',
          views.ProfileEditView.as_view(), name='edit-profile'),
+    path('people/<slug:username>',
+         views.PublicProfileView.as_view(), name='public-profile'),
     path('invitations/', include('invitations.urls', namespace='invitations')),
     path('<slug:classroom_slug>/', include(classroom_urls)),
     path('<slug:classroom_slug>/roster', 
@@ -61,6 +63,4 @@ urlpatterns = [
     path('create_classroom', 
          views.ClassroomCreateView.as_view(), name='create-classroom'),
 
-    path('people/<slug:username>',
-         views.PublicProfileView.as_view(), name='public-profile')
 ]
