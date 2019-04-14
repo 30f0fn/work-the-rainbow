@@ -452,7 +452,7 @@ class HappeningCreateView(AdminMixin,
 
 
 class HappeningUpdateView(AdminMixin,
-                        CreateView):
+                          UpdateView):
     model = Happening
     template_name = 'generic_update.html'
     fields = ['name', 'start', 'end']
