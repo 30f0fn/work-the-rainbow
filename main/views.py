@@ -360,6 +360,13 @@ class ParentHomeView(UpcomingEventsMixin,
             child__parent_set=self.request.user,
             start__range = self.date_range()).select_related('child__classroom')
 
+    def events(self):
+        return Happening.objects.all()
+
+    def holidays(self):
+        return Holiday.objects.all()
+
+
 # for teachers with a single classroom; 
 # need special handling for multi-classroom teachers
 class TeacherHomeView(RoleHomeMixin,

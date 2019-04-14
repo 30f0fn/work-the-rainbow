@@ -317,7 +317,7 @@ class Holiday(Event):
     name = models.CharField(max_length=50)
     
     def __str__(self):
-        end = '-'+self.end if (self.end.date() != self.start.date()) else ''
+        end = '-'+str(self.end) if (self.end.date() != self.start.date()) else ''
         return f"{self.name} ({self.start.date()}{end})"
 
 
