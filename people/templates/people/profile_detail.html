@@ -7,45 +7,47 @@
 {% block nav %} {% endblock %}
 
 {% block content %}
-<h1>{{object.username}}'s profile</h1>
-<ul>
-<li>email: {{object.email}}
-    {% if user.is_parent %}
-      <li>parent of...
-        <ul>
-          {% for child in object.child_set.all %}
-            <li>{% display_child child %} ({{child.classroom.slug}})
-              {% if child.parent_set.count > 1%}
-                with
-                {% for parent in child.parent_set.all %}
-                  {% if parent != request.user %}
-                    {% display_user parent %}
-                    {% if not forloop.last %},{% endif %}
-                  {% endif %}
-                {% endfor %}
+  <h1>{{object.username}}'s profile</h1>
+
+  email: 
+  <ul>
+    <li>{{object.email}}</li>
+  </ul>
+
+
+  {% if user.is_parent %}
+    parent of...
+    <ul>
+      {% for child in object.child_set.all %}
+        <li>{% display_child child %} ({{child.classroom.slug}})
+          {% if child.parent_set.count > 1%}
+            with
+            {% for parent in child.parent_set.all %}
+              {% if parent != request.user %}
+                {% display_user parent %}
+                {% if not forloop.last %},{% endif %}
               {% endif %}
             {% endfor %}
-        </ul>
-      {% endif %}
+          {% endif %}
+        {% endfor %}
+    </ul>
+  {% endif %}
 
-    {% if user.is_teacher %}
-      <li>teacher
-        {% if user.classrooms_as_teacher%} in
-          <ul>
-            {% for classroom in user.classrooms_as_teacher %}
-              <li>
-                {{classroom}}
-              </li>
-            {% endfor %}
-          </ul>
-        {% endif %}
-      </li>
+  {% if user.is_teacher %}
+    teacher
+    {% if user.classrooms_as_teacher%} in
+      <ul>
+        {% for classroom in user.classrooms_as_teacher %}
+          <li>
+            {{classroom}}
+          </li>
+        {% endfor %}
+      </ul>
     {% endif %}
+  {% endif %}
 
-</ul>
-
-{# <p><a href={% url 'edit-profile' %}>edit this profile</a> </p> #}
-<p><a href = {% url 'account_change_password' %}> change password </a></p>
+  {# <p><a href={% url 'edit-profile' %}>edit this profile</a> </p> #}
+  <p><a href = {% url 'account_change_password' %}> change password </a></p>
 <p><a href = {% url 'account_email' %}> change email address </a></p>
 <p><a href = {% url 'socialaccount_connections' %} > manage social network connections </a></p>
 
