@@ -309,19 +309,15 @@ class TeacherAddView(AddItemToClassroomTemplateMixin,
 # this is only to be seen by the user (and perhaps site admin)
 # have ParentDetail for intra-classroom users
 # shouldnt need permissions rule, since view should determine which profile to show based on current user
-class PrivateProfileView(DetailView):
+class PrivateProfileView(LoginRequiredMixin, DetailView):
 
     template_name = 'profile_detail.html'
-
-    @method_decorator(login_required)
-    def get(self, request, *args, **kwargs):
-        return super().get(self, request, *args, **kwargs)
 
     def get_object(self):
         return self.request.user
 
 
-class PublicProfileView(DetailView):
+class PublicProfileView(LoginRequiredMixin, DetailView):
 
     template_name = 'profile_detail.html'
 
