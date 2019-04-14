@@ -323,16 +323,14 @@ class PrivateProfileView(DetailView):
 
 class PublicProfileView(DetailView):
 
+    template_name = 'profile_detail.html'
+
     def get_object(self):
         try:
             username = self.kwargs.get('username')
             return User.objects.get(username=username)
         except User.DoesNotExist:
             raise Http404("does not exist")
-
-
-
-    template_name = 'profile_detail.html'
 
 
 class ChildDetailView(ChildMixin, DetailView):
