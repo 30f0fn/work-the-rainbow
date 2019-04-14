@@ -35,8 +35,10 @@
     <ul>
       {% for event in view.events %}
         <li>
-          {{event.name}}: {{event.start.date}}
-          {% if event.start.time  != event.end.time %} {{ event.start.time }} - {{ event.end.time }} {% endif %}
+          {{event.start.date}}: {{event.name}}
+          {% if event.start.time  != event.end.time %}
+            ({{ event.start.time }} - {{ event.end.time }})
+          {% endif %}
         </li>
       {% endfor %}
     </ul>
