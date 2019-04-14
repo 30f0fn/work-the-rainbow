@@ -232,7 +232,7 @@ class Child(NamingMixin, models.Model):
         super(Child, self).save(*args, **kwargs)
 
     class Meta:
-        pass
+        ordering = ['nickname']
 
 
 # admin wants to add person x as e.g. parent of c regardless of whether x has account

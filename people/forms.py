@@ -92,5 +92,5 @@ class ChildUpdateForm(ModelForm):
     birthday = DateField(label="birthday (YYYY-MM-DD)")
     class Meta:
         model = Child
-        fields = ['nickname', 'birthday']
+        fields = ['nickname', 'shifts_per_month', 'birthday', ]
     
