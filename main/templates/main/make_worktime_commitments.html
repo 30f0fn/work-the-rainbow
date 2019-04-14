@@ -22,7 +22,7 @@
         {% for child in view.classroom.child_set.all %}
           <li>
           {% if child != view.child %}
-              <a href='{% url 'make-worktime-commitments' view.classroom.slug child.nickname view.date.year view.date.month view.date.day %}'>
+              <a href='{% url 'make-worktime-commitments' view.classroom.slug child.slug view.date.year view.date.month view.date.day %}'>
                 {{child}}
               </a>
             {% else %}

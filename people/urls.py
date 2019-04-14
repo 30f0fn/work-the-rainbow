@@ -6,9 +6,8 @@ import main.views
 classroom_urls = [
     # path('kids',
          # views.ChildrenListView.as_view(), name='list-children'),
-    path('add_kid',
+    path('children/add',
          views.ChildAddView.as_view(), name='add-child'),
-
 
     # path('teachers',
          # views.TeachersListView.as_view(), name='list-teachers'),
@@ -36,11 +35,11 @@ classroom_urls = [
 
 urlpatterns = [
 
-    path('kids/<slug:nickname>',
+    path('kids/<slug:child_slug>',
          views.ChildDetailView.as_view(), name='child-profile'),
-    path('kids/<slug:nickname>/edit',
+    path('kids/<slug:child_slug>/edit',
          views.ChildEditView.as_view(), name='edit-child'),
-    path('kids/<slug:nickname>/remove',
+    path('kids/<slug:child_slug>/remove',
          views.ChildRemoveView.as_view(), name='remove-child'),
 
 

@@ -143,7 +143,7 @@ classroom_scheduling_patterns = [
          views.SchedulerCalendarView.as_view(),
          name='scheduler-calendar'),
 
-    path('scheduling/<slug:nickname>/<int:year>/<int:month>/<int:day>',
+    path('scheduling/<slug:child_slug>/<int:year>/<int:month>/<int:day>',
          views.MakeWorktimeCommitmentsView.as_view(),
          name='make-worktime-commitments'),
 ]
@@ -164,5 +164,5 @@ urlpatterns = [
     path('', include(basic_patterns)),
     # path('scheduling/', include(classroom_scheduling_patterns)),
     path('<slug:classroom_slug>/', include(classroom_patterns)),
-    path('<slug:nickname>/', include(child_parenting_patterns)),
+    path('<slug:child_slug>/', include(child_parenting_patterns)),
 ]

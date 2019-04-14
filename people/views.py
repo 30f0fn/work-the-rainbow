@@ -45,7 +45,7 @@ class RelateEmailToObjectView(FormView):
     relation_name = None
 
     def get_related_object(self, *args, **kwargs):
-        raise NotImplementeError("you need to implement get_related_object")
+        raise NotImplementedError("you need to implement get_related_object")
 
     # should this be a method of the related_object value? 
     def form_valid(self, form):
@@ -100,8 +100,8 @@ class ChildMixin(LoginRequiredMixin, PermissionRequiredMixin):
         return self.child
 
     def dispatch(self, request, *args, **kwargs):
-        nickname = kwargs.pop('nickname')
-        self.child = Child.objects.get(nickname=nickname)
+        slug = kwargs.pop('child_slug')
+        self.child = Child.objects.get(slug=slug)
         return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
@@ -115,7 +115,7 @@ class ChildEditMixin(ChildMixin):
 
     def get_success_url(self):
         return reverse_lazy('child-profile',
-                            kwargs={'nickname':self.child.nickname})
+                            kwargs={'child_slug':self.child.slug})
 
 
 class AdminMixin(object):
@@ -243,10 +243,10 @@ class ChildAddView(ClassroomEditMixin, FormView):
 class AddParentToChildView(RelateEmailToObjectView):
     def get_related_object(self):
         try:
-            return Child.objects.get(self.kwargs['child_pk'])
+            return Child.objects.get(slug=self.kwargs['child_slug'])
         except Child.DoesNotExist:
-            raise Http404("Poll does not exist")
-        return render(request, 'worktime/404.html', {'child': p})
+            raise Http404("Child does not exist")
+        # return render(request, 'worktime/404.html', {'child': p})
 
 
 
@@ -336,10 +336,11 @@ class ChildDetailView(ChildMixin, DetailView):
     model = Child
     template_name = 'child_detail.html'
 
+    # can I use the child property from dispatch of ChildMixin?
     def get_object(self):
         try:
-            nickname = self.kwargs.get('nickname')
-            return Child.objects.get(nickname=nickname)
+            slug = self.kwargs.get('child_slug')
+            return Child.objects.get(slug=slug)
         except Child.DoesNotExist:
             raise Http404("Item does not exist")
 

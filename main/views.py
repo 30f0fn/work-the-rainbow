@@ -540,7 +540,7 @@ class WorktimePreferencesSubmitView(ChildEditMixin,
 
     def get_success_url(self):
         return reverse('child-profile',
-                       kwargs={'nickname' : self.child.nickname})
+                       kwargs={'child_slug' : self.child.slug})
 
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
@@ -602,7 +602,7 @@ class CareDayAssignmentsCreateView(ChildEditMixin, FormView):
 
     def get_success_url(self):
         return reverse('child-profile',
-                       kwargs={'nickname' : self.child.nickname})
+                       kwargs={'child_slug' : self.child.slug})
 
     def caredays(self):
         return CareDay.objects.filter(classroom=self.child.classroom)
@@ -635,7 +635,7 @@ class CareDayAssignmentEditView(ChildEditMixin,
 
     def get_success_url(self):
         return reverse('child-profile',
-                       kwargs={'nickname' : self.child.nickname})
+                       kwargs={'child_slug' : self.child.slug})
 
 
 class CareDayAssignmentDeleteView(ChildEditMixin,
@@ -646,7 +646,7 @@ class CareDayAssignmentDeleteView(ChildEditMixin,
 
     def get_success_url(self):
         return reverse('child-profile',
-                       kwargs={'nickname' : self.child.nickname})
+                       kwargs={'child_slug' : self.child.slug})
 
 
 
@@ -750,7 +750,7 @@ class MakeWorktimeCommitmentsView(MonthlyCalendarMixin,
 
     def jump_kwargs(self, increment):
         kwargs = super().jump_kwargs(increment)
-        kwargs.update({'nickname' : self.child.nickname})
+        kwargs.update({'child_slug' : self.child.slug})
         return kwargs
 
 
@@ -946,7 +946,7 @@ class FourWeekMakeWorktimeCommitmentsView(MonthlyCalendarMixin,
     def jump_url(self, increment):
         new_date = self.jump_date(increment)
         kwargs= {'classroom_slug' : self.classroom.slug,
-                 'nickname' : self.child.nickname,
+                 'child_slug' : self.child.slug,
                  'year':new_date.year, 'month':new_date.month, 'day':new_date.day}
         return reverse_lazy('make-worktime-commitments',
                             kwargs=kwargs)

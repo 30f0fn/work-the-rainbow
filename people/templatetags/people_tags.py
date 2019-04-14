@@ -12,10 +12,9 @@ def modelname(model):
 
 @register.simple_tag
 def display_child(child):
-    nickname = child.nickname
     return format_html("<a href=\"{}\">{}</a>",
                        reverse('child-profile',
-                               kwargs={'nickname' : nickname }),
+                               kwargs={'child_slug' : child.slug }),
                        child.nickname)
 
 

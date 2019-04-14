@@ -16,8 +16,8 @@
 {% endfor %}
 
 {% for child in user.children %} 
-  {% url 'child-profile' child.nickname as linked_url %}
-  {% smart_link linked_url child.nickname view.request %}
+  {% url 'child-profile' child.slug as linked_url %}
+  {% smart_link linked_url child.slug view.request %}
 {% endfor %}
 
 

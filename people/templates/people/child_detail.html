@@ -28,7 +28,7 @@ worktime preferences:
 
 {% for pp in prefs_by_period %}
   <li>
-    <a href={% url 'submit-preferences' child.nickname pp.period.pk %}>
+    <a href={% url 'submit-preferences' child.slug pp.period.pk %}>
       {{ pp.period.start | date:"j M y"}} - {{ pp.period.end | date:"j M y" }}
     </a>
     {% if pp.preferences %}
@@ -60,8 +60,8 @@ worktime preferences:
     <li>
       {{cda.start.date | date:"j M y" }} - {{cda.end.date | date:"j M y"}}:
       {{cda.careday.weekday_str}}, {{cda.careday.start_time}} - {{cda.careday.end_time}}
-      [<a href="{% url 'edit-caredayassignment' child.nickname cda.pk %}">edit</a>]
-      [<a href="{% url 'delete-caredayassignment' child.nickname cda.pk %}">delete</a>]
+      [<a href="{% url 'edit-caredayassignment' child.slug cda.pk %}">edit</a>]
+      [<a href="{% url 'delete-caredayassignment' child.slug cda.pk %}">delete</a>]
     </li>
   {% endfor %}
 </ul>
@@ -69,8 +69,8 @@ worktime preferences:
 
 {% has_perm 'people.edit_child' user child as edit_child %}  
 {% if edit_child %}    
-  <a href="{% url 'edit-child' child.nickname %}"> edit child info</a>
-  <a href="{% url 'create-careday-assignments' child.nickname %}">add caredays</a>
+  <a href="{% url 'edit-child' child.slug %}"> edit child info</a>
+  <a href="{% url 'create-careday-assignments' child.slug %}">add caredays</a>
 {% endif %}
 
 {% endblock %}

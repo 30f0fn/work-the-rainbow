@@ -7,6 +7,7 @@ from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.urls import reverse_lazy, reverse
 from django.contrib import messages
+from django.utils.text import slugify
 
 from invitations.models import Invitation
 
@@ -183,7 +184,7 @@ class Child(NamingMixin, models.Model):
     classroom = models.ForeignKey(Classroom, null=True, blank=True,
                                   on_delete=models.PROTECT)
     shifts_per_month = models.IntegerField(default=2)
-
+    slug = models.SlugField(unique=True, null=True)
     parent_set = models.ManyToManyField(User)
 
     # todo test this
@@ -223,7 +224,11 @@ class Child(NamingMixin, models.Model):
 
     def get_absolute_url(self):
         return reverse('child-profile',
-                       kwargs={'nickname' : self.nickname})
+                       kwargs={'child_slug' : self.slug})
+
+    def save(self, *args, **kwargs):
+        self.slug = slugify(self.nickname)
+        super(Child, self).save(*args, **kwargs)
 
     class Meta:
         pass
