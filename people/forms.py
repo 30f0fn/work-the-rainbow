@@ -89,7 +89,7 @@ def check_unique(form_instance, field_name, model, error_message=None):
 
 
 class ChildUpdateForm(ModelForm):
-    birthday = DateField(label="birthday (YYYY-MM-DD)")
+    birthday = DateField(label="birthday (YYYY-MM-DD)", required=False)
     class Meta:
         model = Child
         fields = ['nickname', 'shifts_per_month', 'birthday', ]
