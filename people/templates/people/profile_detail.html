@@ -26,7 +26,7 @@
             {% for parent in child.parent_set.all %}
               {% if parent != profiled_user %}
                 {% display_user parent %}
-                {% if not forloop.last %}, {% endif %}
+                {# {% if not forloop.last %}, {% endif %} #}
               {% endif %}
             {% endfor %}
           {% endif %}
