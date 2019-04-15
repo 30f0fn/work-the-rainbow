@@ -1,0 +1,53 @@
+{% extends "authenticated.html" %}
+
+{% load people_tags %} 
+{% load rules %}
+
+
+{% block content %}
+
+{% with object as profiled_user %}
+
+
+  <h1>{{profiled_user.username}}'s profile</h1>
+
+  email: 
+  <ul>
+    <li>{{profiled_user.email}}</li>
+  </ul>
+
+  {% if profiled_user.is_parent %}
+    parent of...
+    <ul>
+      {% for child in profiled_user.child_set.all %}
+        <li>{% display_child child %} ({{child.classroom.slug}})
+          {% if child.parent_set.count > 1%}
+            with
+            {% for parent in child.parent_set.all %}
+              {% if parent != profiled_user %}
+                {% display_user parent %}
+                {# {% if not forloop.last %}, {% endif %} #}
+              {% endif %}
+            {% endfor %}
+          {% endif %}
+        {% endfor %}
+    </ul>
+  {% endif %}
+
+  {% if profiled_user.is_teacher %}
+    teacher
+    {% if profiled_user.classrooms_as_teacher%} in
+      <ul>
+        {% for classroom in profiled_user.classrooms_as_teacher %}
+          <li>
+            {{classroom}}
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  {% endif %}
+
+
+{% endwith %}
+
+{% endblock %}

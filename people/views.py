@@ -311,7 +311,7 @@ class TeacherAddView(AddItemToClassroomTemplateMixin,
 # shouldnt need permissions rule, since view should determine which profile to show based on current user
 class PrivateProfileView(LoginRequiredMixin, DetailView):
 
-    template_name = 'profile_detail.html'
+    template_name = 'private_profile.html'
 
     def get_object(self):
         return self.request.user
@@ -319,7 +319,7 @@ class PrivateProfileView(LoginRequiredMixin, DetailView):
 
 class PublicProfileView(LoginRequiredMixin, DetailView):
 
-    template_name = 'profile_detail.html'
+    template_name = 'public_profile.html'
     model = User
     context_object_name = 'user_object'
 

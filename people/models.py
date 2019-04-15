@@ -135,7 +135,7 @@ class User(AbstractUser):
         if not self.pk:
             super().save(*args, **kwargs)
         if not self.active_role:
-            self.active_role = self.roles.get(0, None)
+            self.active_role = self.roles[0]
         super().save(*args, **kwargs)
 
     # @property
