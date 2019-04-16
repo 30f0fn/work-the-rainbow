@@ -29,9 +29,9 @@
 {% endif %}
 {% endwith %}
 
-{% if edit_child %} 
+{% if edit_child and prefs_by_period %} 
   {# {% if false %} #}
-  worktime preferences:
+  submit worktime preferences for the period...
   {% for pp in prefs_by_period %}
     <li>
       <a href={% url 'submit-preferences' child.slug pp.period.pk %}>
