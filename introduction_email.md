@@ -1,4 +1,4 @@
-Dear LRB-Parents,
+Dear Little Rainbow parents,
 
 Yay it's time for another round of worktime scheduling!
 

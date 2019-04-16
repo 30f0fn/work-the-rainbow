@@ -350,11 +350,12 @@ class ChildDetailView(ChildMixin, DetailView):
         periods = self.periods_soliciting_preferences()
         preferences = list(main.models.ShiftPreference.objects.filter(
             child=self.child,
-            period__in=periods).select_related('shift').order_by('-period'))
+            period__in=periods).select_related('shift').order_by('rank').order_by('-period'))
         for period in periods:
-            pp = PbyP(period, [])
+            pp = PbyP(period, [[],[],[]])
             while preferences and preferences[-1].period:
-                pp.preferences.append(preferences.pop())
+                pref = preferences.pop()
+                pp.preferences[(pref.rank - 1)].append(pref)
             yield pp
 
 

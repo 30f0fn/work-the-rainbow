@@ -39,20 +39,15 @@
       </a>
       
       {% if pp.preferences %}
-        {% regroup pp.preferences by rank as prefs_by_rank %}
+        {# {{pp.preferences}} #}
         <ol>
-          {% for rank, prefs in prefs_by_rank %}
+          {% for rank in pp.preferences %}
             <li>
-              {# {{rank}} : #}
-              {# <ul> #}
-              {% for pref in prefs %}
-                {# <li> #}
+              {% for pref in rank %}
                 {{pref.shift.weekday_str}}
                 {{pref.shift.start_time | time:"f"}}
                 {% if not forloop.last%},{% endif %}
-                {# </li> #}
               {% endfor %}
-              {# </ul> #}
             </li>
           {% endfor %}
         </ol>
@@ -62,7 +57,7 @@
 {% endif %}
 
 {% if edit_child %}
-  <p>{{child}} is in daycare for these times...
+  <p>{{child}} is in daycare for these times... 
     <ul>
       {# {% for cda in child.caredayassignment_set.all.distinct %} #}
       {% for cda in child.careday_assignments %}
