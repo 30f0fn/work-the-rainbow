@@ -280,9 +280,9 @@ class ShiftManager(WeeklyEventManager):
         return results
 
     def by_weekday_and_time(self, classroom):
-        shifts = Shift.objects.filter(classroom=classroom).order_by(start_time)
+        shifts = Shift.objects.filter(classroom=classroom).order_by('start_time')
         # for each weekday, list all shifts in order of time
-        shifts_dict = default_dict(list)
+        shifts_dict = defaultdict(list)
         for shift in shifts:
             shifts_dict[shift.weekday].append(shift)
         return shifts_dict
@@ -602,19 +602,20 @@ class ShiftPreferenceManager(models.Manager):
 
     def by_shift(self, period):
         shifts = Shift.objects.filter(classroom=period.classroom)
-        preferences = ShiftPreference.objects.filter(period=period).order_by('rank')
+        preferences = ShiftPreference.objects.filter(
+            period=period).order_by('shift', 'rank')
         prefs_dict = defaultdict(list)
         for pref in preferences:
-            prefs_dict[preference.shift].append(preference)
+            prefs_dict[pref.shift].append(pref)
         return prefs_dict
 
 
-    def by_weekday_and_time(self, period):
-        preferences = super.get_queryset().filter(
-            period=period).order_by(shift, rank).select_related(Shift)
-        prefs_dict = defaultdict(list)
+    def by_time_and_weekday(self, period):
+        preferences = super().filter(
+            period=period).order_by('shift', 'rank').select_related('shift')
+        prefs_dict = defaultdict(dict)
         for pref in preferences:
-            prefs_dict[pref.shift.weekday].append(pref)
+            prefs_dict[pref.shift.start_time][pref.shift.weekday] = pref
         return prefs_dict
 
 

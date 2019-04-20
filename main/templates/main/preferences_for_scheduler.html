@@ -6,47 +6,75 @@
 {% block content %}
   <h1>shift preferences ({{view.classroom.slug}})</h1>
 
+
   {# todo date display and navigation #}
 
-  {% with view.prefs_dict as prefs %}
-    {% if prefs %}
-      <table>
-        <tr>
-          {% for key, weekday_name in view.weekdays.items %}
-            <th>
-              {{weekday_name}}
-            </th>
-          {% endfor %}
-        </tr>
-        <tr>
-          {% for weekday, times in prefs_dict.items %}
-            <td>
-              {% for time, prefs in times.items %}
-                {{time}}
-                <ul>
-                  {% for pref in prefs %}
-                    <li>
-                      ({{pref.rank}}) 
-                      {{pref.child.nickname}}
-                    </li>
-                  {% endfor %}
-                </ul>
-              {% endfor %}
-            </td>
-          {% endfor %}
-        </tr>
-      </table>
+
+  {% with view.prefs_by_shift as prefs %}
+    {% if prefs %} 
+      <ul>
+        {% for shift, prefs_for in prefs %}
+          <li>{{shift}}
+            <ul>
+          {% for pref in prefs_for %}
+            <li>
+              {{pref.child}} ({{pref.rank}})
+              </li>
+            {% endfor %}
+            </ul>
+          </li>
+        {% endfor%}
+      </ul>
+      {# <table>  #}
+      {#   <tr>  #}
+      {#     {% for weekday_name in view.weekdays.values %}  #}
+      {#       <th>  #}
+      {#         {{weekday_name}}  #}
+      {#       </th>  #}
+      {#     {% endfor %}  #}
+      {#   </tr>  #}
+      {#   {% for time in prefs %} #}
+      {#     <tr> #}
+      {#       for #}
+      {#     </tr> #}
+      {#   {% endfor %} #}
+        {# <tr>  #}
+        {#   {\# {% for weekday, times in prefs_dict.items %}  #\}  #}
+        {#   {% for weekday, shifts in view.shifts.items %}   #}
+        {#     <td>  #}
+        {#       <ul>  #}
+        {#         {% for shift in shifts %}  #}
+
+        {#         {% endfor %}  #}
+        {#       </ul>  #}
+        {#     </td>  #}
+        {#     <td>  #}
+        {#       {% for shift in shifts.weekday %}  #}
+        {#         {{shift}}  #}
+        {#         <ul>  #}
+        {#           {% for pref in child_pref %}  #}
+        {#             <li>  #}
+        {#               ({{pref.rank}})   #}
+        {#               {{pref.child.nickname}}  #}
+        {#             </li>  #}
+        {#           {% endfor %}  #}
+        {#         </ul>  #}
+        {#       {% endfor %}  #}
+        {#     </td>  #}
+        {#   {% endfor %}  #}
+        {# </tr>  #}
+      {# </table>  #}
 
 
-      <form action="{{request.path}}" method="post">
-        {% csrf_token %}
-        <p>Try to generate shift assignments...</p>
-        {{ form.as_p }}
-        <input type="submit" value="Submit">
-      </form>
-    {% else %}
-      No preferences yet.
-    {% endif %}
-  {% endwith %}
+  {#     <form action="{{request.path}}" method="post"> #}
+  {#       {% csrf_token %} #}
+  {#       <p>Try to generate shift assignments...</p> #}
+  {#       {{ form.as_p }} #}
+  {#       <input type="submit" value="Submit"> #}
+  {#     </form> #}
+    {% else %} 
+      No preferences yet. 
+    {% endif %} 
+  {% endwith %} 
 
 {% endblock content %}

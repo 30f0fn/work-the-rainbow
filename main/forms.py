@@ -143,6 +143,8 @@ class RescheduleWorktimeCommitmentForm(Form):
             self.cleaned_data.get('shift_occ'))
         old_start = self.current_commitment.start
         if new_shift.start != old_start:
+            # move this to WorktimeCommitment model
+            # save change history for teacher, and flag as notification for teacher
             new_start = timezone.make_aware(new_shift.start)
             self.current_commitment.start = new_start
             self.current_commitment.end = new_shift.end

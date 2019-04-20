@@ -22,6 +22,7 @@ import main.models
 # need to retrieve all roles of user
 # have logical and database relationzations, seems weird... do i need the data realization?
 # todo need to ensure admin role automatically added
+# todo use special methods for child.add_parent(u) which sets u.is_parent=True
 
 
 """
@@ -42,6 +43,8 @@ is it possible to use groups instead?
 # scheduler_role, _ = Role.objects.get_or_create(name='scheduler')
 # admin_role, _ = Role.objects.get_or_create(name='admin')
 
+
+# todo the methods user.classrooms_as_X could instead be user.active_role.classrooms(user)
 
 
 
@@ -175,6 +178,12 @@ class Classroom(NamingMixin, models.Model):
 
     def __repr__(self):
         return f"<Classroom {self.pk}: {self.name}>"        
+
+
+# class ClassroomSettings(models.Model):
+    # classroom = models.ForeignKey(Classroom)
+    # commitment_change_notice_min_days = models.IntegerField(default=2)
+    # shiftpreference_min = 2
 
 
 class Child(NamingMixin, models.Model):

@@ -189,6 +189,7 @@ class PerChildEditWorktimeMixin(object):
                 if sh.is_available_to_child(self.child)]
         return ret
 
+
 class TimedURLMixin(object):
 
     @property
@@ -890,8 +891,27 @@ class PreferencesDisplayView(ClassroomEditMixin,
         self.object = self.get_object()
         return super().get(request, *args, **kwargs)
 
-    def prefs_dict(self):
-        return ShiftPreference.objects.by_shift(self.object)
+    # def prefs(self):
+    #     return ShiftPreference.objects.filter(child__classroom=self.object.classroom)
+
+    def prefs_by_shift(self):
+        prefs = ShiftPreference.objects.by_shift(self.object)
+        for i in prefs.items():
+            print(i)
+        return prefs.items()
+
+    def prefs_by_time_and_weekday(self):
+        return ShiftPreference.objects.by_time_and_weekday(self.object)
+        # prefs = ShiftPreference.objects.by_weekday_and_time(self.object)
+        # for i in prefs.items():
+            # print(i)
+        # return prefs
+
+
+    def shifts(self):
+        shifts = Shift.objects.by_weekday_and_time(classroom=self.object.classroom)
+        print(shifts)
+        return shifts
 
     def weekdays(self):
         return WEEKDAYS

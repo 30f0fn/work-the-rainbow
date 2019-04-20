@@ -2,19 +2,20 @@
 
 
 
+
+
 ESSENTIAL
 
-* which unauthenticated layers need signin link?
+
+
+Future
+
+- settings for classroom... how to implement?  as model class with FK to classroom?
+- post for teacher a message of commitment change history whenever commitment is changed
+- to change worktime commitment, create commitmentchange object.  execution of the change object simply changes the commitment.  if its creation date is at least min_notice days from commitment date, simply execute.  Else, expose to teachers as commitmentchange_request, and execute once the request is granted.  
 
 * caredayassignments should be bounded by dates not datetimes
 * this borks the super call to overlap from event
-
-
-
-
-BONUS
-
-
 
 * pref submission page formatting
 
