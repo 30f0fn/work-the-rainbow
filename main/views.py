@@ -20,7 +20,7 @@ from main import rules, scheduling_config
 from people.models import Child, Classroom, Role
 from people.views import ClassroomMixin, ClassroomEditMixin, ChildEditMixin, ChildMixin, AdminMixin
 from main.utilities import nearest_monday
-from main.models import Holiday, Happening, Shift, WorktimeCommitment, CareDayAssignment, CareDay, ShiftOccurrence, Period, ShiftPreference
+from main.models import Holiday, Happening, Shift, WorktimeCommitment, CareDayAssignment, CareDay, ShiftOccurrence, Period, ShiftPreference, ShiftAssignmentCollection
 from main.model_fields import WEEKDAYS
 import main.forms
 
@@ -859,6 +859,7 @@ class PreferencesNagView(ClassroomEditMixin,
     model = Period
 
 class PreferencesDisplayView(ClassroomEditMixin,
+                             DateMixin,
                              SingleObjectMixin,
                              FormView):
     # form is simple submit button to generate assignment from preferences
@@ -868,6 +869,13 @@ class PreferencesDisplayView(ClassroomEditMixin,
 
     # def get_queryset(self):
         # return Period.objects.filter(classroom=self.classroom)
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        return super().get(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        return super().post(request, *args, **kwargs)
     
     def get_form_kwargs(self, *args, **kwargs):
         kwargs = super().get_form_kwargs(*args, **kwargs)
@@ -875,17 +883,15 @@ class PreferencesDisplayView(ClassroomEditMixin,
         return kwargs
 
     def get_success_url(self):
-        return reverse('list-shiftassignments',
-                       kwargs = {'classroom_slug' : self.classroom.slug,
-                                 'year' : self.date.year,
-                                 'month' : self.date.month,
-                                 'day' : self.date.day})
+        return reverse('list-shiftassignmentcollections',
+                       kwargs = {'classroom_slug' : self.object.classroom.slug,
+                                 'pk' : self.object.pk})
 
-    def form_valid(self, form):
-        no_worse_than = form.cleaned_data['no_worse_than']
-        ShiftAssignmentCollection.objects.create_optimal(self.get_object(),
-                                                         no_worse_than)
-        super().form_valid(*args, **kwargs)
+    # def form_valid(self, form):
+        # no_worse_than = form.cleaned_data['no_worse_than']
+        # ShiftAssignmentCollection.objects.generate(self.get_object(),
+                                                   # no_worse_than=no_worse_than)
+        # super().form_valid(*args, **kwargs)
 
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
@@ -896,8 +902,6 @@ class PreferencesDisplayView(ClassroomEditMixin,
 
     def prefs_by_shift(self):
         prefs = ShiftPreference.objects.by_shift(self.object)
-        for i in prefs.items():
-            print(i)
         return prefs.items()
 
     def prefs_by_time_and_weekday(self):
@@ -917,17 +921,35 @@ class PreferencesDisplayView(ClassroomEditMixin,
         return WEEKDAYS
 
 
-class ShiftAssignmentsListView(ClassroomEditMixin,
-                               SingleObjectMixin,
-                               TemplateView):
+class ShiftAssignmentCollectionsListView(ClassroomEditMixin,
+                                         SingleObjectMixin,
+                                         TemplateView):
 
     template_name = 'shiftassignments_list.html'
     model = Period
+
+    def assignment_collections(self):
+        return ShiftAssignmentCollection.objects.filter(period=self.object)
+
+    def get_success_url(self):
+        return reverse('scheduler-calendar', kwargs={
+            'classroom_slug' : self.object.classroom.slug
+        })
 
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
         return super().get(request, *args, **kwargs)
     
+    def post(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        # security issue here... verify pk is ok
+        print("request.POST:", request.POST)
+        collection_pk = int(request.POST['collection_pk'])
+        collection = ShiftAssignmentCollection.objects.get(pk=collection_pk)
+        collection.create_commitments()
+        return HttpResponseRedirect(self.get_success_url())
+
+
 
 class ShiftAssignmentDetailView(ClassroomEditMixin,
                                 DetailView):

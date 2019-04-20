@@ -1,0 +1,40 @@
+{% extends "authenticated.html" %}
+
+{% load people_tags %} 
+{% load rules %}
+
+{% block content %}
+  <h1>possible shift assigments</h1>
+
+
+<ul>
+  {% for collection in view.assignment_collections %}
+    <li>option {{forloop.counter}}:
+      <ul>{% for assignment in collection.shiftassignment_set.all %}
+        <li>
+          {{assignment.child}} : {{assignment.shift}} ({{assignment.rank}})
+        </li>
+        {% endfor %}
+      </ul>
+      <form action="{{request.path}}" method="post">
+        {% csrf_token %}
+        <input name="collection_pk" type="hidden" value="{{collection.pk}}">
+        <input type="submit" value="generate commitments from option {{forloop.counter}}">
+      </form>
+
+    </li>
+  {% endfor %}
+<ul>
+
+  {#     <form action="{{request.path}}" method="post">  #}
+  {#       {% csrf_token %}  #}
+  {#       <p>Try to generate shift assignments...</p>  #}
+  {#       {{ form.as_p }}  #}
+  {#       <input type="submit" value="Submit">  #}
+  {#     </form>  #}
+  {#   {% else %}  #}
+  {#     No preferences yet.  #}
+  {#   {% endif %}  #}
+  {# {% endwith %}  #}
+
+{% endblock content %}

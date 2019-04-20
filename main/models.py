@@ -4,6 +4,15 @@ from collections import defaultdict
 from itertools import chain
 import json
 
+import random
+import constraint
+from constraint import *
+import itertools
+
+
+
+
+
 from django.db import models
 from django.utils import timezone
 
@@ -12,7 +21,9 @@ from django.utils import timezone
 from people.models import Child, Classroom
 from main.model_fields import WeekdayField, NumChoiceField, WEEKDAYS
 from main.utilities import WeekdayIterator, next_date_with_given_weekday, add_delta_to_time, dates_in_range, in_a_week, serialize_datetime, deserialize_datetime
+# import main.scheduler
 from people.views import ClassroomMixin
+
 
 # what if family has two kids in one classroom?
 # one (end-user) solution is to apportion all worktime obligations to one of them
@@ -639,8 +650,48 @@ class ShiftPreference(models.Model):
         ordering = ('period', 'rank', 'shift')
 
 class ShiftAssignmentCollectionManager(models.Manager):
-    def create_optimal(self, period, no_worse_than = 1):
-        create_optimal_shift_assignments(period, no_worse_than)
+
+    # todo below is super-ugly and should be in scheduler.py
+    def generate(self, period, no_worse_than=1):
+        ShiftAssignmentCollection.objects.filter(period=period).delete()
+        problem = Problem()
+        all_families = Child.objects.filter(classroom=period.classroom)
+        families = []
+        preferences = []
+        for f, child in enumerate(all_families):
+            print(child)
+            fam_prefs = ShiftPreference.objects.filter(
+                child=child,
+                rank__lte=no_worse_than,
+                period=period)
+            if fam_prefs:
+                preferences.append(fam_prefs)
+                families.append(child)
+        for f in range(len(families)):
+            problem.addVariable(f, preferences[f])
+        for c1,c2,c3 in itertools.combinations(range(len(families)), 3):
+            print("c1,c2,c3:", c1,c2,c3)
+            problem.addConstraint((lambda p1, p2, p3:
+                                   not(p1.shift == p2.shift == p3.shift)),
+                                  [c for c in [c1,c2,c3]])
+            # print("constraint:", lambda s1, s2, s3: not(s1 == s2 == s3))
+        # print("families with preferences: ", families)
+        retval = []
+        solutions = problem.getSolutions()
+        # print("solutions", solutions)
+        for solution in solutions:
+            print("solution:", solution)
+            collection = ShiftAssignmentCollection.objects.create(period=period)
+            for f, family in enumerate(families):
+                sh = ShiftAssignment.objects.create(child=family,
+                                                    shift=solution[f].shift,
+                                                    collection=collection,
+                                                    rank=solution[f].rank)
+            retval.append(solution)
+            print("retval", retval)
+        return retval
+
+
 
 
 class ShiftAssignmentCollection(models.Model):
@@ -660,12 +711,70 @@ class ShiftAssignmentCollection(models.Model):
             retval += float("inf")
             break
         return retval
+
+
+    def create_commitments(self):
+        shifts = Shift.objects.filter(classroom=self.period.classroom)
+        assignments = self.shiftassignment_set.all()
+        for sh in shifts:
+            families = [assignment.child for assignment in assignments
+                        if assignment.shift == sh]
+            sh_occs = list(sh.occurrences_for_date_range(self.period.start,
+                                                         self.period.end))
+            assert(sum([child.shifts_per_month for child in families]) <= 4)
+            families.sort(key = lambda c : c.shifts_per_month)
+            available_indices = [0, 1, 2, 3]
+            def assign_from_index(child, index):
+                for occ in sh_occs[index::4]:
+                    commitment = occ.create_commitment(child)
+            for child in families:
+                first_index = min(available_indices)
+                assign_from_index(child, first_index)
+                if child.shifts_per_month == 2:
+                    assign_from_index(child, first_index+2)
+
+
+# def create_commitments(self):
+#     shifts = Shift.objects.filter(classroom=self.period.classroom)
+#     assignments = self.shiftassignment_set.all()
+#     for sh in shifts:
+#         families = [sha.child for sha in assignments
+#                     if assignment.shift == sh]
+#         sh_occs = list(sh.occurrences_for_date_range(period.start, period.end))
+#         assert(sum([child.shifts_per_month for child in families]) <= 4)
+#         families.sort(key = lambda c : c.shifts_per_month)
+#         available_indices = [0, 1, 2, 3]
+#         def assign_from_index(child, i):
+#             for occ in sh_occs[index::4]:
+#                 commitment = occ.create_commitment(child)
+#         for child in families:
+#             first_index = min(available_indices)
+#             assign_from_index(child, first_index)
+#             if child.shifts_per_month == 2:
+#                 assign_from_index(child, first_index+2)
+
+
+    # for sh in Shift.objects.all():
+    #     families = [sha.child for sha in sh.shiftassignment_set.all()]
+    #     sh_occs = list(sh.occurrences_for_date_range(period.start, period.end))
+    #     # print(sh_occs)
+    #     # print(families)
+    #     for index, child in enumerate(families):
+    #         # alternate weeks to assign
+    #         for occ in sh_occs[index::2]:
+    #             commitment = occ.create_commitment(child)
+    #             print(commitment)
+
+
     
 class ShiftAssignment(models.Model):
     child = models.ForeignKey(Child, on_delete=models.CASCADE)
     shift = models.ForeignKey(Shift, on_delete=models.CASCADE)
     collection = models.ForeignKey(ShiftAssignmentCollection,
                                    on_delete=models.CASCADE)
+    rank_choices = ((1, 'best'), (2, 'pretty good'), (3, 'acceptable'))
+    rank = models.IntegerField(choices=rank_choices, default=3,
+                               null=True, blank=True)
 
     # def score():
     #     try:

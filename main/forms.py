@@ -217,8 +217,10 @@ class GenerateShiftAssignmentsForm(Form):
 
     def clean(self, *args, **kwargs):
         super().clean(*args, **kwargs)
-        all_assignments = ShiftAssignmentCollection.objects.create_optimal(self.period,
-                                                                           no_worse_than)
+        no_worse_than = self.cleaned_data['no_worse_than']
+        all_assignments = main.models.ShiftAssignmentCollection.objects.generate(
+            self.period,
+            no_worse_than=no_worse_than)
         if len(all_assignments) == 0:
             raise ValidationError(f"There is no way to assign everybody a shift they rank no worse than {self.cleaned_data['no_worse_than']}")
             

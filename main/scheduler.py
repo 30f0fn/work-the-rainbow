@@ -10,6 +10,8 @@ from people.models import Classroom, Child
 SIMPLE VERSION: just try to map shifts to families
 """
 
+# moved this to manager method of shiftassignmentcollection
+
 def create_optimal_shift_assignments(period, no_worse_than=1):
     ShiftAssignmentCollection.objects.filter(period=period).delete()
     problem = Problem()
@@ -32,7 +34,6 @@ def create_optimal_shift_assignments(period, no_worse_than=1):
                                                   collection=collection)
         retval.append(solution)
     return retval
-    
 
 
 # for each shift, generate its instances in the period

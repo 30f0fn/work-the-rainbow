@@ -130,9 +130,9 @@ classroom_scheduling_patterns = [
          views.PreferencesDisplayView.as_view(),
          name='display-preferences'),
 
-    path('scheduling/shiftassignments/list/<int:period_pk>',
-         views.ShiftAssignmentsListView.as_view(),
-         name='list-shiftassignments'),
+    path('scheduling/shiftassignments/list/<int:pk>',
+         views.ShiftAssignmentCollectionsListView.as_view(),
+         name='list-shiftassignmentcollections'),
 
 
     path('scheduling/calendar',
