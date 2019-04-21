@@ -24,9 +24,9 @@
             {{wtc.date | date:"F d"}}, 
             {{wtc.start_time | time:"H:i"}}
             ({{wtc.classroom.slug}})
-            <a href="{% url 'edit-worktime-commitment' child.slug wtc.pk %}">
-              change
-            </a>
+            {# <a href="{% url 'edit-worktime-commitment' child.slug wtc.pk %}"> #}
+              {# change #}
+            {# </a> #}
           </li>
         {% endfor %}
       </ul>
