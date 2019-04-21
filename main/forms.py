@@ -90,9 +90,6 @@ class MakeChildCommitmentsForm(Form):
         self.fields.update({sh_occ_str : BooleanField(required=False)
                             for sh_occ_str in self.sh_occ_deserializer})
 
-    # todo right now i deserialize the changed fields in both clean and save methods
-    # instead pass sh_occ_deserializer dict to form
-
     def clean(self, *args, monthly=False, **kwargs):
         super().clean(*args, **kwargs)
         # make sure nobody else took the requested shift 
