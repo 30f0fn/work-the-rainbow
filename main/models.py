@@ -540,9 +540,9 @@ class ShiftOccurrence(WeeklyEventOccurrence):
         repr_dict = ast.literal_eval(repr_string)
         shift = Shift.objects.get(pk = repr_dict['shift'])
         dt = deserialize_datetime(repr_dict['start'])
-        commitment = WorktimeCommitment.objects.get(pk=repr_dict['commitment']) \
-            if 'commitment' in repr_dict else None
-        return ShiftOccurrence(shift, dt, commitment=commitment)
+        sh_occ = ShiftOccurrence(shift, dt)
+        sh_occ.commitment = repr_dict.get('commitment')
+        return sh_occ
         
 
 # todo this should just have shift and fields?

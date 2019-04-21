@@ -847,7 +847,6 @@ class PeriodCreateView(ClassroomEditMixin,
         return kwargs
 
 
-
 class PreferencesSolicitView(ClassroomEditMixin,
                              SingleObjectMixin,
                              FormView):
@@ -914,7 +913,7 @@ class PreferencesDisplayView(ClassroomEditMixin,
 
     def shifts(self):
         shifts = Shift.objects.by_weekday_and_time(classroom=self.object.classroom)
-        print(shifts)
+        # print(shifts)
         return shifts
 
     def weekdays(self):
@@ -943,7 +942,7 @@ class ShiftAssignmentCollectionsListView(ClassroomEditMixin,
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
         # security issue here... verify pk is ok
-        print("request.POST:", request.POST)
+        # print("request.POST:", request.POST)
         collection_pk = int(request.POST['collection_pk'])
         collection = ShiftAssignmentCollection.objects.get(pk=collection_pk)
         collection.create_commitments()
