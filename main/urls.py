@@ -146,6 +146,12 @@ classroom_scheduling_patterns = [
     path('scheduling/<slug:child_slug>/<int:year>/<int:month>/<int:day>',
          views.MakeWorktimeCommitmentsView.as_view(),
          name='make-worktime-commitments'),
+
+    path('parent/scheduling/<slug:child_slug>/<int:year>/<int:month>/<int:day>',
+         views.EditWorktimeCommitmentsForParentByMonth.as_view(),
+         name='edit-worktimecommitments-for-parent-by-month'),
+
+
 ]
 
 classroom_patterns = [

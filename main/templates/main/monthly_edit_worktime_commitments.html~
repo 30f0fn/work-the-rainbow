@@ -8,7 +8,7 @@
 {% block content %}
 
   <h1>
-    worktime scheduling 
+    revise worktime commitments for {{view.child.nickname}}
   </h1>
   <h2>
     {{view.child}}, {{view.date|date:"F Y"}}
@@ -16,43 +16,17 @@
 
 
   <div>
-    {# navigating between families #}
-    <nav>
-      <ul>
-        {% for child in view.classroom.child_set.all %}
-          <li>
-          {% if child != view.child %}
-              <a href='{% url 'make-worktime-commitments' view.classroom.slug child.slug view.date.year view.date.month view.date.day %}'>
-                {{child}}
-              </a>
-            {% else %}
-              {{child}}
-            {% endif %}
-            </li>
-          {% endfor %}
-          <li>
-                <a href="{{view.previous}}">
-                  &lt;  
-                </a>
-          </li>
-        <li>
-          <a href="{{view.next}}"> 
-            &gt;   
-          </a> 
-        </li>
-      </ul>
-    </nav>
   </div>
 
 
-  {# <div> #}
-  {#   <a href="{{view.previous}}"> #}
-  {#     &lt;   #}
-  {#   </a> #}
-  {#   <a href="{{view.next}}">  #}
-  {#     &gt;    #}
-  {#   </a>  #}
-  {# </div> #}
+  <div>
+    <a href="{{view.previous}}">
+      &lt;  
+    </a>
+    <a href="{{view.next}}"> 
+      &gt;   
+    </a> 
+  </div>
 
 
 

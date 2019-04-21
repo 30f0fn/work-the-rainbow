@@ -516,6 +516,7 @@ class EditWorktimeCommitmentView(PerChildEditWorktimeMixin,
     def get_initial(self, *args, **kwargs):
         initial = super().get_initial(*args, **kwargs)
         data = {'shift_occ': self.commitment().shift_occurrence().serialize()}
+        print(data)
         initial.update(data)
         return initial
 
@@ -790,6 +791,20 @@ class MakeWorktimeCommitmentsView(MonthlyCalendarMixin,
         #     message2 = "shifts removed: "+ ', '.join([str(sh) for sh in revisions['removed']])
         #     messages.add_message(self.request, messages.SUCCESS, message2)
         return super().form_valid(form)
+
+
+
+class EditWorktimeCommitmentsForParentByMonth(MakeWorktimeCommitmentsView):
+    template_name = 'monthly_edit_worktime_commitments.html'
+
+    def jump_url(self, increment):
+        new_date = self.jump_date(increment)
+        kwargs= {'child_slug' : self.child.slug,
+            'classroom_slug' : self.classroom.slug,
+                 'year':new_date.year, 'month':new_date.month, 'day':new_date.day}
+        return reverse_lazy('edit-worktimecommitments-for-parent-by-month',
+                            kwargs=kwargs)
+
 
 
 class PeriodListView(ClassroomMixin,
