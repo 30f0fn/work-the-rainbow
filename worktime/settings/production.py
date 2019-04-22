@@ -9,8 +9,8 @@ SECRET_KEY=os.environ.get('DJANGO_SECRET_KEY')
 # EMAIL_HOST_PASSWORD=os.environ.get("EMAIL_HOST_PASSWORD")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
-TEMPLATE_DEBUG = False
+DEBUG = True
+TEMPLATE_DEBUG = True
 
 INSTALLED_APPS += ['debug_toolbar']
 MIDDLEWARE += ['debug_toolbar.middleware.DebugToolbarMiddleware']
