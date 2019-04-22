@@ -10,34 +10,58 @@
 
   {% with object as child %}
     <h1>{{child}}</h1>
-<p> classroom: {{child.classroom}}
-</p>
-<p> parents:
-  <ul>
-    {% for parent in child.parent_set.all %}
-      <li>{% display_user parent %}</li> 
-    {% endfor %}
-  </ul>
-  {% if edit_child %}
-    <a href="{% url 'add-parent' child.slug %}">add a parent</a>
+
+<h2>basic info</h2>
+<table>
+  <tr>
+    <td>classroom:
+    </td>
+    <td> {{child.classroom}}
+    </td>
+  </tr>
+  <tr>
+    <td>
+      parents:
+    </td>
+    <td>
+      <ul>
+        {% for parent in child.parent_set.all %}
+          <li>{% display_user parent %}</li> 
+        {% endfor %}
+      </ul>
+      {% if edit_child %}
+        <a href="{% url 'add-parent' child.slug %}">add a parent</a>
+      {% endif %}
+    </td>
+  </tr>
+  {% if child.birthday %}
+    <tr>
+      <td>
+        birthday:
+      </td>
+      <td>
+        {{child.birthday}}
+      </td>
+    </tr>
   {% endif %}
-</p>
-{% if child.birthday %}
-  <p>
-    birthday: {{child.birthday}}
-  </p>
-{% endif %}
+</table>
 {% endwith %}
 
+  <p>
+    <a href="{% url 'edit-child' child.slug %}">edit child info</a>
+  </p>
+
+
 {% if edit_child and prefs_by_period %} 
+<h2> worktime preferences</h2>
+<p>
   {# {% if false %} #}
-  submit worktime preferences for the period...
+  {# submit worktime preferences for the period... #}
   {% for pp in prefs_by_period %}
     <li>
       <a href={% url 'submit-preferences' child.slug pp.period.pk %}>
         {{ pp.period.start | date:"j M y"}} - {{ pp.period.end | date:"j M y" }}
       </a>
-      
       {% if pp.preferences %}
         {# {{pp.preferences}} #}
         <ol>
@@ -54,7 +78,39 @@
       {% endif %}
     </li>        
   {% endfor %}
+</p>
 {% endif %}
+
+
+<h2>worktime commitments</h2>
+
+{% if edit_child and commitments_by_period %}
+  {# <p>(minimum {{min_commitments_per_period}} per period) #}
+
+    <ul>
+      {% for period, commitments in commitments_by_period.items %}
+        <li>
+          {{ period.start | date:"j M y"}} - {{ period.end | date:"j M y" }}
+          <ol>
+            {% for commitment in commitments %}
+              <li>
+                {{commitment.start | date:"F d"}}, {{commitment.start | time:"g:i"}}
+                {% if commitment.completed != None %} 
+                  ({{commitment.show_completion_status}})
+                {% endif %}
+               </li>
+            {% endfor %}
+          </ol>
+        </li>
+      {% endfor %}
+    </ul>
+  </p>
+{% endif %}
+
+
+
+
+<h2>daycare schedule</h2>
 
 {% if edit_child %}
   <p>{{child}} is in daycare for these times... 
@@ -72,9 +128,6 @@
     <a href="{% url 'create-careday-assignments' child.slug %}">add care days</a>
   </p>
   
-  <p>
-    <a href="{% url 'edit-child' child.slug %}">edit child info</a>
-  </p>
 {% endif %}
 
 {% endblock %}

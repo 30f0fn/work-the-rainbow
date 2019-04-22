@@ -10,6 +10,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.utils.decorators import method_decorator
+from django.utils import timezone
 
 from collections import namedtuple
 
@@ -351,18 +352,44 @@ class ChildDetailView(ChildMixin, DetailView):
         preferences = list(main.models.ShiftPreference.objects.filter(
             child=self.child,
             period__in=periods).select_related('shift').order_by('rank').order_by('-period'))
+        retval = []
         for period in periods:
             pp = PbyP(period, [[],[],[]])
             while preferences and preferences[-1].period:
                 pref = preferences.pop()
                 pp.preferences[(pref.rank - 1)].append(pref)
-            yield pp
+            retval.append(pp)
+        return retval
 
+    def commitments_by_period(self):
+        retval = {}
+        periods = main.models.Period.objects.filter(classroom=self.child.classroom,
+                                        end__gte=timezone.now())
+        for period in periods:
+            commitments = main.models.WorktimeCommitment.objects.filter(
+                child=self.child,
+                start__date__gte=period.start.date(),
+                start__date__lte=period.end.date())
+            if commitments:
+                retval[period] = commitments
+        return retval
+        # CbyP = namedtuple('CbyP', ['period', 'commitments'])        
+        # commitments = WorktimeCommitment.objects.filter(
+            # child=self.child)
+        # for commitment in commitments:
+
+    # def min_commitments_per_period(self):
+    #     # todo below should not be hard coded!
+    #     # assumes four months per period
+    #     return self.child.shifts_per_month * 4
 
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
         context['prefs_by_period'] = self.prefs_by_period()
+        context['commitments_by_period'] = self.commitments_by_period()
+        # context['min_commitments_per_period'] = self.min_commitments_per_period()
+        context['now'] = timezone.now()
         return context
 
 
