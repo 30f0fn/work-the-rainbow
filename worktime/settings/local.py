@@ -1,3 +1,6 @@
+# todo STATIC config is fucked... right now i need one copy at BASE_DIR/static for development and another at BASE_DIR/worktime/static for production wtf
+
+
 from worktime.settings.base import *
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "worktime.settings.local")
@@ -18,6 +21,16 @@ INSTALLED_APPS += ['debug_toolbar']
 MIDDLEWARE += ['debug_toolbar.middleware.DebugToolbarMiddleware']
 
 STATIC_URL = '/static/'
+
+# STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+
+# Extra places for collectstatic to find static files.
+STATICFILES_DIRS = (
+    os.path.join(BASE_DIR, 'static'),
+    # os.path.join(BASE_DIR, os.path.join('worktime', 'static')),
+)
+
 
 STATICFILES_DIRS = [
     os.path.join("static"),

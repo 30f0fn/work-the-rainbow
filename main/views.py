@@ -741,9 +741,10 @@ class FourWeekSchedulerCalendarView(ClassroomEditMixin,
 
 
 
+
 # todo is this the correct inheritance order?
 class MakeWorktimeCommitmentsView(MonthlyCalendarMixin,
-                                  ClassroomEditMixin,
+                                  # ClassroomEditMixin,
                                   ClassroomWorktimeMixin,
                                   CalendarMixin,
                                   ChildEditMixin,
@@ -761,8 +762,6 @@ class MakeWorktimeCommitmentsView(MonthlyCalendarMixin,
         kwargs.update({'child_slug' : self.child.slug})
         return kwargs
 
-
-    # todo avoid duplicate calls to available_shifts()
     def get_form_kwargs(self, *args, **kwargs):
         kwargs = super().get_form_kwargs(*args, **kwargs)
         sh_occ_deserializer = {sh_occ.serialize() : sh_occ
@@ -782,16 +781,8 @@ class MakeWorktimeCommitmentsView(MonthlyCalendarMixin,
 
     def form_valid(self, form):
         form.save()
-        # revisions = form.revise_commitments()
-        # added_repr = ', '.join([str(sh) for sh in revisions['added']])
-        # if added_repr:
-        #     message1 = "shifts added: "+ added_repr
-        #     messages.add_message(self.request, messages.SUCCESS, message1)
-        # removed_repr = ', '.join([str(sh) for sh in revisions['removed']])
-        # if removed_repr:
-        #     message2 = "shifts removed: "+ ', '.join([str(sh) for sh in revisions['removed']])
-        #     messages.add_message(self.request, messages.SUCCESS, message2)
         return super().form_valid(form)
+
 
 
 
