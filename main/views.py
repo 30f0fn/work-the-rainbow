@@ -359,7 +359,8 @@ class ParentHomeView(UpcomingEventsMixin,
         # today = timezone.now().date(),
         return WorktimeCommitment.objects.filter(
             child__parent_set=self.request.user,
-            start__range = self.date_range()).select_related('child__classroom')
+            start__range = self.date_range()).select_related(
+                'child__classroom')
 
     def events(self):
         return Happening.objects.all()
