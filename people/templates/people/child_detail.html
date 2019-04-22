@@ -29,9 +29,9 @@
           <li>{% display_user parent %}</li> 
         {% endfor %}
       </ul>
-      {% if edit_child %}
-        <a href="{% url 'add-parent' child.slug %}">add a parent</a>
-      {% endif %}
+      {# {% if edit_child %} #}
+        {# <a href="{% url 'add-parent' child.slug %}">add a parent</a> #}
+      {# {% endif %} #}
     </td>
   </tr>
   {% if child.birthday %}
