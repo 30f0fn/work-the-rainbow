@@ -745,6 +745,7 @@ class FourWeekSchedulerCalendarView(ClassroomEditMixin,
 # todo is this the correct inheritance order?
 class MakeWorktimeCommitmentsView(MonthlyCalendarMixin,
                                   # ClassroomEditMixin,
+                                  ClassroomMixin,
                                   ClassroomWorktimeMixin,
                                   CalendarMixin,
                                   ChildEditMixin,
