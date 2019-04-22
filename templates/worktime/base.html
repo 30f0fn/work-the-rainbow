@@ -10,11 +10,14 @@
 
     {# <link rel="stylesheet" href="https://unpkg.com/tachyons@4.10.0/css/tachyons.min.css"/> #}
 
+    {# <link rel="stylesheet" href="https://unpkg.com/awsm.css/dist/awsm.min.css">  #}
+    {# <link rel="stylesheet" href="/static/awsm.css">  #}
 
-    <link rel="stylesheet" href="https://unpkg.com/awsm.css/dist/awsm.min.css">
-
+    {% load static %}
+    <link rel="stylesheet" href="{% static "awsm.css" %}">
 
     <style> 
+
       h1, h2, h3, h4, h5, h6 { 
           margin: 0 0 0em; 
       } 
@@ -42,11 +45,8 @@
           font-size: .9em;
           {# border: 0px solid black;  #}
       } 
-
-
-    <style> 
-
     </style>
+
   </head>
 
 
