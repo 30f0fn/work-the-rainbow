@@ -33,7 +33,7 @@
       <ul>
         {% for wtc in view.worktime_commitments %}
           <li>
-            {{wtc.start | date:"F d"}}, {{wtc.start | time:"g:i"}} ({% display_child wtc.child %}, {{wtc.child.classroom.slug}})
+            {{wtc.start | date:"F j"}}, {{wtc.start | time:"g:i"}} ({% display_child wtc.child %}, {{wtc.child.classroom.slug}})
             {# <a href="{% url 'edit-worktime-commitment' wtc.child.slug wtc.pk %}">  #}
               {# change  #}
             {# </a>  #}
@@ -52,7 +52,7 @@
     <ul>
       {% for event in view.events %}
         <li>
-          {{event.start.date}}: {{event.name}}
+          {{event.start.date| date:"F j"}}: {{event.name}}
           {% if event.start.time  != event.end.time %}
             ({{ event.start.time }} - {{ event.end.time }})
           {% endif %}
@@ -71,9 +71,9 @@
     <ul>
       {% for holiday in view.holidays %}
         <li>
-          {{holiday.start.date}}
+          {{holiday.start.date| date:"F j"}}
           {% if holiday.end.date != holiday.start.date %}
-            - {{ holiday.end.date }}
+            - {{ holiday.end.date| date:"F j"}}
           {% endif %}:
           {{holiday.name}}
 
