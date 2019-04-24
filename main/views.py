@@ -358,7 +358,7 @@ class ParentHomeView(UpcomingEventsMixin,
 
     @property
     def end_date(self):
-        return self.start_date + datetime.timedelta(days=self.num_weeks * 4)
+        return self.start_date + datetime.timedelta(days=self.num_weeks * 7)
     
     def worktime_commitments(self):
         # today = timezone.now().date(),

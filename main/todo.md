@@ -4,13 +4,13 @@
 
 
 
-ESSENTIAL
 
+*** SHIFTASSIGNMENT INTEGRITY
+- now it is possible to assign two children to the same shift occurrence...
+- the auto generator assigned eleanor to the same shift occurrences as tate, so the calendar didn\'t show them but the profile page did, very confusing
 
-
-FUTURE
-
-
+** TEACHER NOTIFICATION OF SHIFT CHANGE
+ 
 - settings for classroom... how to implement?  as model class with FK to classroom?
 - post for teacher a message of commitment change history whenever commitment is changed
 - to change worktime commitment, create commitmentchange object.  execution of the change object simply changes the commitment.  if its creation date is at least min_notice days from commitment date, simply execute.  Else, expose to teachers as commitmentchange_request, and execute once the request is granted.  

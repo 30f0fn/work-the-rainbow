@@ -606,6 +606,9 @@ class WorktimeCommitment(Event):
                 occ.commitment = c
                 yield occ
 
+    class Meta:
+        unique_together = (("shift", "start"),)
+
 
 class ShiftPreferenceManager(models.Manager):
 
