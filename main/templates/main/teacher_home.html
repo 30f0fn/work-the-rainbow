@@ -21,7 +21,7 @@
         {{ commitment.shift.start_time }}:{{ commitment.child.nickname }}
       </ul>
     {% endfor %}
-    {% url 'worktime-attendance' %}
+    {% url 'worktime-attendance-by-date' %}
 </li>
 {% else %}
   none today

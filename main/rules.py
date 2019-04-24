@@ -1,6 +1,6 @@
 import rules
 from people.models import Classroom
-from people.rules import is_admin, is_scheduler_in_classroom, is_teacher_in_classroom
+from people.rules import is_admin, is_scheduler_in_classroom, is_teacher_in_classroom, is_teacher_of
 
 @rules.predicate
 def owns_worktimecommitment(user, worktimecommitment):

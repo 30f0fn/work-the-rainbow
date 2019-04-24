@@ -6,8 +6,25 @@
 {% block content %}
 
   <h1>
-    upcoming
+    upcoming, {{view.start_date|date:"n/j/y"}} - {{view.end_date|date:"n/j/y"}}
   </h1>
+  <nav>
+    <ul>
+      <li>
+        
+      </li>
+      <li>
+        <a href="{{view.previous}}">
+          &lt;  
+        </a>
+      </li>
+      <li>
+        <a href="{{view.next}}"> 
+          &gt;   
+        </a>
+      </li>
+    </ul>
+  </nav>
   {% if user.children %}
     <h2>
       worktime shifts

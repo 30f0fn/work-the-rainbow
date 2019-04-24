@@ -36,11 +36,8 @@ import main.forms
 
 
 class UpcomingEventsMixin(object):
-    # template_name = "upcoming_for_user.html"
-    def date_range(self):
-        today = timezone.now().date()
-        return (today, today+datetime.timedelta(weeks=4))
-    
+    # needs start_date, end_date
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         data = {'events' : self.events(),
@@ -50,11 +47,13 @@ class UpcomingEventsMixin(object):
 
     def holidays(self):
         return Holiday.objects.filter(
-            start__range = self.date_range())
+            start__range = (self.start_date,
+                            self.end_date))
 
     def events(self):
         return Happening.objects.filter(
-            start__range = self.date_range())
+            start__range = (self.start_date,
+                            self.end_date))
 
 
 class DateMixin(object):
@@ -349,24 +348,37 @@ class RoleHomeMixin(LoginRequiredMixin):
 
 
 class ParentHomeView(UpcomingEventsMixin,
-                     DateIntervalMixin,
+                     CalendarMixin,
                      RoleHomeMixin,
                      TemplateView):
     role, created = Role.objects.get_or_create(name='parent')
     template_name = 'parent_home.html'
+    num_weeks = 4
+    unit_name = 'weekly'
 
+    @property
+    def end_date(self):
+        return self.start_date + datetime.timedelta(days=self.num_weeks * 4)
+    
     def worktime_commitments(self):
         # today = timezone.now().date(),
         return WorktimeCommitment.objects.filter(
             child__parent_set=self.request.user,
-            start__range = self.date_range()).select_related(
-                'child__classroom')
+            start__range = (self.start_date,
+                            self.end_date)).select_related(
+                                'child__classroom')
 
-    def events(self):
-        return Happening.objects.all()
+    def jump_url(self, increment):
+        new_date = self.jump_date(increment)
+        kwargs= {'year':new_date.year, 'month':new_date.month, 'day':new_date.day}
+        return reverse_lazy('parent-home',
+                            kwargs=kwargs)
 
-    def holidays(self):
-        return Holiday.objects.all()
+    def next(self):
+        return self.jump_url(self.num_weeks)
+
+    def previous(self):
+        return self.jump_url(-self.num_weeks)
 
 
 # for teachers with a single classroom; 
@@ -705,9 +717,9 @@ class SchedulerCalendarView(MonthlyCalendarMixin,
 
 # todo is this the correct inheritance order?
 class FourWeekSchedulerCalendarView(ClassroomEditMixin,
-                            ClassroomWorktimeMixin,
-                            CalendarMixin,
-                            TemplateView):
+                                    ClassroomWorktimeMixin,
+                                    CalendarMixin,
+                                    TemplateView):
 
     num_weeks = 4
     template_name = 'scheduler_calendar.html'
@@ -970,6 +982,7 @@ class ShiftAssignmentDetailView(ClassroomEditMixin,
 # ashtanga
 
 # todo is this the correct inheritance order?
+# todo I think this is not in use
 class FourWeekMakeWorktimeCommitmentsView(MonthlyCalendarMixin,
                                           ClassroomEditMixin,
                                           ClassroomWorktimeMixin,
@@ -1006,10 +1019,10 @@ class FourWeekMakeWorktimeCommitmentsView(MonthlyCalendarMixin,
                             kwargs=kwargs)
  
     def next(self):
-        return self.jump_url(4)
+        return self.jump_url(self.num_weeks)
 
     def previous(self):
-        return self.jump_url(-4)
+        return self.jump_url(-self.num_weeks)
 
 
     # post is idempotent so ok to return the same url
@@ -1049,30 +1062,13 @@ class FourWeekMakeWorktimeCommitmentsView(MonthlyCalendarMixin,
 # views for teacher #
 #####################
 
-class WorktimeAttendanceView(DateIntervalMixin,
-                             ClassroomMixin,
-                             FormView):
 
-    form_class = main.forms.WorktimeAttendanceForm    
+class BaseWorktimeAttendanceView(ClassroomEditMixin,
+                                 FormView):
+
+    # form_class = main.forms.WorktimeAttendanceForm    
     template_name = 'score_attendance.html'
     permission_required = 'main.score_worktime_attendance'
-
-    def get_success_url(self):
-        kwargs = {'classroom_slug' : self.classroom.slug}
-        print("DATED?", self.is_dated)
-        if self.is_dated:
-            kwargs.update({'year' : self.start.year,
-                           'month' : self.start.month,
-                           'day' : self.start.day})
-        return reverse('daily-classroom-calendar',
-                       kwargs=kwargs)
-
-    
-
-    def get_commitments(self):
-        return WorktimeCommitment.objects.filter(
-            child__classroom=self.classroom,
-            start__date=self.date())
 
     def get_form_kwargs(self, *args, **kwargs):
         kwargs = super().get_form_kwargs(*args, **kwargs)
@@ -1090,3 +1086,70 @@ class WorktimeAttendanceView(DateIntervalMixin,
         form.save()
         # if revisions:
         return super().form_valid(form)
+
+
+
+
+class WorktimeAttendanceByDateView(DateIntervalMixin,
+                                   BaseWorktimeAttendanceView):
+
+    form_class = main.forms.WorktimeAttendanceForm
+
+    def get_success_url(self):
+        kwargs = {'classroom_slug' : self.classroom.slug}
+        if self.is_dated:
+            kwargs.update({'year' : self.start.year,
+                           'month' : self.start.month,
+                           'day' : self.start.day})
+        return reverse('daily-classroom-calendar',
+                       kwargs=kwargs)
+
+    def get_commitments(self):
+        return WorktimeCommitment.objects.filter(
+            child__classroom=self.classroom,
+            start__date=self.date())
+
+
+class WorktimeAttendanceByChildView(ChildMixin,
+                                    BaseWorktimeAttendanceView):
+
+    form_class = main.forms.WorktimeAttendanceForm
+
+    def period(self):
+        kwargs=self.kwargs
+        return Period.objects.get(pk=int(self.kwargs.get('period_pk')))
+
+    def get_success_url(self):
+        kwargs = {'child_slug' : self.child.slug}
+        return reverse('child-profile',
+                       kwargs=kwargs)
+
+    def get_commitments(self):
+        return WorktimeCommitment.objects.filter(
+            child=self.child,
+            start__range=(self.period().start,
+                                self.period().end))
+
+class WorktimeAttendanceByWeekView(DateIntervalMixin,
+                                   BaseWorktimeAttendanceView):
+
+    form_class = main.forms.WorktimeAttendanceForm
+    
+    @property
+    def end_date(self):
+        return self.start_date + datetime.timedelta(days=7)
+
+    def get_success_url(self):
+        kwargs = {'classroom_slug' : self.classroom.slug}
+        if self.is_dated:
+            kwargs.update({'year' : self.start.year,
+                           'month' : self.start.month,
+                           'day' : self.start.day})
+        return reverse('weekly-classroom-calendar',
+                       kwargs=kwargs)
+
+    def get_commitments(self):
+        return WorktimeCommitment.objects.filter(
+            child__classroom=self.classroom,
+            start__date__range=(self.start_date,
+                                self.end_date))

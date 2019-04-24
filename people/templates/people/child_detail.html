@@ -7,53 +7,58 @@
 {% block content %}
 
   {% has_perm 'people.edit_child' user child as edit_child %}  
+  {% has_perm 'main.score_worktime_attendance' user child.classroom as can_score_worktime_attendance %}  
 
   {% with object as child %}
     <h1>{{child}}</h1>
 
-<h2>basic info</h2>
-<table>
-  <tr>
-    <td>classroom:
-    </td>
-    <td> {{child.classroom}}
-    </td>
-  </tr>
-  <tr>
-    <td>
-      parents:
-    </td>
-    <td>
-      <ul>
-        {% for parent in child.parent_set.all %}
-          <li>{% display_user parent %}</li> 
-        {% endfor %}
-      </ul>
-      {# {% if edit_child %} #}
-        {# <a href="{% url 'add-parent' child.slug %}">add a parent</a> #}
-      {# {% endif %} #}
-    </td>
-  </tr>
-  {% if child.birthday %}
-    <tr>
-      <td>
-        birthday:
-      </td>
-      <td>
-        {{child.birthday}}
-      </td>
-    </tr>
-  {% endif %}
-</table>
-{% endwith %}
+    <h2>basic info</h2>
+    <table>
+      <tr>
+        <td>classroom:
+        </td>
+        <td> {{child.classroom}}
+        </td>
+      </tr>
+      <tr>
+        <td>
+          parents:
+        </td>
+        <td>
+          <ul>
+            {% for parent in child.parent_set.all %}
+              <li>{% display_user parent %}</li> 
+            {% endfor %}
+          </ul>
+          {# {% if edit_child %} #}
+          {# <a href="{% url 'add-parent' child.slug %}">add a parent</a> #}
+          {# {% endif %} #}
+        </td>
+      </tr>
+      {% if child.birthday %}
+        <tr>
+          <td>
+            birthday:
+          </td>
+          <td>
+            {{child.birthday}}
+          </td>
+        </tr>
+      {% endif %}
+    </table>
+  {% endwith %}
 
   <p>
-    <a href="{% url 'edit-child' child.slug %}">edit child info</a>
+    <a href="{% url 'edit-child' child.slug %}">
+      edit child info
+    </a>
   </p>
 
 
-{% if edit_child and prefs_by_period %} 
-<h2> worktime preferences</h2>
+  {% if edit_child and prefs_by_period %} 
+    <h2>
+      worktime preferences
+    </h2>
 <p>
   {# {% if false %} #}
   {# submit worktime preferences for the period... #}
@@ -82,11 +87,9 @@
 {% endif %}
 
 
-<h2>worktime commitments</h2>
 
-{% if edit_child and commitments_by_period %}
-  {# <p>(minimum {{min_commitments_per_period}} per period) #}
-
+{% if commitments_by_period %}
+  <h2>worktime commitments</h2>
     <ul>
       {% for period, commitments in commitments_by_period.items %}
         <li>
@@ -95,12 +98,17 @@
             {% for commitment in commitments %}
               <li>
                 {{commitment.start | date:"F d"}}, {{commitment.start | time:"g:i"}}
-                {% if commitment.completed != None %} 
+                {% if can_score_worktime_attendance and commitment.completed != None %}
                   ({{commitment.show_completion_status}})
                 {% endif %}
-               </li>
+              </li>
             {% endfor %}
           </ol>
+          {% if can_score_worktime_attendance %}
+            <a href="{% url 'worktime-attendance-by-child' view.child.classroom.slug view.child.slug period.pk %}">
+              score attendance
+            </a>
+          {% endif %}
         </li>
       {% endfor %}
     </ul>
@@ -108,10 +116,7 @@
 {% endif %}
 
 
-
-
 <h2>daycare schedule</h2>
-
 {% if edit_child %}
   <p>{{child}} is in daycare for these times... 
     <ul>
@@ -127,7 +132,22 @@
     </ul>
     <a href="{% url 'create-careday-assignments' child.slug %}">add care days</a>
   </p>
-  
+{% else %}
+  <p>
+    {{child}} is in daycare for these times... 
+    <ul>
+      {# {% for cda in child.caredayassignment_set.all.distinct %} #}
+      {% for cda in child.careday_assignments %}
+        <li>
+          {{cda.start.date | date:"j M y" }} - {{cda.end.date | date:"j M y"}}:
+          {{cda.careday.weekday_str}}, {{cda.careday.start_time}} - {{cda.careday.end_time}}
+          [<a href="{% url 'edit-caredayassignment' child.slug cda.pk %}">edit</a>]
+          [<a href="{% url 'delete-caredayassignment' child.slug cda.pk %}">delete</a>]
+        </li>
+      {% endfor %}
+    </ul>
+    <a href="{% url 'create-careday-assignments' child.slug %}">add care days</a>
+  </p>
 {% endif %}
 
 {% endblock %}

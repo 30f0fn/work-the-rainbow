@@ -3,7 +3,10 @@
 {% load people_tags %} 
 {% load rules %}
 
+
 {% block content %}
+  {% has_perm 'main.score_worktime_attendance' user classroom as can_score_worktime_attendance %}
+
 <h1> {{view.classroom.name}} - week of {{view.start_date|date:"n/j/y"}}</h1>
   {% include 'calendar-nav.html' %}
   <ul>
@@ -14,12 +17,19 @@
           {% for shift in shifts %}  
             <li> 
               {{shift.start |time:"g:i"}}:
-              {{shift.commitment.child | default_if_none:""}} 
+              {{shift.commitment.child | default_if_none:""}}
+              {% if shift.commitment and can_score_worktime_attendance %}
+                ({{shift.commitment.show_completion_status}})
+              {% endif %}
             </li> 
           {% endfor %}  
         </ul>
       </li>
     {% endfor %}
   </ul>
+
+    {% if can_score_worktime_attendance %}
+      <a href="{% url 'worktime-attendance-by-week' classroom.slug view.date.year view.date.month view.date.day %}">score attendance </a>
+    {% endif %}
 
 {% endblock content %}

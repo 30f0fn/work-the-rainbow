@@ -20,15 +20,17 @@
     <ul>
       {% for commitment in commitments %}
         <li>
-          {{ commitment.shift.start_time |time:"g:i" }}: {{ commitment.child.nickname }}
+          {{ commitment.shift.start_time |time:"g:i" }}:
+          {% display_child commitment.child %}
+          {# {{ commitment.child.nickname }} #}
           {% if can_score_worktime_attendance %}
-            [{{commitment.show_completion_status}}]
+            ({{commitment.show_completion_status}})
           {% endif %}
         </li>
       {% endfor %}
     </ul>
     {% if can_score_worktime_attendance %}
-      <a href="{% url 'worktime-attendance' classroom.slug view.date.year view.date.month view.date.day %}">score attendance </a>
+      <a href="{% url 'worktime-attendance-by-date' classroom.slug view.date.year view.date.month view.date.day %}">score attendance </a>
     {% endif %}
   {% else %}
     none today

@@ -10,9 +10,13 @@ basic_patterns = [
          views.SplashView.as_view(),
          name='splash'),
 
-    path('parent',
+    path('parent/upcoming',
          views.ParentHomeView.as_view(),
          name='parent-home'),
+    path('parent/upcoming/<int:year>/<int:month>/<int:day>',
+         views.ParentHomeView.as_view(),
+         name='parent-home'),
+
     path('teacher',
          views.TeacherHomeView.as_view(),
          name='teacher-home'),
@@ -157,12 +161,21 @@ classroom_scheduling_patterns = [
 classroom_patterns = [
     path('', include(classroom_scheduling_patterns)),
     path('calendar/', include(classroom_calendar_patterns)),
-    path('worktime/attendance',
-         views.WorktimeAttendanceView.as_view(),
-         name='worktime-attendance'),
+    # path('worktime/attendance',
+         # views.WorktimeAttendanceByDateView.as_view(),
+         # name='worktime-attendance'),
     path('worktime-attendance/<int:year>/<int:month>/<int:day>',
-         views.WorktimeAttendanceView.as_view(),
-         name='worktime-attendance'),
+         views.WorktimeAttendanceByDateView.as_view(),
+         name='worktime-attendance-by-date'),
+    # path('worktime-attendance-weekly',
+    #      views.WorktimeAttendanceByWeekView.as_view(),
+    #      name='worktime-attendance-by-week'),
+    path('worktime-attendance-weekly/<int:year>/<int:month>/<int:day>',
+         views.WorktimeAttendanceByWeekView.as_view(),
+         name='worktime-attendance-by-week'),
+    path('worktime-attendance/<slug:child_slug>/<int:period_pk>',
+         views.WorktimeAttendanceByChildView.as_view(),
+         name='worktime-attendance-by-child'),
 
 ]
 

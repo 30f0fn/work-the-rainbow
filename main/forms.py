@@ -152,17 +152,19 @@ class RescheduleWorktimeCommitmentForm(Form):
 
 
 
+
 class WorktimeAttendanceForm(Form):
 
     def __init__(self, *args, **kwargs):
         commitments = kwargs.pop('commitments')
         super().__init__(*args, **kwargs)
-        print(f"FORM_KWARGS : {kwargs}")
+        # print(f"FORM_KWARGS : {kwargs}")
         self.commitments = commitments
         for commitment in self.commitments:
+            dtf = commitment.start.strftime('%-m/%-d/%y, %-I:%M')
             self.fields[str(commitment.pk)] = NullBooleanField(
-                label=commitment.child.nickname
-                # widget=RadioSelect(choices=NA_YES_NO)
+                label=f"{commitment.child.nickname}, {dtf}"
+            # widget=RadioSelect(choices=NA_YES_NO)
             )
 
     def save(self):
@@ -173,7 +175,6 @@ class WorktimeAttendanceForm(Form):
             if str(commitment.pk) in self.changed_data:
                 commitment.completed = self.cleaned_data[str(commitment.pk)]
                 commitment.save()
-
 
 
 
