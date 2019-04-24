@@ -366,7 +366,7 @@ class ParentHomeView(UpcomingEventsMixin,
             child__parent_set=self.request.user,
             start__range = (self.start_date,
                             self.end_date)).select_related(
-                                'child__classroom')
+                                'child__classroom').order_by('start')
 
     def jump_url(self, increment):
         new_date = self.jump_date(increment)

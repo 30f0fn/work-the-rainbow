@@ -1,8 +1,7 @@
 
 
-
-
-
+*** RELATIVIZE PERMISSIONS TO ACTIVE ROLE
+- so e.g. if somebody is in parent mode, they have only parent permissions, etc
 
 
 *** SHIFTASSIGNMENT INTEGRITY
