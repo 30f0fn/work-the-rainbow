@@ -1,0 +1,11 @@
+ first time doing it in a different way, so things are still pretty experimental but the overal strategy is like this.
+ 
+I built a simple Django site to receive worktime preferences, generate the assignment, then return the assignment to parents and teachers.  The site lets parents modify their assignments, which means that the initial assignment doesn't have to be perfect.
+
+
+1. make it easier for parents to change their initial assignments, so that the initial assignments don't have to be perfect
+2. generate the shift occurrence assignments for a period in two steps
+-- first
+-- generate the initial assignments using 
+
+O

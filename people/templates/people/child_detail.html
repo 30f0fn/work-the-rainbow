@@ -7,6 +7,7 @@
 {% block content %}
 
   {% has_perm 'people.edit_child' user child as edit_child %}  
+  {% has_perm 'people.edit_classroom' user child.classroom as edit_classroom %}  
   {% has_perm 'main.score_worktime_attendance' user child.classroom as can_score_worktime_attendance %}  
 
   {% with object as child %}
@@ -30,9 +31,9 @@
               <li>{% display_user parent %}</li> 
             {% endfor %}
           </ul>
-          {# {% if edit_child %} #}
-          {# <a href="{% url 'add-parent' child.slug %}">add a parent</a> #}
-          {# {% endif %} #}
+          {% if edit_classroom %}  
+          <a href="{% url 'add-parent' child.slug %}">add a parent</a>  
+          {% endif %}  
         </td>
       </tr>
       {% if child.birthday %}
