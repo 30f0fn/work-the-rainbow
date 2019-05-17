@@ -78,9 +78,6 @@ classroom_calendar_patterns = [
 ]
 
 child_parenting_patterns = [
-    path('worktime/reschedule/<int:pk>',
-         views.EditWorktimeCommitmentView.as_view(),
-         name='edit-worktime-commitment'),
     path('caredays/assign',
          views.CareDayAssignmentsCreateView.as_view(),
          name='create-careday-assignments'),
@@ -154,6 +151,15 @@ classroom_scheduling_patterns = [
     path('rescheduling/<slug:child_slug>/<int:year>/<int:month>/<int:day>',
          views.EditWorktimeCommitmentsForParentByMonth.as_view(),
          name='edit-worktimecommitments-for-parent-by-month'),
+
+    path('rescheduling/<slug:child_slug>/<int:pk>',
+         views.EditWorktimeCommitmentView.as_view(),
+         name='edit-worktime-commitment'),
+
+    path('rescheduling/<slug:child_slug>/<int:pk>/<int:year>/<int:month>/<int:day>',
+         views.EditWorktimeCommitmentView.as_view(),
+         name='edit-worktime-commitment'),
+
 
 
 ]

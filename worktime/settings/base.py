@@ -62,7 +62,6 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'worktime.urls'
 
-
 # todo cleanup DIRS
 # should use os.path.join(BASE_DIR, ...)
 TEMPLATES = [

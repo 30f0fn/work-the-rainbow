@@ -34,9 +34,9 @@
         {% for wtc in view.worktime_commitments %}
           <li>
             {{wtc.start | date:"F j"}}, {{wtc.start | time:"g:i"}} ({% display_child wtc.child %}, {{wtc.child.classroom.slug}})
-            {# <a href="{% url 'edit-worktime-commitment' wtc.child.slug wtc.pk %}">  #}
-              {# change  #}
-            {# </a>  #}
+            <a href="{% url 'edit-worktime-commitment' wtc.child.classroom.slug wtc.child.slug wtc.pk %}">  
+              [change] 
+            </a>  
           </li>
         {% endfor %}
       </ul>

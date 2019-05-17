@@ -1,4 +1,4 @@
-{% extends "authenticated.html" %}
+ {% extends "authenticated.html" %}
 
 {% load people_tags %}
 {% load main_tags %}
@@ -8,10 +8,10 @@
 {% block content %}
 
   <h1>
-    worktime scheduling 
+    reschedule worktime commitment
   </h1>
 <h2>
-{{view.child}}, {{view.start_date|date:"n/j"}}-{{view.end_date|date:"n/j"}}
+{{view.child}} ({{view.child.classroom}}), originally {{commitment.start}}
 </h2>
 
 

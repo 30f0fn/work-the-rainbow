@@ -1,0 +1,61 @@
+ {% extends "authenticated.html" %}
+
+{% load people_tags %}
+{% load main_tags %}
+
+{% load rules %}
+
+{% block content %}
+
+  <h1>
+    reschedule worktime commitment
+  </h1>
+<h2>
+{{view.child}} ({{view.child.classroom}}), originally {{view.commitment.start}}
+</h2>
+
+
+{# navigating between dates  #}
+{# todo - implement navigation between dates #}
+
+  <div>
+    <a href="{{view.previous}}">
+      &lt;  
+    </a>
+    <a href="{{view.next}}"> 
+      &gt;   
+    </a> 
+  </div>
+
+
+
+{# {% include 'worktime-reschedule-nav.html' %}  #}
+{{form.non_field_errors}}
+  <form action="{{request.path}}" method="post">
+    {% csrf_token %}
+    <ul>
+      {% for day, shifts in view.shifts_by_week.0.items %}
+        <li>
+          {{day|date:"l, F j"}} 
+          <ul>  
+            {% for shift in shifts %}   
+              <li>  
+                {{shift.start |time:"g:i"}}: 
+                {% with shift.commitment as commitment %}
+                  {% if commitment and commitment.child != view.child %} 
+                    {{commitment.child.nickname}} 
+                    {% elif shift_instance.serialize in form.fields %}  
+                    {% else %}
+                      {{ form|render_field_from_string:shift.serialize}}
+                      &nbsp;
+                  {% endif %} 
+                {% endwith %} 
+              </li>  
+            {% endfor %}   
+          </ul> 
+        </li>
+      {% endfor %}
+    <button type="submit", value="Submit">save</button>
+  </form>
+{% endblock content %}
+  

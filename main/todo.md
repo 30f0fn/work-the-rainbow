@@ -1,8 +1,16 @@
 
+# *** CHANGING COMMITMENT VIEW ***
+# weekly calendar, with radioselect of available dates (with choice mandatory)
+# navigate forward/backward by week
+
+
+*** use enum for roles ***
 
 *** RELATIVIZE PERMISSIONS TO ACTIVE ROLE
 - so e.g. if somebody is in parent mode, they have only parent permissions, etc
 
+*** CLASSROOM SETTINGS
+- implement as model with 1-1 key to classroom
 
 *** SHIFTASSIGNMENT INTEGRITY
 - now it is possible to assign two children to the same shift occurrence...
@@ -10,9 +18,18 @@
 
 ** TEACHER NOTIFICATION OF SHIFT CHANGE
  
-- settings for classroom... how to implement?  as model class with FK to classroom?
-- post for teacher a message of commitment change history whenever commitment is changed
-- to change worktime commitment, create commitmentchange object.  execution of the change object simply changes the commitment.  if its creation date is at least min_notice days from commitment date, simply execute.  Else, expose to teachers as commitmentchange_request, and execute once the request is granted.  
+- allow parent to change or request-to-teacher a change to worktime commitment
+- generate for teacher either change notifier, or a request handler
+- create only one notifier/handler per commitment
+- notifier/handler needs to show "previous" date and "new" date
+- how to define "previous", if commitment has been changed several times?
+  - if parent changes several times quickly, teacher shouldn't see superseded changes
+  - "previous" could be "time last viewed by any teacher in the classroom, or failing that, time commitment was created"?
+  - so teacher's viewing the notice would write to the database
+      - set viewed to True
+      - set previous_shift_and_date to actual shift_and_date
+- post for teacher a notification of commitment change history whenever commitment is changed
+- to change worktime commitment, create commitmentchange object.  execution of the change object simply changes the commitment.  if its creation date is at least min_notice days from commitment date, simply execute.  Else, expose to teachers as commitmentchange_request, and execute once the request is granted.
 
 * caredayassignments should be bounded by dates not datetimes
 * this borks the super call to overlap from event

@@ -61,11 +61,14 @@ class DateMixin(object):
     # todo this is called about 748 times per request
     def date(self):
         self.is_dated = 'day' in self.kwargs
+        # print(self.kwargs)
         try:
             self._date = datetime.date(self.kwargs.get('year'),
                                        self.kwargs.get('month'),
                                        self.kwargs.get('day'))
+            print("got date", self._date)
         except TypeError:
+            # print("could not get date")
             self._date = timezone.now().date()
         return self._date
 
@@ -109,8 +112,6 @@ class DateIntervalMixin(DateMixin):
 
 
 
-        
-
 class CalendarMixin(DateIntervalMixin):
 
     # todo eliminate these uses of property decorator, they're weird
@@ -138,7 +139,9 @@ class CalendarMixin(DateIntervalMixin):
     def jump_kwargs(self, increment):
         new_date = self.jump_date(increment)
         kwargs = {'classroom_slug' : self.classroom.slug,
-                 'year':new_date.year, 'month':new_date.month, 'day':new_date.day}
+                  'year':new_date.year,
+                  'month':new_date.month,
+                  'day':new_date.day}
         return kwargs
 
     def jump_url(self, increment):
@@ -150,7 +153,6 @@ class CalendarMixin(DateIntervalMixin):
 
     def previous(self):
         return self.jump_url(-1)
-
 
 
 
@@ -175,8 +177,10 @@ class ClassroomWorktimeMixin(object):
 
 
 class PerChildEditWorktimeMixin(object):
+    # rename to available_shifts_for_child
+    # is this already a model method?
     # requires shifts e.g. from ClassroomWorktimeMixin 
-    # todo this does'nt make sense for the ExitWorktimeCommitmentView
+    # todo this does'nt make sense for the EditWorktimeCommitmentView
 
     # todo this should use just occurrences_for_date_range
     def available_shifts(self):
@@ -491,56 +495,56 @@ class HappeningDeleteView(AdminMixin,
 
 
 
-class EditWorktimeCommitmentView(PerChildEditWorktimeMixin,
-                                 ChildEditMixin,
-                                 # ClassroomMixin,
-                                 # ClassroomWorktimeMixin,
-                                 FormView):
-    permission_required = 'people.edit_child'
-    form_class = main.forms.RescheduleWorktimeCommitmentForm
-    template_name = 'reschedule_worktime_commitment.html'
+# class EditWorktimeCommitmentView(PerChildEditWorktimeMixin,
+#                                  ChildEditMixin,
+#                                  # ClassroomMixin,
+#                                  # ClassroomWorktimeMixin,
+#                                  FormView):
+#     permission_required = 'people.edit_child'
+#     form_class = main.forms.RescheduleWorktimeCommitmentForm
+#     template_name = 'reschedule_worktime_commitment.html'
 
-    def commitment(self):
-        kwargs = self.kwargs
-        pk = self.kwargs.get('pk')
-        return WorktimeCommitment.objects.get(
-            pk=pk)
+#     def commitment(self):
+#         kwargs = self.kwargs
+#         pk = self.kwargs.get('pk')
+#         return WorktimeCommitment.objects.get(
+#             pk=pk)
         
-    def available_shifts(self):
-        earlier = datetime.timedelta(days=7)
-        later = datetime.timedelta(days=7)
-        ret = self.commitment().alternatives(earlier, later)
-        return ret
+#     def available_shifts(self):
+#         earlier = datetime.timedelta(days=7)
+#         later = datetime.timedelta(days=7)
+#         ret = self.commitment().alternatives(earlier, later)
+#         return ret
 
-    def get_success_url(self):
-        return reverse('parent-home')
-        # return self.request.META.get(
-            # 'HTTP_REFERER', 
-        # )
+#     def get_success_url(self):
+#         return reverse('parent-home')
+#         # return self.request.META.get(
+#             # 'HTTP_REFERER', 
+#         # )
 
 
-    def get_form_kwargs(self, *args, **kwargs):
-        kwargs = super().get_form_kwargs(*args, **kwargs)
-        kwargs.update({'child' : self.child,
-                       'current_commitment' : self.commitment(),
-                       'available_shifts' : self.available_shifts()})
-        return kwargs
+#     def get_form_kwargs(self, *args, **kwargs):
+#         kwargs = super().get_form_kwargs(*args, **kwargs)
+#         kwargs.update({'child' : self.child,
+#                        'current_commitment' : self.commitment(),
+#                        'available_shifts' : self.available_shifts()})
+#         return kwargs
 
-    def get_initial(self, *args, **kwargs):
-        initial = super().get_initial(*args, **kwargs)
-        data = {'shift_occ': self.commitment().shift_occurrence().serialize()}
-        print(data)
-        initial.update(data)
-        return initial
+#     def get_initial(self, *args, **kwargs):
+#         initial = super().get_initial(*args, **kwargs)
+#         data = {'shift_occ': self.commitment().shift_occurrence().serialize()}
+#         # print(data)
+#         initial.update(data)
+#         return initial
 
-    def form_valid(self, form):
-        # raise Exception("Form Valid method called")
-        revisions = form.execute()
-        if revisions:
-            strformat = '%-I:%M on %-B %-d'
-            message = f"thanks! {self.child}'s worktime commitment is rescheduled from {revisions['old_start'].strftime(strformat)} to {revisions['new_start'].strftime(strformat)}."
-            messages.add_message(self.request, messages.SUCCESS, message)
-        return super().form_valid(form)
+#     def form_valid(self, form):
+#         # raise Exception("Form Valid method called")
+#         revisions = form.execute()
+#         if revisions:
+#             strformat = '%-I:%M on %-B %-d'
+#             message = f"thanks! {self.child}'s worktime commitment is rescheduled from {revisions['old_start'].strftime(strformat)} to {revisions['new_start'].strftime(strformat)}."
+#             messages.add_message(self.request, messages.SUCCESS, message)
+#         return super().form_valid(form)
 
 
 ################################
@@ -787,7 +791,8 @@ class MakeWorktimeCommitmentsView(MonthlyCalendarMixin,
     # todo
     def get_initial(self, *args, **kwargs):
         initial = super().get_initial(*args, **kwargs)
-        data = {sh_occ.serialize() : getattr(sh_occ.commitment, 'child', None) == self.child 
+        data = {sh_occ.serialize() :
+                getattr(sh_occ.commitment, 'child', None) == self.child 
                 for sh_occ in self.available_shifts()}
         initial.update(data)
         return initial
@@ -795,7 +800,6 @@ class MakeWorktimeCommitmentsView(MonthlyCalendarMixin,
     def form_valid(self, form):
         form.save()
         return super().form_valid(form)
-
 
 
 
@@ -809,6 +813,78 @@ class EditWorktimeCommitmentsForParentByMonth(MakeWorktimeCommitmentsView):
                  'year':new_date.year, 'month':new_date.month, 'day':new_date.day}
         return reverse_lazy('edit-worktimecommitments-for-parent-by-month',
                             kwargs=kwargs)
+
+
+
+class EditWorktimeCommitmentView(ClassroomMixin,
+                                 CalendarMixin,
+                                 ClassroomWorktimeMixin,
+                                 PerChildEditWorktimeMixin,
+                                 ChildEditMixin,
+                                 UpdateView):
+
+    template_name = 'weekly_edit_worktime_commitment.html'
+    model = WorktimeCommitment
+    form_class = main.forms.EditWorktimeCommitmentForm
+    view_name = 'edit-worktime-commitment' # for MonthlyCalendarMixin
+    unit_name = 'weekly'
+    num_weeks = 1
+
+    def date(self):
+        if 'day' not in self.kwargs:
+            return self.commitment().date
+        else:
+            return super().date()
+
+    @property
+    def start_date(self):
+        # most_recent_monday = self.date - datetime.timedelta(days = self.date.weekday())
+        return nearest_monday(self.date())
+        # return most_recent_monday
+
+    @property
+    def end_date(self):
+        return self.start_date + self.num_weeks * datetime.timedelta(days=7)
+
+    def commitment(self):
+        return self.object
+        
+    def get_success_url(self, *args, **kwargs):
+        return reverse('parent-home')
+        # return reverse('weekly-classroom-calendar',
+        #                kwargs={'classroom_slug' : self.classroom.slug,
+        #                        'year' : self.date().year,
+        #                        'month' : self.date().month,
+        #                        'day' : self.date().day})
+
+    def get_form_kwargs(self, *args, **kwargs):
+        kwargs = super().get_form_kwargs(*args, **kwargs)
+        sh_occ_deserializer = {sh_occ.serialize() : sh_occ
+                               for sh_occ in self.available_shifts()}
+        kwargs.update({'sh_occ_deserializer' : sh_occ_deserializer,
+        })
+        # kwargs.update({'commitment' : self.commitment})
+        return kwargs
+
+    def get_initial(self, *args, **kwargs):
+        initial = super().get_initial(*args, **kwargs)
+        data = {sh_occ.serialize() :
+                getattr(sh_occ.commitment, 'child', None) == self.child 
+                for sh_occ in self.available_shifts()}
+        initial.update(data)
+        print(initial)
+        return initial
+
+    def jump_url(self, increment):
+        new_date = self.jump_date(increment)
+        kwargs = self.kwargs.copy()
+        kwargs.update({'pk' : self.commitment().pk,
+                 'year':new_date.year, 'month':new_date.month, 'day':new_date.day
+        })
+        return reverse_lazy(self.view_name,
+                            kwargs=kwargs)
+
+
 
 
 
@@ -1129,6 +1205,7 @@ class WorktimeAttendanceByChildView(ChildMixin,
             child=self.child,
             start__range=(self.period().start,
                                 self.period().end))
+
 
 class WorktimeAttendanceByWeekView(DateIntervalMixin,
                                    BaseWorktimeAttendanceView):

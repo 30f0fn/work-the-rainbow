@@ -26,7 +26,9 @@ STATICFILES_DIRS = (
 )
 
 
-INTERNAL_IPS = ['127.0.0.1']
+
+
+# INTERNAL_IPS = ['127.0.0.1']
 
 # GOOGLE_OAUTH_CLIENT_ID = '172679960487-7um12gthi9rcp40rtqfptm7ai59frm03.apps.googleusercontent.com'
 # GOOGLE_OAUTH_CLIENT_SECRET = 'vQdOqG8FIK4nCg8DPM0UAOL7'
@@ -41,3 +43,4 @@ import django_heroku
 django_heroku.settings(locals())
 
 SECURE_SSL_REDIRECT = True
+PREPEND_WWW = True

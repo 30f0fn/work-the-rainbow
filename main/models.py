@@ -9,21 +9,14 @@ import constraint
 from constraint import *
 import itertools
 
-
-
-
-
 from django.db import models
 from django.utils import timezone
-
-
 
 from people.models import Child, Classroom
 from main.model_fields import WeekdayField, NumChoiceField, WEEKDAYS
 from main.utilities import WeekdayIterator, next_date_with_given_weekday, add_delta_to_time, dates_in_range, in_a_week, serialize_datetime, deserialize_datetime
 # import main.scheduler
 from people.views import ClassroomMixin
-
 
 # what if family has two kids in one classroom?
 # one (end-user) solution is to apportion all worktime obligations to one of them
@@ -108,8 +101,13 @@ class Event(models.Model):
 
     @property
     def date(self):
-        if self.end.date() == self.start.date():
-            return self.start.date()
+        assert self.end.date() == self.start.date(), \
+            f"Event occupies multiple dates, {self.start} and {self.end}"
+        return self.start.date()
+
+        # else:
+            # raise
+            
 
     def save(self, *args, **kwargs):
         self.end = self.end or self.start.replace(hours=23, minutes=59)
@@ -492,19 +490,25 @@ class ShiftOccurrence(WeeklyEventOccurrence):
     def __init__(self, shift, date, **kwargs):
         # shift = kwargs.pop('shift')
         # date = kwargs.pop('date')
+        if int(shift.weekday) != (date.weekday()):
+            raise ValueError(
+                f"The shift {shift} has no occurrence on {date}, because {shift.weekday} != {date.weekday()}")
         super().__init__(shift, date)
         self.classroom=self.shift.classroom
         self.commitment = kwargs.pop('commitment', None)
 
-    # @classmethod
-    # def deserialize()
-
     # dont inherit
     def create_commitment(self, child):
-        return WorktimeCommitment.objects.create(
+        commitment = WorktimeCommitment(
             start = self.start,
-            # date = self.date,
+            end = self.end,
             child = child)
+        commitment.save()
+
+    def get_commitment(self):
+        return WorktimeCommitment.objects.get(
+            shift=self.shift,
+            date=self.date)
 
     def is_available_to_child(self, child):
         # todo make configurable from settings
@@ -547,6 +551,18 @@ class ShiftOccurrence(WeeklyEventOccurrence):
 
 # todo this should just have shift and fields?
 # then, override start and end property methods?  seems ugly
+
+class WorktimeCommitmentManager(EventManager):
+    
+    def create(self):
+        super().create()
+        # todo add notification
+
+    def delete(self):
+        super.delete()
+        # todo add notification
+        
+# don't create these directly; instead use create_commitment instance method of ShiftOccurrence
 class WorktimeCommitment(Event):
     child = models.ForeignKey(Child, on_delete=models.CASCADE)
     completed = models.NullBooleanField()
@@ -565,25 +581,27 @@ class WorktimeCommitment(Event):
                                date=self.start.date(),
                                commitment=self)
 
+    def move_to(self, shift_occurrence):
+        old_shiftoccurrence = self.shift_occurrence()
+        self.shift = shift_occurrence.shift
+        self.start = shift_occurrence.start
+        self.end = shift_occurrence.end
+        self.save()
+        # CommitmentUpdate.objects.create_from_commitments(
+            # old_shiftoccurrence = old_shiftoccurrence,
+            # new_shiftoccurrence = shift_occurrence)
+        # shelf.
+        
+
     def save(self, *args, **kwargs):
-        self.shift = Shift.objects.get(classroom=self.child.classroom,
-                                       start_time=self.start.time(),
-                                       weekday=self.start.weekday())
+        self.shift = self.shift or Shift.objects.get(
+            classroom=self.child.classroom,
+            start_time=self.start.time(),
+            weekday=self.start.weekday())
         super().save(*args, **kwargs)
 
     def __str__(self):
         return str(self.shift_occurrence())
-
-    # @property
-    # def start(self):
-    #     return timezone.make_aware(
-    #         timezone.datetime.combine(self.date, self.shift.start_time))
-
-    # @property
-    # def end(self):
-    #     return timezone.make_aware(
-    #         timezone.datetime.combine(self.date, self.shift.end_time))
-
 
     def alternatives(self, earlier, later):
         dt_min = max(timezone.now(), self.start - earlier).replace(
@@ -608,6 +626,150 @@ class WorktimeCommitment(Event):
 
     class Meta:
         unique_together = (("shift", "start"),)
+
+
+
+
+# if a commitment change request is deleted, don't show it
+# if a commitment is deleted before the corresponding CommitmentAddition is viewed, delete the CommitmentAddition and don't create a CommitmentDeletion
+# implement this with WorktimeCommitment manager's create() and delete() methods
+
+# class CommitmentChangeManager(models.Manager):
+
+#     def create(self, *args, **kwargs):
+#         shift_occurrence = kwargs.pop('shift_occurrence')
+#         super().create(_date=shift_occurrence.date,
+#                        _start=shift_occurrence.start,
+#                        *args, **kwargs)
+    
+    # def get_from_shiftoccurrence(self, *args, **kwargs):
+    #     child = kwargs.get['child']
+    #     shift_occurrence = kwargs.get['shift_occurrence']
+    #     self.get_queryset().filter(child=child,
+    #                                _date=shift_occurrence.date,
+    #                                _shift=shift_occurrence.shift).last()
+
+
+# class _CommitmentChange(models.Model):
+
+#     _start = models.DateTimeField()
+#     _shift = models.OneToOneField(Shift,
+#                                  on_delete=models.CASCADE)
+#     child = models.ForeignKey(Child, on_delete = models.CASCADE)
+#     datetime = models.DateTimeField(auto_now_add=True)
+
+#     objects = CommitmentChangeManager()
+
+#     def execute(self):
+#         self.executed = True
+
+#     def shiftoccurrence(self):
+#         return ShiftOccurrence(shift=self._shift,
+#                                start=self._start)
+
+#     class Meta:
+#         ordering = ('_start')
+#         abstract = True
+
+
+# class CommitmentCreation(_CommitmentChange):
+#     pass
+        
+# class CommitmentDeletion(_CommitmentChange):
+#     pass
+
+# class CommitmentUpdateManager(models.Manager):
+#     def create_from_commitments(self, old_shiftoccurrence,
+#                                 new_shiftoccurrence):
+#         super().create()
+        
+
+# class CommitmentUpdate(CommitmentChange):
+
+#     _old_start = models.DateTimeField()
+#     _old_shift = models.OneToOneField(Shift,
+#                                  on_delete=models.CASCADE)
+
+#     def old_shiftoccurrence(self):
+#         return ShiftOccurrence(start=_old_start,
+#                                shift=_old_shift)
+
+#     def new_shiftoccurrence(self):
+#         return self.shift_occurrence()
+
+# class CommitmentChange(models.Model):
+#     commitment = models.OneToOneField(WorktimeCommitment,
+#                                       on_delete = models.CASCADE)
+#     _alternate_date = models.DateField()
+#     _alternate_shift = models.OneToOneField(Shift,
+#                                             on_delete=models.CASCADE)
+
+#     executed = models.BooleanField(default=False)
+#     viewed = models.BooleanField(default=False)
+
+#     def was_viewed(self):
+#         # set viewed to True
+#         # set 
+
+#     def execute(self):
+#         self.executed = True
+
+#     def _alternate_shiftoccurrence(self):
+#         return ShiftOccurrence(shift=self._alternate_shift,
+#                                date=self._alternate_date)
+
+#     def new_shiftoccurrence(self):
+#         if self.executed:
+#             return self.commitment.shift_occurrence()
+#         else:
+#             return self._alternate_shiftoccurrence()
+
+#     def original_shiftoccurrence(self):
+#         if self.executed:
+#             return self._alternate_shiftoccurrence()
+#         else:
+#             return self.commitment.shift_occurrence()
+
+        
+
+"""
+possibilities
+- perm_required or not
+- if perm_required, then can have either
+   - notice exists or not
+   - request exists or not
+- if not perm_required, then no request exists, but can have
+   - notice exists or not
+"""
+
+# class CommitmentChangeNoticeManager(models.Manager):
+#     def create(self, *, change_request):
+#         return super().create(commitment=original,
+#                               _alternate_date=change_request.proposed_date(),
+#                               _alternate_shift=change_request.proposed_shift())
+    
+
+# class CommitmentChangeNotice(CommitmentChange):
+#     objects = CommitmentChangeNoticeManager()
+
+#     def original_date():
+#         return self._alternate_date
+
+#     def original_shift():
+#         return self._alternate_shift
+
+#     def update(self, new_occurrence):
+#         self.commitment.date = new_occurrence.date
+#         self.commitment.date = new_occurrence.shift
+#         self.commitment.save()
+
+
+
+    # new_date = models.DateField()
+    # new_shift = models.ForeignKey(Shift, on_delete = models.CASCADE)
+    
+    
+
 
 
 class ShiftPreferenceManager(models.Manager):

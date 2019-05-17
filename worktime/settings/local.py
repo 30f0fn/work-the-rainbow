@@ -21,6 +21,7 @@ INSTALLED_APPS += ['debug_toolbar']
 MIDDLEWARE += ['debug_toolbar.middleware.DebugToolbarMiddleware']
 
 STATIC_URL = '/static/'
+PREPEND_WWW = False
 
 # STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
