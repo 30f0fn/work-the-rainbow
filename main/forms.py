@@ -111,39 +111,39 @@ class MakeChildCommitmentsForm(Form):
                 existing_commitment.delete()
 
 
-class RescheduleWorktimeCommitmentForm(Form):
+# class RescheduleWorktimeCommitmentForm(Form):
 
-    def __init__(self, child, current_commitment, available_shifts, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.child = child
-        self.current_commitment = current_commitment
-        self.available_shifts = available_shifts
-        # todo can't i just use pk instead of serialize?
-        choices = ((sh.serialize(), str(sh)) for sh in available_shifts)
-        # for choice in choices:
-        #     print(choice)
-        self.fields.update({'shift_occ' : ChoiceField(
-            choices=choices,
-            widget=RadioSelect,
-            label="")})
-        # print('initial: ', kwargs.get('initial'))
-        # for ch in self.fields['shift_occ'].choices:
-            # print(ch[0])
-        # print(self.fields['shift_occ'].choices)
+#     def __init__(self, child, current_commitment, available_shifts, *args, **kwargs):
+#         super().__init__(*args, **kwargs)
+#         self.child = child
+#         self.current_commitment = current_commitment
+#         self.available_shifts = available_shifts
+#         # todo can't i just use pk instead of serialize?
+#         choices = ((sh.serialize(), str(sh)) for sh in available_shifts)
+#         # for choice in choices:
+#         #     print(choice)
+#         self.fields.update({'shift_occ' : ChoiceField(
+#             choices=choices,
+#             widget=RadioSelect,
+#             label="")})
+#         # print('initial: ', kwargs.get('initial'))
+#         # for ch in self.fields['shift_occ'].choices:
+#             # print(ch[0])
+#         # print(self.fields['shift_occ'].choices)
 
 
-    def execute(self, *args, **kwargs):
-        data = self.cleaned_data
-        new_shiftoccurrence = main.models.ShiftOccurrence.deserialize(
-            self.cleaned_data.get('shift_occ'))
-        if new_shiftoccurrence.start != self.current_commitment.start or\
-           new_shiftoccurrence.shift != self.current_commitment.shift:
-           old_shiftoccurrence = self.current_commitment.shift_occurrence()
-           # move this to WorktimeCommitment model
-           # save change history for teacher, and flag as notification for teacher
-           self.current_commitment.move_to(new_shiftoccurrence)
-           return {'old_start' : old_start,
-                    'new_start' : new_start}
+#     def execute(self, *args, **kwargs):
+#         data = self.cleaned_data
+#         new_shiftoccurrence = main.models.ShiftOccurrence.deserialize(
+#             self.cleaned_data.get('shift_occ'))
+#         if new_shiftoccurrence.start != self.current_commitment.start or\
+#            new_shiftoccurrence.shift != self.current_commitment.shift:
+#            old_shiftoccurrence = self.current_commitment.shift_occurrence()
+#            # move this to WorktimeCommitment model
+#            # save change history for teacher, and flag as notification for teacher
+#            self.current_commitment.move_to(new_shiftoccurrence)
+#            return {'old_start' : old_start,
+#                     'new_start' : new_start}
 
 
 # class RescheduleWorktimeCommitmentForm(Form):
@@ -189,8 +189,8 @@ class EditWorktimeCommitmentForm(Form):
         self.commitment = kwargs.pop('instance')
         self.sh_occ_deserializer = kwargs.pop('sh_occ_deserializer')
         super().__init__(*args, **kwargs)
-        html_attr = {'onclick' : 'selectOnlyThis(this)'}
-        widget = CheckboxInput(attrs = html_attr)
+        # html_attr = {'onclick' : 'selectOnlyThis(this)'}
+        widget = CheckboxInput()
         self.fields.update({sh_occ_str :
                             BooleanField(required=False,
                                          widget=widget)
@@ -210,19 +210,21 @@ class EditWorktimeCommitmentForm(Form):
         
 
     def save(self, *args, **kwargs):
-        new_shift = self.cleaned_data['new_shift']
-        old_start = self.commitment.start
-        if new_shift.start != old_start:
+        new_shiftoccurrence = self.cleaned_data['new_shift']
+        if new_shiftoccurrence.start != self.commitment.start or\
+           new_shiftoccurrence.shift != self.commitment.shift:
+            print("commitment hmm", self.commitment.shift, self.commitment.start, self.commitment.pk)
+            old_shiftoccurrence = self.commitment.shift_occurrence()
             # move this to WorktimeCommitment model
             # save change history for teacher, and flag as notification for teacher
-            new_start = timezone.make_aware(new_shift.start)
-            self.commitment.start = new_start
-            self.commitment.end = new_shift.end
-            print("new shift end", new_shift.end)
+            # new_start = timezone.make_aware(new_shiftoccurrence.start)
+            self.commitment.move_to(new_shiftoccurrence)
+            # self.commitment.start = new_start
+            # self.commitment.end = new_shiftoccurrence.end
             self.commitment.save()
-            return {'old_start' : old_start,
-                    'new_start' : new_start}
-
+            return {'old_shiftoccurrence' : old_shiftoccurrence,
+                    'new_shiftoccurrence' : new_shiftoccurrence}
+        
 
 
 

@@ -7,7 +7,6 @@ from people.models import User, Child, Classroom, RelateEmailToObject, Role
 
 # todo clean up access to roles
 
-
 @receiver(post_save, sender=User)
 def relate_user_to_object(sender, instance, created, **kwargs):
     # print(f"relate_email_to_object: this function was called with instance={instance}, created={created}")
@@ -40,7 +39,6 @@ def relate_user_to_object(sender, instance, created, **kwargs):
 # teacher_role = Role.objects.get(name='teacher')
 # scheduler_role = Role.objects.get(name='scheduler')
 # admin_role = Role.objects.get(name='admin')
-
 
 
 @receiver(m2m_changed, sender=Classroom.scheduler_set.through)

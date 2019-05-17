@@ -16,6 +16,12 @@
 - now it is possible to assign two children to the same shift occurrence...
 - the auto generator assigned eleanor to the same shift occurrences as tate, so the calendar didn\'t show them but the profile page did, very confusing
 
+** NOTIFICATIONS
+
+- django-notifications
+- use 
+
+
 ** TEACHER NOTIFICATION OF SHIFT CHANGE
  
 - allow parent to change or request-to-teacher a change to worktime commitment
