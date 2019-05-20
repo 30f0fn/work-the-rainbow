@@ -11,6 +11,12 @@
 
 *** CLASSROOM SETTINGS
 - implement as model with 1-1 key to classroom
+- values
+    - toggle availability of batch-rescheduling of commitments by parents
+    - require permission for commitment changes less than n days away
+    - notify teachers of commitment changes less than n days away
+
+
 
 *** SHIFTASSIGNMENT INTEGRITY
 - now it is possible to assign two children to the same shift occurrence...

@@ -1,0 +1,3 @@
+from notifications.signals import notify
+
+def notify_commitment_change():

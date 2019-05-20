@@ -1,6 +1,6 @@
 {% load people_tags %}
 {% load main_tags %}
-{# {% if user.is_authenticated %} #}
+
 
 <div id="auth-panel">
   <nav>
@@ -26,28 +26,27 @@
             {% endif %}
           {% endfor %}
         {% endif %}
-        <br>
+    </ul>
+    {# <br> #}
 
-        {% url 'profile' as linked_url %} 
-        {% smart_link linked_url 'profile' view.request %} 
+    {% load notifications_tags %}
 
-        {% if active_role %}
-          {% with active_role.name|addstr:'_nav.html' as role_nav %}
-            {% include role_nav %}
-          {% endwith %}
-        {% endif %}
-      {% endwith %}
+    <ul>
+
+      {% live_notifications_smartlink %}
+
+      {% url 'profile' as linked_url %} 
+      {% smart_link linked_url 'profile' view.request %}  
+
+
+      {% if active_role %}
+        {% with active_role.name|addstr:'_nav.html' as role_nav %}
+          {% include role_nav %}
+        {% endwith %}
+      {% endif %}
+    {% endwith %}
     </ul>
   </nav>
 </div>
-
-
-{#   <div id="role-supplied-nav"> #}
-{#     {% if user.active_role %} #}
-{#       {% with user.active_role.name|addstr:'_nav.html' as role_nav %} #}
-{#         {% include role_nav %} #}
-{#       {% endwith %} #}
-{#     {% endif %} #}
-{# w  </div> #}
 
 

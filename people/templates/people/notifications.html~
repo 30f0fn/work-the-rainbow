@@ -1,0 +1,13 @@
+{% extends "authenticated.html" %}
+
+{% load people_tags %} 
+{% load rules %}
+
+
+{% block content %}
+
+
+  <h1>notifications</h1>
+
+
+{% endblock %}

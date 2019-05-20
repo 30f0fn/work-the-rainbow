@@ -10,6 +10,7 @@ from django.utils import timezone
 import main.scheduling_config
 import main.models
 import people.models
+import main.notifications
 
 from main.widgets import DatePickerInput
 
@@ -53,7 +54,7 @@ class PreferenceSubmitForm(Form):
         super().clean(*args, **kwargs)
         num_ranked = sum(1 for value in self.cleaned_data.values()
                          if value != "")
-        print("self.cleaned_data.items()", self.cleaned_data.items())
+        # print("self.cleaned_data.items()", self.cleaned_data.items())
         min_prefs = main.scheduling_config.SHIFTPREFERENCE_MIN
         if num_ranked < min_prefs:
             raise ValidationError(f"Please give at least {min_prefs} preferences!")
@@ -111,82 +112,14 @@ class MakeChildCommitmentsForm(Form):
                 existing_commitment.delete()
 
 
-# class RescheduleWorktimeCommitmentForm(Form):
-
-#     def __init__(self, child, current_commitment, available_shifts, *args, **kwargs):
-#         super().__init__(*args, **kwargs)
-#         self.child = child
-#         self.current_commitment = current_commitment
-#         self.available_shifts = available_shifts
-#         # todo can't i just use pk instead of serialize?
-#         choices = ((sh.serialize(), str(sh)) for sh in available_shifts)
-#         # for choice in choices:
-#         #     print(choice)
-#         self.fields.update({'shift_occ' : ChoiceField(
-#             choices=choices,
-#             widget=RadioSelect,
-#             label="")})
-#         # print('initial: ', kwargs.get('initial'))
-#         # for ch in self.fields['shift_occ'].choices:
-#             # print(ch[0])
-#         # print(self.fields['shift_occ'].choices)
-
-
-#     def execute(self, *args, **kwargs):
-#         data = self.cleaned_data
-#         new_shiftoccurrence = main.models.ShiftOccurrence.deserialize(
-#             self.cleaned_data.get('shift_occ'))
-#         if new_shiftoccurrence.start != self.current_commitment.start or\
-#            new_shiftoccurrence.shift != self.current_commitment.shift:
-#            old_shiftoccurrence = self.current_commitment.shift_occurrence()
-#            # move this to WorktimeCommitment model
-#            # save change history for teacher, and flag as notification for teacher
-#            self.current_commitment.move_to(new_shiftoccurrence)
-#            return {'old_start' : old_start,
-#                     'new_start' : new_start}
-
-
-# class RescheduleWorktimeCommitmentForm(Form):
-
-#     def __init__(self, child, current_commitment, available_shifts, *args, **kwargs):
-#         super().__init__(*args, **kwargs)
-#         self.child = child
-#         self.current_commitment = current_commitment
-#         self.available_shifts = available_shifts
-#         # todo can't i just use pk instead of serialize?
-#         choices = ((sh.serialize(), str(sh)) for sh in available_shifts)
-#         # for choice in choices:
-#         #     print(choice)
-#         self.fields.update({'shift_occ' : ChoiceField(
-#             choices=choices,
-#             widget=RadioSelect,
-#             label="")})
-#         # print('initial: ', kwargs.get('initial'))
-#         # for ch in self.fields['shift_occ'].choices:
-#             # print(ch[0])
-#         # print(self.fields['shift_occ'].choices)
-
-
-#     def execute(self, *args, **kwargs):
-#         data = self.cleaned_data
-#         new_shift = main.models.ShiftOccurrence.deserialize(
-#             self.cleaned_data.get('shift_occ'))
-#         old_start = self.current_commitment.start
-#         if new_shift.start != old_start:
-#             # move this to WorktimeCommitment model
-#             # save change history for teacher, and flag as notification for teacher
-#             new_start = timezone.make_aware(new_shift.start)
-#             self.current_commitment.start = new_start
-#             self.current_commitment.end = new_shift.end
-#             self.current_commitment.save()
-#             return {'old_start' : old_start,
-#                     'new_start' : new_start}
 
 
 class EditWorktimeCommitmentForm(Form):
 
     def __init__(self, *args, **kwargs):
+        print(kwargs)
         self.commitment = kwargs.pop('instance')
+        self.user = kwargs.pop('user')
         self.sh_occ_deserializer = kwargs.pop('sh_occ_deserializer')
         super().__init__(*args, **kwargs)
         # html_attr = {'onclick' : 'selectOnlyThis(this)'}
@@ -215,13 +148,10 @@ class EditWorktimeCommitmentForm(Form):
            new_shiftoccurrence.shift != self.commitment.shift:
             print("commitment hmm", self.commitment.shift, self.commitment.start, self.commitment.pk)
             old_shiftoccurrence = self.commitment.shift_occurrence()
-            # move this to WorktimeCommitment model
-            # save change history for teacher, and flag as notification for teacher
-            # new_start = timezone.make_aware(new_shiftoccurrence.start)
             self.commitment.move_to(new_shiftoccurrence)
-            # self.commitment.start = new_start
-            # self.commitment.end = new_shiftoccurrence.end
             self.commitment.save()
+            main.notifications.announce_commitment_change(
+                self.user, self.commitment, old_shiftoccurrence)
             return {'old_shiftoccurrence' : old_shiftoccurrence,
                     'new_shiftoccurrence' : new_shiftoccurrence}
         
@@ -276,6 +206,7 @@ class CreateCareDayAssignmentsForm(Form):
                 careday=careday,
                 start=start,
                 end=end)
+
 
 class GenerateShiftAssignmentsForm(Form):
     worst_rank_choices = ((1, '1'), (2, '2'), (3, '3'))

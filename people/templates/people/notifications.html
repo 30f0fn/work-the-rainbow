@@ -1,0 +1,46 @@
+{% extends "authenticated.html" %}
+
+{% load people_tags %} 
+{% load rules %}
+{% load notifications_tags %}
+
+{% block content %}
+
+
+  <h1>notifications</h1>
+  
+  <h2>unread</h2>
+  <ul>
+    {% for notice in unread %}
+      <li>
+        {% if notice.description %}
+          {{notice.description}}
+        {% else %}
+          {{ notice.actor }}  
+          {{ notice.verb }}           
+        {% endif %}
+        ({{notice.timesince}} ago) 
+      </li>
+      {% empty %}
+      {# (None) #}
+    {% endfor %}
+  </ul>
+  <h2>read</h2>
+  <ul>
+    {% for notice in read %}
+      <li>
+        {% if notice.description %}
+          {{notice.description}}
+        {% else %}
+          {{ notice.actor }}  
+          {{ notice.verb }}           
+        {% endif %}
+        ({{notice.timesince}} ago)
+      </li>
+      {% empty %}
+      (None read.)
+    {% endfor %}
+  </ul>
+
+
+{% endblock %}

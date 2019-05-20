@@ -863,16 +863,17 @@ class EditWorktimeCommitmentView(ClassroomMixin,
                                for sh_occ in self.available_shifts()}
         kwargs.update({'sh_occ_deserializer' : sh_occ_deserializer,
         })
+        kwargs['user'] = self.request.user
         # kwargs.update({'commitment' : self.commitment})
         return kwargs
 
     def get_initial(self, *args, **kwargs):
         initial = super().get_initial(*args, **kwargs)
-        data = {sh_occ.serialize() :
-                getattr(sh_occ.commitment, 'child', None) == self.child 
-                for sh_occ in self.available_shifts()}
-        initial.update(data)
-        print(initial)
+        availabilities = {sh_occ.serialize() :
+                          getattr(sh_occ.commitment, 'child', None) == self.child 
+                          for sh_occ in self.available_shifts()}
+        initial.update(availabilities)
+        # print(initial)
         return initial
 
     def jump_url(self, increment):

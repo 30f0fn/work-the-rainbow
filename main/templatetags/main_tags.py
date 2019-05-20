@@ -1,6 +1,10 @@
 from django import template
 from django.utils.html import format_html, format_html_join
 
+from django.urls import reverse
+
+from notifications.templatetags import notifications_tags
+
 register = template.Library()
 
 
@@ -29,6 +33,28 @@ def model_name(model):
 @register.inclusion_tag('smart_link.html')
 def smart_link(linked_url, link_text, request):
     return locals()
+
+@register.simple_tag(takes_context=True)
+def live_notifications_smartlink(context, badge_class='live_notifications_smartlink'):
+    user = notifications_tags.user_context(context)
+    if not user:
+        return ''
+    html = "<span class='{badge_class}'>notifications ({unread})</span>".format(
+        badge_class=badge_class,
+        unread=user.notifications.unread().count(),
+    )
+    if 'notifications' not in context['request'].path:
+        html = "<a href='{link_url}'>{html}</a>".format(
+            link_url=reverse('notifications'),
+            html=html
+        )
+    html = "<li>{html}</li>".format(html=html)
+    return format_html(html)
+
+# @register.inclusion_tag('notifications_badge.html')
+# def smart_link(linked_url, link_text, request):
+#     link_text = f'notifications ({})'
+#     return locals()
 
 
 

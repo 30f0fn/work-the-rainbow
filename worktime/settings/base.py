@@ -34,7 +34,7 @@ INSTALLED_APPS = [
     'invitations',
     'main',
     'people',
-    # 'worktime',
+    'notifications',
 ]
 
 SITE_ID = 1 # for django-allauth
@@ -47,6 +47,11 @@ ACCOUNT_EMAIL_REQUIRED = True
 
 # for django-invites 
 ACCOUNT_ADAPTER = 'invitations.models.InvitationsAdapter'
+
+
+# for django-notification
+# support attaching arbitrary serialized data
+DJANGO_NOTIFICATIONS_CONFIG = { 'USE_JSONFIELD': True}
 
 
 MIDDLEWARE = [

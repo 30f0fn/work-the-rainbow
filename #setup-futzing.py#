@@ -42,4 +42,4 @@ from main.notifications import *
 
 from notifications.models import Notification
 
-# notify.send(u, recipient=[u], verb='greeted')
+notify.send(u, recipient=[u], verb='greeted', action_object=u)

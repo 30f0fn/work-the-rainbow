@@ -17,16 +17,21 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 
-from main import urls as main_urls
-from people import urls as people_urls
-
 # for django-recurrences
 from django.conf.urls import url
 from django.views.i18n import JavaScriptCatalog
 
+import notifications.urls
+
+from main import urls as main_urls
+from people import urls as people_urls
+
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    url('^inbox/notifications/',
+        include(notifications.urls, namespace='notifications')),
     # path('', )
 ]
 
