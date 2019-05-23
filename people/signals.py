@@ -2,10 +2,9 @@ from django.db.models.signals import post_save, m2m_changed
 from django.dispatch import receiver
 
 from people.models import User, Child, Classroom, RelateEmailToObject, Role
+from people.roles import *
 
-# parent_role, scheduler_role, teacher_role, admin_role, 
 
-# todo clean up access to roles
 
 @receiver(post_save, sender=User)
 def relate_user_to_object(sender, instance, created, **kwargs):
@@ -16,15 +15,33 @@ def relate_user_to_object(sender, instance, created, **kwargs):
             # print(f"related {email} to {leto.related_object}")
             leto.execute()
 
+@receiver(m2m_changed, sender=Classroom.teacher_set.through)
+def update_teachers(sender, action, pk_set, **kwargs):
+    for pk in pk_set:
+        user = User.objects.get(pk=pk)
+        TEACHER.update_membership(user)
+
+@receiver(m2m_changed, sender=Classroom.scheduler_set.through)
+def update_schedulers(sender, action, pk_set, **kwargs):
+    for pk in pk_set:
+        user = User.objects.get(pk=pk)
+        SCHEDULER.update_membership(user)
+
+@receiver(m2m_changed, sender=Child.parent_set.through)
+def update_schedulers(sender, action, pk_set, **kwargs):
+    for pk in pk_set:
+        user = User.objects.get(pk=pk)
+        PARENT.update_membership(user)
 
 
-# def updater(group, related_class):
+
+# def updater(role, related_class):
 #     def handler(sender, pk_set, **kwargs):
 #         for pk in pk_set:
 #             user = User.objects.get(pk=pk)
-#             getattr(group, 'update_membership')(user)
-#             print(f'updating {group} membership')
-#     relation_name = f'{group.name}_set'
+#             getattr(role, 'update_membership')(user)
+#             print(f'updating {role} membership')
+#     relation_name = f'{role.name}_set'
 #     rcvr = receiver(m2m_changed,
 #                     sender=getattr(related_class,relation_name).through)
 #     return rcvr(handler)
@@ -50,13 +67,6 @@ def relate_user_to_object(sender, instance, created, **kwargs):
 #         scheduler_role.update_membership(user)
 
 
-# @receiver(m2m_changed, sender=Classroom.teacher_set.through)
-# def update_teachers(sender, action, pk_set, **kwargs):
-#     # print('updating teachers')
-#     teacher_role = Role.objects.get(name='teacher')
-#     for pk in pk_set:
-#         user = User.objects.get(pk=pk)
-#         teacher_role.update_membership(user)
                 
     
 # @receiver(m2m_changed, sender=Child.parent_set.through)

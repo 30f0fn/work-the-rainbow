@@ -1,14 +1,23 @@
+{% load main_tags %}
+
 {% block calendar-nav %}
   <div id="calendar-nav">
     <nav>
       <ul>
         {% for unit_name in view.unit_dict %}
           <li>
-            {% with unit_name|add:'-classroom-calendar' as calendar_name %}
-              <a href="{% url calendar_name view.classroom.slug view.date.year view.date.month view.date.day %}">
-                {{unit_name}}
-              </a>
+            {% with unit_name|add:'-classroom-calendar' as linked_url_name %}
+              {% url linked_url_name view.classroom.slug view.date.year view.date.month view.date.day as linked_url %}
+              {% smart_link linked_url unit_name view.request %}
+              {# <a href="{% url calendar_name view.classroom.slug view.date.year view.date.month view.date.day %}"> #}
+                {# {{unit_name}} #}
+              {# </a> #}
             {% endwith %}
+            {# {% with unit_name|add:'-classroom-calendar' as calendar_name %} #}
+            {#   <a href="{% url calendar_name view.classroom.slug view.date.year view.date.month view.date.day %}"> #}
+            {#     {{unit_name}} #}
+            {#   </a> #}
+            {# {% endwith %} #}
           </li>
         {% endfor %}
         <li>

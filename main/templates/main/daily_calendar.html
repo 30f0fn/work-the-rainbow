@@ -19,11 +19,11 @@
     <ul>
       {% for commitment in commitments %}
         <li>
-          {{ commitment.start |time:"g:i" }}:
+          {{ commitment.shift.start_time |time:"g:i" }}:
           {% display_child commitment.child %}
           {# {{ commitment.child.nickname }} #}
-          {% if can_score_worktime_attendance %}
-            ({{commitment.show_completion_status}})
+          {% if commitment.has_started and can_score_worktime_attendance %}
+            {{commitment.show_completion_status}}
             {% include "commitment_scorer.html" %}
           {% endif %}
         </li>

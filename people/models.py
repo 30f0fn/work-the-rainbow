@@ -18,22 +18,6 @@ import main.models
 # todo #
 ########
 
-# todo need roles parent, teacher, etc. to track the corresponding relations to objects child, classroom, etc
-# need to retrieve all roles of user
-# have logical and database relationzations, seems weird... do i need the data realization?
-# todo need to ensure admin role automatically added
-# todo use special methods for child.add_parent(u) which sets u.is_parent=True
-
-
-# todo how to ensure these exist?
-# parent_role, _ = Role.objects.get_or_create(name='parent')
-# teacher_role, _ = Role.objects.get_or_create(name='teacher')
-# scheduler_role, _ = Role.objects.get_or_create(name='scheduler')
-# admin_role, _ = Role.objects.get_or_create(name='admin')
-
-# todo the methods user.classrooms_as_X could instead be user.active_role.classrooms(user)
-
-
 
 class Role(Group):
 
@@ -46,6 +30,12 @@ class Role(Group):
     def accepts(self, user):
         return getattr(user, self._membership_predicate())
 
+    def update_membership(self, user):
+        if self.accepts(user) and self not in user.role_set.all():
+            user.role_set.add(self)
+        if self in user.role_set.all() and not self.accepts(user):
+            user.role_set.remove(self)
+    
     class Meta:
         proxy = True
 
@@ -57,25 +47,24 @@ class User(AbstractUser):
                                     on_delete=models.PROTECT,
                                     related_name='active_for')
 
+    role_set = models.ManyToManyField(Role,
+                                      related_name='bearers')
+
     # doesn't allow teacher without classroom
     @property
     def is_teacher(self):
-        # change by adding/removing self from classroom.teacher_set for some classroon
         return self.classrooms_as_teacher().exists()
 
     @property
     def is_scheduler(self):
-        # change by adding/removing self from classroom.scheduler_set for some classroom
         return self.classrooms_as_scheduler().exists()
 
     @property
     def is_parent(self):
-        # change by adding/removing self from child.parent_set for some child
         return self.child_set.exists()
 
     @property
     def is_admin(self):
-        # change primitively
         return self.is_superuser
 
     def classrooms_as_parent(self):
@@ -102,9 +91,10 @@ class User(AbstractUser):
     # todo remove this decorator!!
     @property
     def roles(self):
+        return self.role_set.all()
         # todo must be better way to ensure role membership is correct
-        return [role for role in Role.objects.all()
-                if role.accepts(self)]
+        # return [role for role in Role.objects.all()
+        #         if role.accepts(self)]
 
     @property
     def multi_roles(self):
