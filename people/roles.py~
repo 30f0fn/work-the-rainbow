@@ -1,0 +1,2 @@
+from people.models import Role
+

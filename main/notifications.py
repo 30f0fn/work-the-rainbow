@@ -28,6 +28,16 @@ def announce_commitment_change(user,
                 verb='updated',
                 description=description)
 
+
+def solicit_shiftpreferences(user, preference_request):
+    parents = preference_request.period.classroom.parent_set.all()
+    notify.send(user,
+                recipient=parents,
+                verb='requested',
+                action_object=preference_request)
+
+
+
 # not in use
 def announce_commitment_change_request(user,
                                        change_request):
@@ -38,12 +48,5 @@ def announce_commitment_change_request(user,
                     verb='requested',
                     action_object=preference_request)
 
-# not in use
-def solicit_shiftpreferences(user, preference_request):
-    parents = preference_request.period.classroom.parent_set.all()
-    notify.send(user,
-                recipient=parents,
-                verb='requested',
-                action_object=preference_request)
 
 

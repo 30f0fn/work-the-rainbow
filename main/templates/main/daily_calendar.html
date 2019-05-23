@@ -9,7 +9,6 @@
 {% block content %}
   {% has_perm 'main.score_worktime_attendance' user classroom as can_score_worktime_attendance %}
 
-
   <h1> {{view.classroom.name}} - {{view.date|date:"l, n/j/y"}}</h1>
   {% include 'calendar-nav.html' %}
 
@@ -20,18 +19,19 @@
     <ul>
       {% for commitment in commitments %}
         <li>
-          {{ commitment.shift.start_time |time:"g:i" }}:
+          {{ commitment.start |time:"g:i" }}:
           {% display_child commitment.child %}
           {# {{ commitment.child.nickname }} #}
           {% if can_score_worktime_attendance %}
             ({{commitment.show_completion_status}})
+            {% include "commitment_scorer.html" %}
           {% endif %}
         </li>
       {% endfor %}
     </ul>
-    {% if can_score_worktime_attendance %}
-      <a href="{% url 'worktime-attendance-by-date' classroom.slug view.date.year view.date.month view.date.day %}">score attendance </a>
-    {% endif %}
+    {# {% if can_score_worktime_attendance %} #}
+      {# <a href="{% url 'worktime-attendance-by-date' classroom.slug view.date.year view.date.month view.date.day %}">score attendance </a> #}
+    {# {% endif %} #}
   {% else %}
     none today
   {% endif %}

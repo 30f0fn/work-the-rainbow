@@ -1,0 +1,43 @@
+{% extends "authenticated.html" %}
+
+{% load people_tags %}
+{% load main_tags %}
+
+{% load rules %}
+
+{% block content %}
+
+  <h1>
+    worktime attendance - {{view.classroom.slug}}, {{view.date|date:"F Y"}}
+    {# ({{view.classroom.slug}}, {{view.start.date}}) #}
+  </h1>
+
+  <nav>
+    <ul>
+      <li>
+        <a href="{{view.previous}}">
+          &lt;  
+        </a>
+      </li>
+      <li>
+        <a href="{{view.next}}"> 
+          &gt;   
+        </a>
+      </li>
+    </ul>
+  </nav>
+
+<form action="{{request.path}}" method="post">
+<table>
+  {% csrf_token %}
+    {{ form.as_table }}
+    
+</table>
+<br>
+<input type="submit" value="Submit">
+</form>
+
+
+
+{% endblock content %}
+  

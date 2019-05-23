@@ -14,6 +14,7 @@ from django.views.generic.detail import SingleObjectMixin
 from django.utils import timezone
 from django.http import HttpResponseRedirect
 
+
 from rules.contrib.views import PermissionRequiredMixin
 
 from main import rules, scheduling_config
@@ -58,18 +59,20 @@ class UpcomingEventsMixin(object):
 
 class DateMixin(object):
     
-    # todo this is called about 748 times per request
     def date(self):
-        self.is_dated = 'day' in self.kwargs
-        # print(self.kwargs)
-        try:
-            self._date = datetime.date(self.kwargs.get('year'),
-                                       self.kwargs.get('month'),
-                                       self.kwargs.get('day'))
-            print("got date", self._date)
-        except TypeError:
-            # print("could not get date")
-            self._date = timezone.now().date()
+        # if no year is supplied, return actual date
+        # if year but no month or day, return first date of current month
+        # if year and month but no day, return first date of specified month
+        date = getattr(self, '_date', None)
+        if not date:
+            if self.kwargs.get('year', None):
+                year = self.kwargs.get('year', timezone.now().year)
+                month = self.kwargs.get('month', 1)
+                day = self.kwargs.get('day', 1)
+                date = datetime.date(year, month, day)
+            else:
+                date = timezone.localdate()
+            self._date = date
         return self._date
 
     @property
@@ -218,6 +221,25 @@ class PeriodFromDateMixin(object):
 
 
 
+
+class ScoreWorktimeAttendanceMixin(object):
+    
+    def post(self, *args, **kwargs):
+        reverse_vals = {"completed" : True,
+                        "missed" : False,
+                        "unmark" : None}
+        for wtc in self.get_commitments():
+            if f"wtc-{wtc.pk}" in self.request.POST:
+                print(f"found wtc-{wtc.pk} in request.POST")
+                val = self.request.POST[f"wtc-{wtc.pk}"]
+                print(val)
+                wtc.completed = reverse_vals.get(val, wtc.completed)
+                wtc.save()
+        # todo below is wrong
+        return self.get(*args, **kwargs)
+        
+
+
 ############################
 # classroom calendar views #
 ############################
@@ -226,15 +248,16 @@ class PeriodFromDateMixin(object):
 class DailyClassroomCalendarView(ClassroomMixin,
                                  # HolidayMixin,
                                  CalendarMixin,
+                                 ScoreWorktimeAttendanceMixin,
                                  TemplateView):
     template_name = 'daily_calendar.html'
     unit_name = 'daily'
     view_name = 'daily-classroom-calendar'
 
-    def commitments(self):
+    def get_commitments(self):
         return WorktimeCommitment.objects.filter(
             start__date=self.date(),
-            child__classroom=self.classroom)
+            child__classroom=self.classroom).order_by('start')
 
     def caredays(self):
         # todo FILTER BY CLASSROOM!
@@ -251,7 +274,7 @@ class DailyClassroomCalendarView(ClassroomMixin,
                 'date' : self.date(),
                 'classroom' : self.classroom,
                 # 'worktimes' : Shift.
-                'commitments' : self.commitments(),
+                'commitments' : self.get_commitments(),
         }
         context.update(data)
         return context
@@ -272,6 +295,7 @@ class WeeklyClassroomCalendarView(ClassroomMixin,
                                   ClassroomWorktimeMixin,
                                   # HolidayMixin,
                                   CalendarMixin,
+                                  ScoreWorktimeAttendanceMixin,
                                   TemplateView):
     template_name = 'weekly_calendar.html'
     unit_name = 'weekly' # for CalendarMixin
@@ -288,6 +312,11 @@ class WeeklyClassroomCalendarView(ClassroomMixin,
     def end_date(self):
         return self.start_date + self.num_weeks * datetime.timedelta(days=7)
 
+    def get_commitments(self):
+        return WorktimeCommitment.objects.filter(
+            child__classroom = self.classroom,
+            start__range = (self.start_date,
+                            self.end_date)).order_by('-start')
 
 
 class MonthlyCalendarMixin(object):
@@ -301,7 +330,6 @@ class MonthlyCalendarMixin(object):
                 if week[0].month == self.date().month
                 or week[4].month == self.date().month]
 
-    #todo these are redundant
     @property
     def start_date(self):
         return self.weeks()[0][0]
@@ -333,7 +361,7 @@ class MonthlyClassroomCalendarView(MonthlyCalendarMixin,
 class RedirectToHomeView(RedirectView):
     def get_redirect_url(self, **kwargs):
         user = self.request.user
-        if user.is_authenticated:
+        if getattr(user, 'active_role', None):
             return reverse(user.active_role.get_absolute_url())
         else:
             return reverse('splash')
@@ -1140,94 +1168,126 @@ class FourWeekMakeWorktimeCommitmentsView(MonthlyCalendarMixin,
 #####################
 
 
-class BaseWorktimeAttendanceView(ClassroomEditMixin,
-                                 FormView):
+class _BaseWorktimeAttendanceView(ClassroomEditMixin,
+                                  ScoreWorktimeAttendanceMixin,
+                                  TemplateView):
 
     # form_class = main.forms.WorktimeAttendanceForm    
-    template_name = 'score_attendance.html'
+    template_name = 'worktime_attendance.html'
     permission_required = 'main.score_worktime_attendance'
 
-    def get_form_kwargs(self, *args, **kwargs):
-        kwargs = super().get_form_kwargs(*args, **kwargs)
-        kwargs.update({'commitments' : self.get_commitments()})
-        return kwargs
-
-    def get_initial(self, *args, **kwargs):
-        initial = super().get_initial(*args, **kwargs)
-        data = {str(commitment.pk) : commitment.completed
-                for commitment in self.get_commitments()}
-        initial.update(data)
-        return initial
-
-    def form_valid(self, form):
-        form.save()
-        # if revisions:
-        return super().form_valid(form)
-
-
-
-
-class WorktimeAttendanceByDateView(DateIntervalMixin,
-                                   BaseWorktimeAttendanceView):
-
-    form_class = main.forms.WorktimeAttendanceForm
-
-    def get_success_url(self):
-        kwargs = {'classroom_slug' : self.classroom.slug}
-        if self.is_dated:
-            kwargs.update({'year' : self.start.year,
-                           'month' : self.start.month,
-                           'day' : self.start.day})
-        return reverse('daily-classroom-calendar',
-                       kwargs=kwargs)
+    # todo need end_date(self):
 
     def get_commitments(self):
         return WorktimeCommitment.objects.filter(
-            child__classroom=self.classroom,
-            start__date=self.date())
+            child__classroom = self.classroom)
+
+    def get_success_url(self, *args, **kwargs):
+        return self.request.path
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+        context["commitments"] = self.get_commitments()
+        return context
+
+    # def get_form_kwargs(self, *args, **kwargs):
+    #     kwargs = super().get_form_kwargs(*args, **kwargs)
+    #     kwargs.update({'commitments' : self.get_commitments()})
+    #     return kwargs
+
+    # def get_initial(self, *args, **kwargs):
+    #     initial = super().get_initial(*args, **kwargs)
+    #     data = {str(commitment.pk) : commitment.completed
+    #             for commitment in self.get_commitments()}
+    #     initial.update(data)
+    #     return initial
+
+    # def form_valid(self, form):
+    #     changed = form.save()
+    #     for pk_str in changed:
+    #         wtc = WorktimeCommitment.objects.get(pk=int(pk_str))
+    #         msg = f"Marked {wtc.child}'s {wtc} worktime attendance as {wtc.show_completion_status()}."
+    #         messages.add_message(self.request, messages.SUCCESS, msg)
+    #     # if revisions:
+    #     return super().form_valid(form)
 
 
-class WorktimeAttendanceByChildView(ChildMixin,
-                                    BaseWorktimeAttendanceView):
 
-    form_class = main.forms.WorktimeAttendanceForm
+class WorktimeAttendanceByMonthView(MonthlyCalendarMixin,
+                                    CalendarMixin,
+                                    _BaseWorktimeAttendanceView):
 
-    def period(self):
-        kwargs=self.kwargs
-        return Period.objects.get(pk=int(self.kwargs.get('period_pk')))
-
-    def get_success_url(self):
-        kwargs = {'child_slug' : self.child.slug}
-        return reverse('child-profile',
-                       kwargs=kwargs)
-
-    def get_commitments(self):
-        return WorktimeCommitment.objects.filter(
-            child=self.child,
-            start__range=(self.period().start,
-                                self.period().end))
-
-
-class WorktimeAttendanceByWeekView(DateIntervalMixin,
-                                   BaseWorktimeAttendanceView):
-
-    form_class = main.forms.WorktimeAttendanceForm
-    
-    @property
-    def end_date(self):
-        return self.start_date + datetime.timedelta(days=7)
-
-    def get_success_url(self):
-        kwargs = {'classroom_slug' : self.classroom.slug}
-        if self.is_dated:
-            kwargs.update({'year' : self.start.year,
-                           'month' : self.start.month,
-                           'day' : self.start.day})
-        return reverse('weekly-classroom-calendar',
-                       kwargs=kwargs)
+    view_name = 'worktime-attendance-by-month'
 
     def get_commitments(self):
-        return WorktimeCommitment.objects.filter(
-            child__classroom=self.classroom,
-            start__date__range=(self.start_date,
-                                self.end_date))
+        return super().get_commitments().filter(
+            start__month=(self.date().month))
+
+    def jump_url(self, increment):
+        new_date = self.jump_date(increment)
+        kwargs = self.kwargs.copy()
+        kwargs.update({
+                 'year':new_date.year, 'month':new_date.month, 'day':new_date.day
+        })
+        return reverse_lazy(self.view_name,
+                            kwargs=kwargs)
+
+
+
+ 
+
+class WorktimeAttendanceByMonthView(MonthlyCalendarMixin,
+                                    CalendarMixin,
+                                    _BaseWorktimeAttendanceView):
+
+    view_name = 'worktime-attendance-by-month'
+
+    def get_commitments(self):
+        return super().get_commitments().filter(
+            start__month=(self.date().month)).order_by('-start')
+
+    def jump_url(self, increment):
+        new_date = self.jump_date(increment)
+        kwargs = self.kwargs.copy()
+        kwargs.update({
+                 'year':new_date.year, 'month':new_date.month, 'day':new_date.day
+        })
+        return reverse_lazy(self.view_name,
+                            kwargs=kwargs)
+
+
+
+
+# class WorktimeAttendanceByDateView(DateIntervalMixin,
+#                                    BaseWorktimeAttendanceView):
+
+#     def get_commitments(self):
+#         return WorktimeCommitment.objects.filter(
+#             child__classroom=self.classroom,
+#             start__date=self.date())
+
+
+# class WorktimeAttendanceByChildView(ChildMixin,
+#                                     _BaseWorktimeAttendanceView):
+
+#     # def period(self):
+#         # kwargs=self.kwargs
+#         # return Period.objects.get(pk=int(self.kwargs.get('period_pk')))
+
+#     def get_commitments(self):
+#         return super().get_commitments().filter(
+#             child=self.child,
+#             start__range=(self.date())
+#         )
+
+
+
+
+
+
+
+
+# for each commitment wtc returned in view's get_commitments' methodd:
+    # support "mark as complete", "mark as incomplete", "unmark"
+    # do this 
+

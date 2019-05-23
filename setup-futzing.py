@@ -11,6 +11,9 @@ from main.scheduler import *
 from main.forms import *
 import datetime 
 from main.scheduler import *
+from main.notifications import *
+from notifications.models import Notification
+
 
 user = User.objects.first()
 u = User.objects.get(username='max78')
@@ -38,8 +41,5 @@ a_week = datetime.timedelta(days=7)
 lrb = Classroom.objects.get(slug='lrb')
 
 
-from main.notifications import *
 
-from notifications.models import Notification
 
-# notify.send(u, recipient=[u], verb='greeted')

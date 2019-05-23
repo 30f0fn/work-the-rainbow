@@ -17,10 +17,15 @@
           {% for shift in shifts %}  
             <li> 
               {{shift.start |time:"g:i"}}:
-              {{shift.commitment.child | default_if_none:""}}
-              {% if shift.commitment and can_score_worktime_attendance %}
-                ({{shift.commitment.show_completion_status}})
-              {% endif %}
+              {% with shift.commitment as commitment %}
+                {% if commitment %}
+                  {{commitment.child}}
+                  {% if commitment.has_started and can_score_worktime_attendance%}
+                    {{shift.commitment.show_completion_status}}
+                    {% include 'commitment_scorer.html' %}
+                  {% endif %}
+                {% endif %}
+              {% endwith %}
             </li> 
           {% endfor %}  
         </ul>
@@ -28,8 +33,5 @@
     {% endfor %}
   </ul>
 
-    {% if can_score_worktime_attendance %}
-      <a href="{% url 'worktime-attendance-by-week' classroom.slug view.date.year view.date.month view.date.day %}">score attendance </a>
-    {% endif %}
 
 {% endblock content %}

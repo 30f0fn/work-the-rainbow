@@ -1,0 +1,15 @@
+            <form method="post">
+              {% csrf_token %}
+              {% if commitment.completed == True or commitment.completed == False %}
+                <button type="submit" name="wtc-{{commitment.pk}}" value="unmark">
+                  unmark
+                </button>
+              {% else %}
+                <button type="submit" name="wtc-{{commitment.pk}}" value="completed">
+                  completed
+                </button>
+                <button type="submit" name="wtc-{{commitment.pk}}" value="missed">
+                  missed
+                </button>
+              {% endif %}
+            </form>

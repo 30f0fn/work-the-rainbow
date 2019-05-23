@@ -53,7 +53,7 @@
   <body>
 
     <header style="margin-top:-20px;" >
-      {% if user.is_authenticated and user.roles %}
+      {% if user.is_authenticated and user.active_role %}
       {% include 'base_nav.html' %}
       {% endif %}
 
@@ -64,12 +64,14 @@
     <main style="margin-top:-60px;" >
 
       {% if messages %}
-      <div id="messages">
+        <div id="messages">
+          <ul>
         {% for message in messages %}
-        <p{% if message.tags %} class="{{ message.tags }}"{% endif %}>
+        <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>
           {{ message }}
-        </p>
+        </li>
         {% endfor %}
+        </ul>
       </div>
       {% endif %}
 

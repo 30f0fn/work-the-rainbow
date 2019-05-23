@@ -9,6 +9,10 @@
   {% with classroom.slug|add:' roster' as link_text %}
     {% smart_link linked_url link_text view.request %}
   {% endwith %}
+  {% url 'worktime-attendance' classroom.slug as linked_url %}
+  {% with classroom.slug|add:' worktimes' as link_text %}
+    {% smart_link linked_url link_text view.request %}
+  {% endwith %}
 {% endfor %}
 
 {#     {% if linked_url in request.path %} #}

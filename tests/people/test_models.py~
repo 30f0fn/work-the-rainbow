@@ -1,0 +1,29 @@
+from django.test import TestCase
+from people.models import *
+from django.utils import timezone
+from django.core.urlresolvers import reverse
+
+"""
+# models test
+class ExampleTest(TestCase):
+
+    def create_whatever(self, title="only a test", body="yes, this is only a test"):
+        return Whatever.objects.create(title=title, body=body, created_at=timezone.now())
+
+    def test_whatever_creation(self):
+        w = self.create_whatever()
+        self.assertTrue(isinstance(w, Whatever))
+        self.assertEqual(w.__unicode__(), w.title)
+"""
+
+"""
+upon adding user u to teachers of classroom, u.is_teacher should return True
+"""
+class UserIsTeacherTest(TestCase):
+    def test_user_is_teacher(self):
+        classroom = Classroom.objects.create(name="test classroom",
+                                             slug="tc")
+        user = User.objects.create(username="test_user")
+        classroom.teacher_set.add(user)
+        self.assertTrue(user.is_teacher)
+

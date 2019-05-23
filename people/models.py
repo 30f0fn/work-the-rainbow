@@ -25,24 +25,11 @@ import main.models
 # todo use special methods for child.add_parent(u) which sets u.is_parent=True
 
 
-"""
-role re-implementation
-
-roles of a user are determined by other database entries
-mainly needed for perspective navigator - want to return list of roles of given user, to generate series of links
-also need to maintain one role as the 'active' one for a given user, defining current perspective (maybe this should be recorded as a session variable?)
-
-without many-to-many relation to roles, how to determine that a user has several roles?  
-
-is it possible to use groups instead?
-"""
-
 # todo how to ensure these exist?
 # parent_role, _ = Role.objects.get_or_create(name='parent')
 # teacher_role, _ = Role.objects.get_or_create(name='teacher')
 # scheduler_role, _ = Role.objects.get_or_create(name='scheduler')
 # admin_role, _ = Role.objects.get_or_create(name='admin')
-
 
 # todo the methods user.classrooms_as_X could instead be user.active_role.classrooms(user)
 
@@ -56,26 +43,11 @@ class Role(Group):
     def _membership_predicate(self):
         return f'is_{self.name}'
 
-    def _accepts(self, user):
-        return getattr(user, self._membership_predicate())
-
-    # todo seems sketchy
-    def update_membership(self, user):
-        accepts = self._accepts(user)
-        if accepts:
-            self.user_set.add(user)
-        else:
-            self.user_set.remove(user)
-        self.save()
-        return accepts
-
     def accepts(self, user):
         return getattr(user, self._membership_predicate())
-    
 
     class Meta:
         proxy = True
-
 
 
 class User(AbstractUser):
@@ -85,21 +57,25 @@ class User(AbstractUser):
                                     on_delete=models.PROTECT,
                                     related_name='active_for')
 
-    # may have teacher without classroom
+    # doesn't allow teacher without classroom
     @property
     def is_teacher(self):
+        # change by adding/removing self from classroom.teacher_set for some classroon
         return self.classrooms_as_teacher().exists()
 
     @property
     def is_scheduler(self):
+        # change by adding/removing self from classroom.scheduler_set for some classroom
         return self.classrooms_as_scheduler().exists()
 
     @property
     def is_parent(self):
+        # change by adding/removing self from child.parent_set for some child
         return self.child_set.exists()
 
     @property
     def is_admin(self):
+        # change primitively
         return self.is_superuser
 
     def classrooms_as_parent(self):
@@ -131,14 +107,16 @@ class User(AbstractUser):
                 if role.accepts(self)]
 
     @property
-    def has_multi_roles(self):
-        return len(list(self.roles)) > 1
+    def multi_roles(self):
+        roles = self.roles
+        return roles if len(roles) > 1 else []
 
     def save(self, *args, **kwargs):
         if not self.pk:
             super().save(*args, **kwargs)
-        if not self.active_role:
+        if not self.active_role and self.roles:
             self.active_role = self.roles[0]
+            # todo what if user has no roles?
         super().save(*args, **kwargs)
 
     # @property
@@ -160,10 +138,12 @@ class Classroom(NamingMixin, models.Model):
                                         related_name='_classrooms_as_scheduler')
     # solicits_preferences = models.BooleanField(default=True)
 
+    # todo needed?
     @property
     def parents(self):
         return User.objects.filter(child__classroom=self)
 
+    #todo needed?
     def worktime_commitments_by_date(self, date):
         return main.models.WorktimeCommitment.objects.filter(
             child__classroom=self,

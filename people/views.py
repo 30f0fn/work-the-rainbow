@@ -315,19 +315,18 @@ class NotificationsView(TemplateView):
 
     def get(self, *args, **kwargs):
         def mark_as_read(response):
-            context = self.get_context_data(*args, **kwargs)
-            context['unread'].mark_all_as_read
+            context = self.get_context_data(**kwargs)
+            context['unread'].mark_all_as_read()
         response = super().get(*args, **kwargs)
         response.add_post_render_callback(mark_as_read)
         return response
 
-    def get_context_data(self, *args, **kwargs):
-        context = super().get_context_data(*args, **kwargs)
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
         unread = self.request.user.notifications.unread()
         read = self.request.user.notifications.read()
         context.update({'unread' : unread,
                         'read' : read})
-        unread.mark_all_as_read()
         return context
 
 

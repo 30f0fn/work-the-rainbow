@@ -1,0 +1,52 @@
+{% extends "authenticated.html" %}
+
+{% load people_tags %}
+{% load main_tags %}
+
+{% load rules %}
+
+{% block content %}
+
+  <h1>
+    worktime attendance - {{view.classroom.slug}}, {{view.date|date:"F Y"}}
+    {# ({{view.classroom.slug}}, {{view.start.date}}) #}
+  </h1>
+
+  <nav>
+    <ul>
+      <li>
+        <a href="{{view.previous}}">
+          &lt;  
+        </a>
+      </li>
+      <li>
+        <a href="{{view.next}}"> 
+          &gt;   
+        </a>
+      </li>
+    </ul>
+  </nav>
+
+{% has_perm 'main.score_worktime_attendance' user classroom as can_score_worktime_attendance %}
+
+  <table>
+    {% for commitment in commitments %}
+      <tr>
+        <td>
+          {{commitment.child}}, {{commitment}}
+        </td>
+        {% if commitment.has_started and can_score_worktime_attendance %}
+        <td> 
+          {{commitment.show_completion_status}} 
+        </td> 
+          <td>
+            {% include "commitment_scorer.html" %}
+          </td>
+        {% endif %}
+      </tr>
+    {% endfor %}
+  </table>
+
+
+{% endblock content %}
+  

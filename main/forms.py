@@ -166,20 +166,16 @@ class WorktimeAttendanceForm(Form):
         # print(f"FORM_KWARGS : {kwargs}")
         self.commitments = commitments
         for commitment in self.commitments:
-            dtf = commitment.start.strftime('%-m/%-d/%y, %-I:%M')
             self.fields[str(commitment.pk)] = NullBooleanField(
-                label=f"{commitment.child.nickname}, {dtf}"
-            # widget=RadioSelect(choices=NA_YES_NO)
+                label=f"{commitment.child.nickname}, {commitment}",
             )
 
     def save(self):
-        # print("FORM SAVE METHOD CALLED!")
-        # raise Exception("form save method called")
-        #todo message if changed
         for commitment in self.commitments:
             if str(commitment.pk) in self.changed_data:
                 commitment.completed = self.cleaned_data[str(commitment.pk)]
                 commitment.save()
+        return self.changed_data
 
 
 
@@ -250,4 +246,6 @@ class CareDayAssignmentUpdateForm(ModelForm):
     class Meta:
         model = main.models.Period
         fields = ['start', 'end']
+    
+
     

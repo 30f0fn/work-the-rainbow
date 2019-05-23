@@ -107,7 +107,8 @@ class Event(models.Model):
 
         # else:
             # raise
-            
+    def has_started(self):
+        return timezone.now() > self.start
 
     def save(self, *args, **kwargs):
         self.end = self.end or self.start.replace(hours=23, minutes=59)
@@ -570,7 +571,7 @@ class WorktimeCommitment(Event):
 
     completion_status_dict = {True : "complete",
                               False : "missed",
-                              None : "unscored"}
+                              None : ""}
 
     def show_completion_status(self):
         return self.completion_status_dict[self.completed]
@@ -813,6 +814,7 @@ class ShiftPreference(models.Model):
     class Meta:
         unique_together = (("child", "shift", "period"), )
         ordering = ('period', 'rank', 'shift')
+
 
 class ShiftAssignmentCollectionManager(models.Manager):
 

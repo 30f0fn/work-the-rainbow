@@ -1,6 +1,7 @@
 {% load people_tags %}
 {% load main_tags %}
 
+{# assumes active_role is not null, as required in base.html #}
 
 <div id="auth-panel">
   <nav>
@@ -11,8 +12,8 @@
       </li>
       {# todo reduce db hits here #}
       {% with user.active_role as active_role %}
-        {% if user.has_multi_roles %}
-          {% for role in user.roles %}
+        {% with user.multi_roles as multi_roles %}
+          {% for role in multi_roles %}
             {% if role != active_role %}
               {% with role.name as role_name %}
                 <li>
@@ -25,7 +26,6 @@
               </li>
             {% endif %}
           {% endfor %}
-        {% endif %}
     </ul>
     {# <br> #}
 
@@ -45,6 +45,7 @@
         {% endwith %}
       {% endif %}
     {% endwith %}
+  {% endwith %}
     </ul>
   </nav>
 </div>
