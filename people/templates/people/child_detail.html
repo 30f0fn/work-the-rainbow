@@ -8,7 +8,7 @@
 
   {% has_perm 'people.edit_child' user child as edit_child %}  
   {% has_perm 'people.edit_classroom' user child.classroom as edit_classroom %}  
-  {% has_perm 'main.score_worktime_attendance' user child.classroom as can_score_worktime_attendance %}  
+  {# {% has_perm 'main.score_worktime_attendance' user child.classroom as can_score_worktime_attendance %}   #}
 
   {% with object as child %}
     <h1>{{child}}</h1>
@@ -99,17 +99,17 @@
             {% for commitment in commitments %}
               <li>
                 {{commitment.start | date:"F d"}}, {{commitment.start | time:"g:i"}}
-                {% if can_score_worktime_attendance and commitment.completed != None %}
-                  ({{commitment.show_completion_status}})
-                {% endif %}
+                {# {% if can_score_worktime_attendance and commitment.completed != None %} #}
+                  {# ({{commitment.show_completion_status}}) #}
+                {# {% endif %} #}
               </li>
             {% endfor %}
           </ol>
-          {% if can_score_worktime_attendance %}
-            <a href="{% url 'worktime-attendance-by-child' view.child.classroom.slug view.child.slug period.pk %}">
-              score attendance
-            </a>
-          {% endif %}
+          {# {% if can_score_worktime_attendance %} #}
+          {#   <a href="{% url 'worktime-attendance-by-child' view.child.classroom.slug view.child.slug period.pk %}"> #}
+          {#     score attendance #}
+          {#   </a> #}
+          {# {% endif %} #}
         </li>
       {% endfor %}
     </ul>
