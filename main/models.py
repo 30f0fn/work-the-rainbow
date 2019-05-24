@@ -101,8 +101,8 @@ class Event(models.Model):
 
     @property
     def date(self):
-        assert self.end.date() == self.start.date(), \
-            f"Event occupies multiple dates, {self.start} and {self.end}"
+        # assert self.end.date() == self.start.date(), \
+            # f"Event occupies multiple dates, {self.start} and {self.end}"
         return self.start.date()
 
         # else:
