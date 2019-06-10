@@ -245,6 +245,13 @@ class ScoreWorktimeAttendanceMixin(object):
 ############################
 
 
+class DefaultCalendarView(RedirectView):
+    def get_redirect_url(self, **kwargs):
+        return reverse('weekly-classroom-calendar',
+                       kwargs = kwargs
+        )
+
+
 class DailyClassroomCalendarView(ClassroomMixin,
                                  # HolidayMixin,
                                  CalendarMixin,
@@ -361,8 +368,8 @@ class MonthlyClassroomCalendarView(MonthlyCalendarMixin,
 class RedirectToHomeView(RedirectView):
     def get_redirect_url(self, **kwargs):
         user = self.request.user
-        if getattr(user, 'active_role', None):
-            return reverse(user.active_role.get_absolute_url())
+        if user.is_authenticated:
+            return user.active_role().get_absolute_url()
         else:
             return reverse('splash')
 
@@ -374,7 +381,7 @@ class SplashView(TemplateView):
 class RoleHomeMixin(LoginRequiredMixin):
 
     def get(self, *args, **kwargs):
-        self.request.user.active_role = self.role
+        self.request.user.update_active_role(self.role)
         self.request.user.save()
         return super().get(*args, **kwargs)
 
@@ -421,7 +428,8 @@ class TeacherHomeView(RoleHomeMixin,
 
     # todo bug breaks if user teaches in multiple classrooms
     def get_redirect_url(self, *args, **kwargs):
-        classrooms = self.request.user.classrooms_as_teacher()
+        classrooms = Classroom.objects.filter(
+            teacher_set=self.request.user)
         if classrooms.count() >= 1:
             return reverse('daily-classroom-calendar',
                            kwargs = {'classroom_slug' : classrooms.first().slug})
@@ -714,12 +722,7 @@ class SchedulerHomeView(RoleHomeMixin,
 
     # todo bug breaks if user schedules in multiple classrooms
     def get_redirect_url(self, *args, **kwargs):
-        classrooms = self.request.user.classrooms_as_scheduler()
-        if classrooms.count() >= 1:
-            return reverse('scheduler-calendar',
-                           kwargs = {'classroom_slug' : classrooms.first().slug})
-        else:
-            return reverse('profile')
+        return reverse('profile')
 
 
 # class SchedulerHomeView(RoleHomeMixin,
@@ -1189,51 +1192,6 @@ class _BaseWorktimeAttendanceView(ClassroomEditMixin,
         context = super().get_context_data(*args, **kwargs)
         context["commitments"] = self.get_commitments()
         return context
-
-    # def get_form_kwargs(self, *args, **kwargs):
-    #     kwargs = super().get_form_kwargs(*args, **kwargs)
-    #     kwargs.update({'commitments' : self.get_commitments()})
-    #     return kwargs
-
-    # def get_initial(self, *args, **kwargs):
-    #     initial = super().get_initial(*args, **kwargs)
-    #     data = {str(commitment.pk) : commitment.completed
-    #             for commitment in self.get_commitments()}
-    #     initial.update(data)
-    #     return initial
-
-    # def form_valid(self, form):
-    #     changed = form.save()
-    #     for pk_str in changed:
-    #         wtc = WorktimeCommitment.objects.get(pk=int(pk_str))
-    #         msg = f"Marked {wtc.child}'s {wtc} worktime attendance as {wtc.show_completion_status()}."
-    #         messages.add_message(self.request, messages.SUCCESS, msg)
-    #     # if revisions:
-    #     return super().form_valid(form)
-
-
-
-class WorktimeAttendanceByMonthView(MonthlyCalendarMixin,
-                                    CalendarMixin,
-                                    _BaseWorktimeAttendanceView):
-
-    view_name = 'worktime-attendance-by-month'
-
-    def get_commitments(self):
-        return super().get_commitments().filter(
-            start__month=(self.date().month))
-
-    def jump_url(self, increment):
-        new_date = self.jump_date(increment)
-        kwargs = self.kwargs.copy()
-        kwargs.update({
-                 'year':new_date.year, 'month':new_date.month, 'day':new_date.day
-        })
-        return reverse_lazy(self.view_name,
-                            kwargs=kwargs)
-
-
-
  
 
 class WorktimeAttendanceByMonthView(MonthlyCalendarMixin,

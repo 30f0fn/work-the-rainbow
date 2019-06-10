@@ -17,8 +17,12 @@ EMAIL_HOST_PASSWORD=os.environ.get("EMAIL_HOST_PASSWORD")
 DEBUG = True
 TEMPLATE_DEBUG = True
 
+
 INSTALLED_APPS += ['debug_toolbar']
 MIDDLEWARE += ['debug_toolbar.middleware.DebugToolbarMiddleware']
+
+# TEST_RUNNER = 'django_nose.NoseTestSuiteRunner'
+
 
 STATIC_URL = '/static/'
 PREPEND_WWW = False
@@ -48,7 +52,7 @@ GOOGLE_OAUTH_CLIENT_SECRET = 'vQdOqG8FIK4nCg8DPM0UAOL7'
 DATABASES = {
     'default': {
         'ENGINE' : 'django.db.backends.postgresql',
-        'NAME' : 'worktime',
+        'NAME' : 'worktime-5-24-19',
         'USER' : 'mw',
         'PASSWORD' : '30f0fnts',
         'HOST' : 'localhost',

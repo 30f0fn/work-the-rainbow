@@ -10,7 +10,7 @@
     {% if user.is_parent %}
       <li>children:
         <ul>
-          {% for child in object.children %}
+          {% for child in object.child_set.all %}
             <li>{{child.short_name}}, {{child.classroom}}
           {% endfor %}
         </ul>

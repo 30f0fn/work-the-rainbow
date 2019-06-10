@@ -16,10 +16,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
-
-# for django-recurrences
 from django.conf.urls import url
-from django.views.i18n import JavaScriptCatalog
 
 import notifications.urls
 
@@ -32,7 +29,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     url('^inbox/notifications/',
         include(notifications.urls, namespace='notifications')),
-    # path('', )
+    # path('', ) 
 ]
 
 urlpatterns += people_urls.urlpatterns

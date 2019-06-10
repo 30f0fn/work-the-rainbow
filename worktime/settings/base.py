@@ -26,6 +26,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.sites', # required by django-allauth
     'django.contrib.staticfiles',
+    # 'django-nose',
     'allauth',
     'allauth.account',
     'allauth.socialaccount',

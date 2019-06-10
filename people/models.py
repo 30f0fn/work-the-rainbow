@@ -21,20 +21,38 @@ import main.models
 
 class Role(Group):
 
-    def get_absolute_url(self):
+    @staticmethod
+    def _update_all_membership():
+        for role in Role.objects.all():
+            for user in User.objects.all():
+                role.update_membership(user)
+
+    def _url_name(self):
         return self.name+'-home'
 
+    def get_absolute_url(self):
+        return reverse(self._url_name())
+
+
     def _membership_predicate(self):
-        return f'is_{self.name}'
+        return f'_is_{self.name}'
 
+    # this calls the definition of belonging to a particular role
+    # its return value is maintained by presence of role in user.roles
     def accepts(self, user):
-        return getattr(user, self._membership_predicate())
+        return getattr(user, self._membership_predicate())()
 
+    # update cache to match normative definitions of role membership
     def update_membership(self, user):
-        if self.accepts(user) and self not in user.role_set.all():
-            user.role_set.add(self)
-        if self in user.role_set.all() and not self.accepts(user):
-            user.role_set.remove(self)
+        if self.accepts(user) and self not in user._role_set.all():
+            user._role_set.add(self)
+            from people.roles import NULL_ROLE
+            if user.active_role() == NULL_ROLE:
+                user.update_active_role(self)
+        if self in user._role_set.all() and not self.accepts(user):
+            user._role_set.remove(self)
+            if user._active_role == self and user.roles():
+                user.update_active_role(user.roles()[0])
     
     class Meta:
         proxy = True
@@ -43,75 +61,90 @@ class Role(Group):
 class User(AbstractUser):
 
     # todo what if this is null? yuck
-    active_role = models.ForeignKey(Role, null=True,
+    # make model field private, use getters and setters
+    # have getter return default role (or something) if field is null
+    _active_role = models.ForeignKey(Role, null=True,
                                     on_delete=models.PROTECT,
                                     related_name='active_for')
 
-    role_set = models.ManyToManyField(Role,
-                                      related_name='bearers')
+    _role_set = models.ManyToManyField(Role,
+                                      related_name='_bearers')
+    
+    # these are the four normative definitions of role membership
+    def _is_teacher(self):
+        return self._classrooms_as_teacher.all()
 
-    # doesn't allow teacher without classroom
-    @property
-    def is_teacher(self):
-        return self.classrooms_as_teacher().exists()
+    def _is_scheduler(self):
+        return self._classrooms_as_scheduler.all()
 
-    @property
-    def is_scheduler(self):
-        return self.classrooms_as_scheduler().exists()
-
-    @property
-    def is_parent(self):
+    def _is_parent(self):
         return self.child_set.exists()
 
-    @property
-    def is_admin(self):
-        return self.is_superuser
+    def _is_admin(self):
+        from people.roles import ADMIN
+        return ADMIN in self.roles()
 
-    def classrooms_as_parent(self):
+    # these are the public, cached role possession access methods
+    def is_teacher(self):
+        from people.roles import TEACHER
+        return TEACHER in self.roles()
+
+    def is_parent(self):
+        from people.roles import PARENT
+        return PARENT in self.roles()
+
+    @property
+    def _classrooms_as_parent(self):
         return Classroom.objects.filter(
             child__parent_set=self).distinct()
 
-    def classrooms_as_admin(self):
+    @property
+    def _classrooms_as_admin(self):
         return Classroom.objects.all()
 
-    def classrooms_as_teacher(self):
-        return self._classrooms_as_teacher.all()
-
-    def classrooms_as_scheduler(self):
-        return self._classrooms_as_scheduler.all()
-
     @property
+    def _classrooms_as_null(self):
+        return Classroom.objects.none()
+
+
     def classrooms(self):
-        return getattr(self, f'classrooms_as_{self.active_role.name}')()
+        role = self.active_role()
+        return getattr(self, f'_classrooms_as_{role.name}').all()
 
-    @property
-    def children(self):
-        return self.child_set.all()
+    def make_admin(self):
+        from people.roles import ADMIN
+        self._role_set.add(ADMIN)
+        self.update_active_role(ADMIN)
+        
+    def active_role(self):
+        try:
+            return self._active_role or self.roles()[0]
+        except IndexError:
+            from people.roles import NULL_ROLE
+            return NULL_ROLE
 
-    # todo remove this decorator!!
-    @property
+    def update_active_role(self, role):
+        assert role in self.roles()
+        self._active_role = role
+        super().save()
+
     def roles(self):
-        return self.role_set.all()
-        # todo must be better way to ensure role membership is correct
-        # return [role for role in Role.objects.all()
-        #         if role.accepts(self)]
+        return self._role_set.all()
 
-    @property
+    # to format navigation panels... could be in views?
     def multi_roles(self):
-        roles = self.roles
+        roles = self.roles()
         return roles if len(roles) > 1 else []
 
     def save(self, *args, **kwargs):
+        # need an initial save before accessing self.roles()
         if not self.pk:
             super().save(*args, **kwargs)
-        if not self.active_role and self.roles:
-            self.active_role = self.roles[0]
-            # todo what if user has no roles?
+            if not self._active_role:
+                roles = self.roles()
+                if roles:
+                    self._active_role = roles[0]
         super().save(*args, **kwargs)
-
-    # @property
-    # def worktime_commitments(self):
-        # return self.child_set
 
 
 class NamingMixin(object):
@@ -123,13 +156,11 @@ class Classroom(NamingMixin, models.Model):
     name = models.CharField(max_length=100, unique=True)
     slug = models.SlugField(max_length=50, unique=True)
     teacher_set = models.ManyToManyField(User,
-                                      related_name='_classrooms_as_teacher')
+                                         related_name='_classrooms_as_teacher')
     scheduler_set = models.ManyToManyField(User,
-                                        related_name='_classrooms_as_scheduler')
-    # solicits_preferences = models.BooleanField(default=True)
+                                           related_name='_classrooms_as_scheduler')
 
-    # todo needed?
-    @property
+    # used only in people.rules.py
     def parents(self):
         return User.objects.filter(child__classroom=self)
 
@@ -138,7 +169,6 @@ class Classroom(NamingMixin, models.Model):
         return main.models.WorktimeCommitment.objects.filter(
             child__classroom=self,
             shift_instance__date=date)
-        
 
     def get_absolute_url(self):
         return reverse_lazy('classroom-roster', kwargs={'classroom_slug':self.slug})
@@ -151,7 +181,7 @@ class Classroom(NamingMixin, models.Model):
 
 
 # class ClassroomSettings(models.Model):
-    # classroom = models.ForeignKey(Classroom)
+    # classroom = models.OneToOneField(Classroom)
     # commitment_change_notice_min_days = models.IntegerField(default=2)
     # shiftpreference_min = 2
 
@@ -217,7 +247,7 @@ class Child(NamingMixin, models.Model):
 # admin wants to add person x as e.g. parent of c regardless of whether x has account
 # so, enter email of x; if account exists for it simply add it as parent
 # else, send invite and listen for save of user account with that address
-# upon save, then add account as parent of c
+# upon save, then add account as parent of child
 class RelateEmailToObject(models.Model):
     email = models.EmailField()
     relation = models.CharField(max_length=50)

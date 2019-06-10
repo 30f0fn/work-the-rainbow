@@ -5,7 +5,6 @@ from people.models import User, Child, Classroom, RelateEmailToObject, Role
 from people.roles import *
 
 
-
 @receiver(post_save, sender=User)
 def relate_user_to_object(sender, instance, created, **kwargs):
     # print(f"relate_email_to_object: this function was called with instance={instance}, created={created}")
@@ -23,17 +22,16 @@ def update_teachers(sender, action, pk_set, **kwargs):
 
 @receiver(m2m_changed, sender=Classroom.scheduler_set.through)
 def update_schedulers(sender, action, pk_set, **kwargs):
+    # print("received scheduler_update signal")
     for pk in pk_set:
         user = User.objects.get(pk=pk)
         SCHEDULER.update_membership(user)
 
 @receiver(m2m_changed, sender=Child.parent_set.through)
-def update_schedulers(sender, action, pk_set, **kwargs):
+def update_parents(sender, action, pk_set, **kwargs):
     for pk in pk_set:
         user = User.objects.get(pk=pk)
         PARENT.update_membership(user)
-
-
 
 # def updater(role, related_class):
 #     def handler(sender, pk_set, **kwargs):

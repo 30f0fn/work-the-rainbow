@@ -15,7 +15,7 @@
   {% endwith %}
 {% endfor %}
 
-{% for child in user.children %} 
+{% for child in user.child_set.all %} 
   {% url 'child-profile' child.slug as linked_url %}
   {% smart_link linked_url child.slug view.request %}
 {% endfor %}

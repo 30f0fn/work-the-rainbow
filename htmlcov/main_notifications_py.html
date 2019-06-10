@@ -99,23 +99,26 @@
 <p id="n30" class="pln"><a href="#n30">30</a></p>
 <p id="n31" class="pln"><a href="#n31">31</a></p>
 <p id="n32" class="stm run hide_run"><a href="#n32">32</a></p>
-<p id="n33" class="pln"><a href="#n33">33</a></p>
+<p id="n33" class="stm mis"><a href="#n33">33</a></p>
 <p id="n34" class="stm mis"><a href="#n34">34</a></p>
-<p id="n35" class="stm mis"><a href="#n35">35</a></p>
-<p id="n36" class="stm mis"><a href="#n36">36</a></p>
+<p id="n35" class="pln"><a href="#n35">35</a></p>
+<p id="n36" class="pln"><a href="#n36">36</a></p>
 <p id="n37" class="pln"><a href="#n37">37</a></p>
 <p id="n38" class="pln"><a href="#n38">38</a></p>
 <p id="n39" class="pln"><a href="#n39">39</a></p>
 <p id="n40" class="pln"><a href="#n40">40</a></p>
 <p id="n41" class="pln"><a href="#n41">41</a></p>
 <p id="n42" class="stm run hide_run"><a href="#n42">42</a></p>
-<p id="n43" class="stm mis"><a href="#n43">43</a></p>
+<p id="n43" class="pln"><a href="#n43">43</a></p>
 <p id="n44" class="stm mis"><a href="#n44">44</a></p>
-<p id="n45" class="pln"><a href="#n45">45</a></p>
-<p id="n46" class="pln"><a href="#n46">46</a></p>
+<p id="n45" class="stm mis"><a href="#n45">45</a></p>
+<p id="n46" class="stm mis"><a href="#n46">46</a></p>
 <p id="n47" class="pln"><a href="#n47">47</a></p>
 <p id="n48" class="pln"><a href="#n48">48</a></p>
 <p id="n49" class="pln"><a href="#n49">49</a></p>
+<p id="n50" class="pln"><a href="#n50">50</a></p>
+<p id="n51" class="pln"><a href="#n51">51</a></p>
+<p id="n52" class="pln"><a href="#n52">52</a></p>
 
             </td>
             <td class="text">
@@ -149,25 +152,28 @@
 <p id="t28" class="pln">                <span class="nam">verb</span><span class="op">=</span><span class="str">'updated'</span><span class="op">,</span><span class="strut">&nbsp;</span></p>
 <p id="t29" class="pln">                <span class="nam">description</span><span class="op">=</span><span class="nam">description</span><span class="op">)</span><span class="strut">&nbsp;</span></p>
 <p id="t30" class="pln"><span class="strut">&nbsp;</span></p>
-<p id="t31" class="pln"><span class="com"># not in use</span><span class="strut">&nbsp;</span></p>
-<p id="t32" class="stm run hide_run"><span class="key">def</span> <span class="nam">announce_commitment_change_request</span><span class="op">(</span><span class="nam">user</span><span class="op">,</span><span class="strut">&nbsp;</span></p>
-<p id="t33" class="pln">                                       <span class="nam">change_request</span><span class="op">)</span><span class="op">:</span><span class="strut">&nbsp;</span></p>
-<p id="t34" class="stm mis">    <span class="nam">teachers</span> <span class="op">=</span> <span class="nam">change_request</span><span class="op">.</span><span class="nam">commitment</span><span class="op">.</span><span class="nam">child</span><span class="op">.</span><span class="nam">classroom</span><span class="op">.</span><span class="nam">teacher_set</span><span class="op">.</span><span class="nam">all</span><span class="op">(</span><span class="op">)</span><span class="strut">&nbsp;</span></p>
-<p id="t35" class="stm mis">    <span class="key">for</span> <span class="nam">teacher</span> <span class="key">in</span> <span class="nam">teachers</span><span class="op">:</span><span class="strut">&nbsp;</span></p>
-<p id="t36" class="stm mis">        <span class="nam">notify</span><span class="op">.</span><span class="nam">send</span><span class="op">(</span><span class="nam">user</span><span class="op">,</span><span class="strut">&nbsp;</span></p>
-<p id="t37" class="pln">                    <span class="nam">recipient</span><span class="op">=</span><span class="nam">teachers</span><span class="op">,</span><span class="strut">&nbsp;</span></p>
-<p id="t38" class="pln">                    <span class="nam">verb</span><span class="op">=</span><span class="str">'requested'</span><span class="op">,</span><span class="strut">&nbsp;</span></p>
-<p id="t39" class="pln">                    <span class="nam">action_object</span><span class="op">=</span><span class="nam">preference_request</span><span class="op">)</span><span class="strut">&nbsp;</span></p>
+<p id="t31" class="pln"><span class="strut">&nbsp;</span></p>
+<p id="t32" class="stm run hide_run"><span class="key">def</span> <span class="nam">solicit_shiftpreferences</span><span class="op">(</span><span class="nam">user</span><span class="op">,</span> <span class="nam">preference_request</span><span class="op">)</span><span class="op">:</span><span class="strut">&nbsp;</span></p>
+<p id="t33" class="stm mis">    <span class="nam">parents</span> <span class="op">=</span> <span class="nam">preference_request</span><span class="op">.</span><span class="nam">period</span><span class="op">.</span><span class="nam">classroom</span><span class="op">.</span><span class="nam">parent_set</span><span class="op">.</span><span class="nam">all</span><span class="op">(</span><span class="op">)</span><span class="strut">&nbsp;</span></p>
+<p id="t34" class="stm mis">    <span class="nam">notify</span><span class="op">.</span><span class="nam">send</span><span class="op">(</span><span class="nam">user</span><span class="op">,</span><span class="strut">&nbsp;</span></p>
+<p id="t35" class="pln">                <span class="nam">recipient</span><span class="op">=</span><span class="nam">parents</span><span class="op">,</span><span class="strut">&nbsp;</span></p>
+<p id="t36" class="pln">                <span class="nam">verb</span><span class="op">=</span><span class="str">'requested'</span><span class="op">,</span><span class="strut">&nbsp;</span></p>
+<p id="t37" class="pln">                <span class="nam">action_object</span><span class="op">=</span><span class="nam">preference_request</span><span class="op">)</span><span class="strut">&nbsp;</span></p>
+<p id="t38" class="pln"><span class="strut">&nbsp;</span></p>
+<p id="t39" class="pln"><span class="strut">&nbsp;</span></p>
 <p id="t40" class="pln"><span class="strut">&nbsp;</span></p>
 <p id="t41" class="pln"><span class="com"># not in use</span><span class="strut">&nbsp;</span></p>
-<p id="t42" class="stm run hide_run"><span class="key">def</span> <span class="nam">solicit_shiftpreferences</span><span class="op">(</span><span class="nam">user</span><span class="op">,</span> <span class="nam">preference_request</span><span class="op">)</span><span class="op">:</span><span class="strut">&nbsp;</span></p>
-<p id="t43" class="stm mis">    <span class="nam">parents</span> <span class="op">=</span> <span class="nam">preference_request</span><span class="op">.</span><span class="nam">period</span><span class="op">.</span><span class="nam">classroom</span><span class="op">.</span><span class="nam">parent_set</span><span class="op">.</span><span class="nam">all</span><span class="op">(</span><span class="op">)</span><span class="strut">&nbsp;</span></p>
-<p id="t44" class="stm mis">    <span class="nam">notify</span><span class="op">.</span><span class="nam">send</span><span class="op">(</span><span class="nam">user</span><span class="op">,</span><span class="strut">&nbsp;</span></p>
-<p id="t45" class="pln">                <span class="nam">recipient</span><span class="op">=</span><span class="nam">parents</span><span class="op">,</span><span class="strut">&nbsp;</span></p>
-<p id="t46" class="pln">                <span class="nam">verb</span><span class="op">=</span><span class="str">'requested'</span><span class="op">,</span><span class="strut">&nbsp;</span></p>
-<p id="t47" class="pln">                <span class="nam">action_object</span><span class="op">=</span><span class="nam">preference_request</span><span class="op">)</span><span class="strut">&nbsp;</span></p>
-<p id="t48" class="pln"><span class="strut">&nbsp;</span></p>
-<p id="t49" class="pln"><span class="strut">&nbsp;</span></p>
+<p id="t42" class="stm run hide_run"><span class="key">def</span> <span class="nam">announce_commitment_change_request</span><span class="op">(</span><span class="nam">user</span><span class="op">,</span><span class="strut">&nbsp;</span></p>
+<p id="t43" class="pln">                                       <span class="nam">change_request</span><span class="op">)</span><span class="op">:</span><span class="strut">&nbsp;</span></p>
+<p id="t44" class="stm mis">    <span class="nam">teachers</span> <span class="op">=</span> <span class="nam">change_request</span><span class="op">.</span><span class="nam">commitment</span><span class="op">.</span><span class="nam">child</span><span class="op">.</span><span class="nam">classroom</span><span class="op">.</span><span class="nam">teacher_set</span><span class="op">.</span><span class="nam">all</span><span class="op">(</span><span class="op">)</span><span class="strut">&nbsp;</span></p>
+<p id="t45" class="stm mis">    <span class="key">for</span> <span class="nam">teacher</span> <span class="key">in</span> <span class="nam">teachers</span><span class="op">:</span><span class="strut">&nbsp;</span></p>
+<p id="t46" class="stm mis">        <span class="nam">notify</span><span class="op">.</span><span class="nam">send</span><span class="op">(</span><span class="nam">user</span><span class="op">,</span><span class="strut">&nbsp;</span></p>
+<p id="t47" class="pln">                    <span class="nam">recipient</span><span class="op">=</span><span class="nam">teachers</span><span class="op">,</span><span class="strut">&nbsp;</span></p>
+<p id="t48" class="pln">                    <span class="nam">verb</span><span class="op">=</span><span class="str">'requested'</span><span class="op">,</span><span class="strut">&nbsp;</span></p>
+<p id="t49" class="pln">                    <span class="nam">action_object</span><span class="op">=</span><span class="nam">preference_request</span><span class="op">)</span><span class="strut">&nbsp;</span></p>
+<p id="t50" class="pln"><span class="strut">&nbsp;</span></p>
+<p id="t51" class="pln"><span class="strut">&nbsp;</span></p>
+<p id="t52" class="pln"><span class="strut">&nbsp;</span></p>
 
             </td>
         </tr>
@@ -178,7 +184,7 @@
     <div class="content">
         <p>
             <a class="nav" href="index.html">&#xab; index</a> &nbsp; &nbsp; <a class="nav" href="https://coverage.readthedocs.io">coverage.py v4.5.3</a>,
-            created at 2019-05-20 13:13
+            created at 2019-05-30 12:00
         </p>
     </div>
 </div>

@@ -10,9 +10,14 @@ basic_patterns = [
          views.SplashView.as_view(),
          name='splash'),
 
+    path('splash',
+         views.SplashView.as_view(),
+         name='null-home'),
+
     path('parent/upcoming',
          views.ParentHomeView.as_view(),
          name='parent-home'),
+
     path('parent/upcoming/<int:year>/<int:month>/<int:day>',
          views.ParentHomeView.as_view(),
          name='parent-home'),
@@ -54,7 +59,8 @@ basic_patterns = [
 classroom_calendar_patterns = [
 
     path('',
-         views.WeeklyClassroomCalendarView.as_view(),
+         views.DefaultCalendarView.as_view(),
+         # views.WeeklyClassroomCalendarView.as_view(),
          name='classroom-calendar'),
     path('daily',
          views.DailyClassroomCalendarView.as_view(),

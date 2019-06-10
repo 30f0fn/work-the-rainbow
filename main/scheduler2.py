@@ -1,3 +1,5 @@
+# not in use
+
 import random
 import constraint
 from constraint import *
@@ -6,7 +8,7 @@ import itertools
 from main.models import Shift, WorktimeAssignment, WorktimeCommitment
 from people.models import Classroom, Child
 
-for each month and family, build each possible assignment of shiftinstances
+# for each month and family, build each possible assignment of shiftinstances
 
 shift_instances = ShiftInstance.objects.filter(shift__shiftpreference__family=child,
                                                shift__shiftpreference__rank=1)

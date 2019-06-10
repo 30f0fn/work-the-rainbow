@@ -89,12 +89,12 @@
             <td class="text">
 <p id="t1" class="stm run hide_run"><span class="key">import</span> <span class="nam">rules</span><span class="strut">&nbsp;</span></p>
 <p id="t2" class="stm run hide_run"><span class="key">from</span> <span class="nam">people</span><span class="op">.</span><span class="nam">models</span> <span class="key">import</span> <span class="nam">Classroom</span><span class="strut">&nbsp;</span></p>
-<p id="t3" class="stm run hide_run"><span class="key">from</span> <span class="nam">people</span><span class="op">.</span><span class="nam">rules</span> <span class="key">import</span> <span class="nam">is_admin</span><span class="op">,</span> <span class="nam">is_scheduler_in_classroom</span><span class="op">,</span> <span class="nam">is_teacher_in_classroom</span><span class="op">,</span> <span class="nam">is_teacher_of</span><span class="strut">&nbsp;</span></p>
+<p id="t3" class="stm run hide_run"><span class="key">from</span> <span class="nam">people</span><span class="op">.</span><span class="nam">rules</span> <span class="key">import</span> <span class="nam">is_admin</span><span class="op">,</span> <span class="nam">is_teacher</span><span class="op">,</span> <span class="nam">is_parent</span><span class="op">,</span> <span class="nam">is_scheduler</span><span class="op">,</span> <span class="nam">is_scheduler_in_classroom</span><span class="op">,</span> <span class="nam">is_teacher_in_classroom</span><span class="op">,</span> <span class="nam">is_teacher_of</span><span class="strut">&nbsp;</span></p>
 <p id="t4" class="pln"><span class="strut">&nbsp;</span></p>
 <p id="t5" class="stm run hide_run"><span class="op">@</span><span class="nam">rules</span><span class="op">.</span><span class="nam">predicate</span><span class="strut">&nbsp;</span></p>
 <p id="t6" class="pln"><span class="key">def</span> <span class="nam">owns_worktimecommitment</span><span class="op">(</span><span class="nam">user</span><span class="op">,</span> <span class="nam">worktimecommitment</span><span class="op">)</span><span class="op">:</span><span class="strut">&nbsp;</span></p>
-<p id="t7" class="stm mis">    <span class="key">return</span> <span class="nam">user</span> <span class="key">in</span> <span class="nam">worktimecommitment</span><span class="op">.</span><span class="nam">child</span><span class="op">.</span><span class="nam">parents</span><span class="strut">&nbsp;</span></p>
-<p id="t8" class="pln"><span class="strut">&nbsp;</span></p>
+<p id="t7" class="stm mis">    <span class="key">return</span> <span class="nam">user</span><span class="op">.</span><span class="nam">active_role</span><span class="op">(</span><span class="op">)</span> <span class="op">==</span> <span class="nam">PARENT</span> <span class="key">and</span><span class="xx">\</span><span class="strut">&nbsp;</span></p>
+<p id="t8" class="pln">        <span class="nam">user</span> <span class="key">in</span> <span class="nam">worktimecommitment</span><span class="op">.</span><span class="nam">child</span><span class="op">.</span><span class="nam">parents</span><span class="strut">&nbsp;</span></p>
 <p id="t9" class="pln"><span class="strut">&nbsp;</span></p>
 <p id="t10" class="stm run hide_run"><span class="nam">rules</span><span class="op">.</span><span class="nam">add_rule</span><span class="op">(</span><span class="str">'main.edit_worktimecommitment'</span><span class="op">,</span><span class="strut">&nbsp;</span></p>
 <p id="t11" class="pln">               <span class="nam">is_admin</span> <span class="op">|</span><span class="strut">&nbsp;</span></p>
@@ -114,7 +114,7 @@
     <div class="content">
         <p>
             <a class="nav" href="index.html">&#xab; index</a> &nbsp; &nbsp; <a class="nav" href="https://coverage.readthedocs.io">coverage.py v4.5.3</a>,
-            created at 2019-05-20 13:13
+            created at 2019-05-30 12:00
         </p>
     </div>
 </div>

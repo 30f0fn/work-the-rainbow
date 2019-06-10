@@ -15,7 +15,6 @@
   </h2>
 <p>
   <ul>
-    {# {% for classroom in user.classrooms_as_admin %} #}
     {% for classroom in classrooms %}
       <li><a href="{% url 'manage-classroom' classroom.slug %}">{{classroom}}</a></li>
     {% endfor %}

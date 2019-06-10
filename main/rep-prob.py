@@ -26,6 +26,5 @@ def legal(assignment):
 
 def trial(shifts, kids, num_tests):
     return [legal(random_assignment(shifts, kids))
-           for i in range(num_tests) / num_tests
+           for i in range(num_tests) / num_tests]
         
-    

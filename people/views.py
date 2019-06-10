@@ -1,4 +1,4 @@
- # work-the-rainbow/people/views.py
+# work-the-rainbow/people/views.py
 
 from django.http import Http404
 from django.shortcuts import render, get_object_or_404
@@ -11,6 +11,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.utils.decorators import method_decorator
 from django.utils import timezone
+# from django.template.response import TemplateResponse
 
 from collections import namedtuple
 
@@ -21,18 +22,13 @@ from allauth.account.models import EmailAddress
 from invitations.models import Invitation
 from rules.contrib.views import PermissionRequiredMixin
 
-from . import forms
+from people.forms import RelateEmailToObjectForm, CreateClassroomForm, AddChildForm, ChildUpdateForm
 from people.models import Classroom, Child, User, RelateEmailToObject
+from people.roles import *
 import main.models
 from . import rules
 
 
-########
-# todo #
-########
-
-# the property-decorated methods should be genuine properties of the view, maybe set in dispatch()
-# prune unused template files
 
 #############
 # utilities #
@@ -41,7 +37,7 @@ from . import rules
 class RelateEmailToObjectView(FormView):
     # subclass this with values for relation and get_related_object
     template_name = 'generic_create.html'
-    form_class = forms.RelateEmailToObjectForm
+    form_class = RelateEmailToObjectForm
     relation = None
     relation_name = None
 
@@ -61,7 +57,8 @@ class RelateEmailToObjectView(FormView):
 
 
 # class ClassroomMixin(LoginRequiredMixin, object):
-class ClassroomMixin(LoginRequiredMixin, PermissionRequiredMixin):
+class ClassroomMixin(LoginRequiredMixin,
+                     PermissionRequiredMixin):
     permission_required = 'people.view_classroom'
 
     def get_permission_object(self):
@@ -87,14 +84,8 @@ class ClassroomEditMixin(ClassroomMixin):
 
 
 
-class QuerysetInClassroomMixin(ClassroomMixin):
-    def get_queryset(self):
-        return self.model.objects.filter(classroom=self.classroom,
-                                        slug=self.kwargs[item_slug])    
-
-
-
-class ChildMixin(LoginRequiredMixin, PermissionRequiredMixin):
+class ChildMixin(LoginRequiredMixin,
+                 PermissionRequiredMixin):
     permission_required = 'people.view_child_profile'
 
     def get_permission_object(self):
@@ -127,33 +118,6 @@ class AdminMixin(object):
 
 
 
-# # todo replace all references to family with references to child
-# class FamilyMixin(object):
-
-#     def dispatch(self, request, *args, **kwargs):
-#         self.family = Child.objects.get(nickname=self.kwargs.get('nickname'))
-#         return super().dispatch(request, *args, **kwargs)
-
-#     def get_context_data(self, **kwargs):
-#         context = super().get_context_data(**kwargs)
-#         context.update({'family' : self.family})
-#         return context
-
-
-
-
-########################
-# Role-switching views #
-########################
-
-class SwitchRolesView(RedirectView):
-
-    def new_role(self):
-        return self.kwargs.pop('new_role')
-
-    def get_redirect_url(self):
-        return f'{self.new_role()}-home'
-
 ###################
 # top-level views #
 ###################
@@ -161,7 +125,7 @@ class SwitchRolesView(RedirectView):
 
 # list all teachers and all children
 # links to add a teacher or a child
-
+# todo finish this
 class ClassroomView(ClassroomMixin, DetailView):
     def get_object(self):
         return self.classroom
@@ -180,7 +144,8 @@ class ManageClassroomView(ClassroomMixin, DetailView):
 class ClassroomCreateView(PermissionRequiredMixin, FormView):
     permission_required = 'people.create_classroom'
     template_name = 'classroom_create.html'
-    form_class = forms.CreateClassroomForm
+    form_class = CreateClassroomForm
+
     def get_success_url(self, *args, **kwargs):
         return self.classroom.get_absolute_url()
 
@@ -204,8 +169,8 @@ class ClassroomCreateView(PermissionRequiredMixin, FormView):
 # Mixins #
 ##########
 
-class AddItemToClassroomTemplateMixin(object):
-    template_name='add_item_to_classroom.html'
+# class AddItemToClassroomTemplateMixin(object):
+    # template_name='add_item_to_classroom.html'
 
 
 #########################
@@ -220,9 +185,10 @@ else, check if invite exists to this email;
 if not, then send invite
 upon user creation, receiver attaches user to child as parent
 """
-class ChildAddView(ClassroomEditMixin, FormView):
+class ChildAddView(ClassroomEditMixin,
+                   FormView):
     template_name = 'child_create.html'
-    form_class = forms.AddChildForm
+    form_class = AddChildForm
 
     def form_valid(self, form):
         form.cleaned_data['classroom'] = self.classroom
@@ -256,86 +222,71 @@ class AddParentToChildView(ChildEditMixin, RelateEmailToObjectView):
 
 
 # # edit child
-class ChildEditView(ChildMixin, UpdateView):
+class ChildEditView(ChildEditMixin,
+                    UpdateView):
+    # support move child to other classroom?
     model = Child
-    form_class = forms.ChildUpdateForm
+    form_class = ChildUpdateForm
     template_name = 'generic_update.html'
 
     def get_object(self, *args, **kwargs):
         return self.child
 
-    # form_class = EditChildForm
+    # def post(self, *args, **kwargs):
+    #     print(self.request.POST)
+    #     return super().post(*args, **kwargs)
 
 
+# # # delete child from db
+# class ChildRemoveView(ClassroomEditMixin,
+#                       DeleteView):
+#     model = Child
 
-# # delete child from db
-class ChildRemoveView(QuerysetInClassroomMixin, ClassroomEditMixin, DeleteView):
-    model = Child
 
-
-class RelateEmailToClassroomView(ClassroomEditMixin, RelateEmailToObjectView):
+class RelateEmailToClassroomView(ClassroomEditMixin,
+                                 RelateEmailToObjectView):
 
     def get_related_object(self):
         return self.classroom
 
 
-#############################
-# generic views - scheduler #
-#############################
 
-class SchedulerAddView(AddItemToClassroomTemplateMixin,
-                       RelateEmailToClassroomView):
+class SchedulerAddView(RelateEmailToClassroomView):
+    template_name='add_item_to_classroom.html'
     relation = 'scheduler_set'
     relation_name = 'scheduler'
 
 
-############################
-# generic views - teacher  #
-############################
 
-class TeacherAddView(AddItemToClassroomTemplateMixin,
-                     RelateEmailToClassroomView):
+class TeacherAddView(RelateEmailToClassroomView):
+    template_name='add_item_to_classroom.html'
     relation = 'teacher_set'
     relation_name = 'teacher'
 
 
-###########################
-# generic views - parents #
-###########################
-
-# class ParentsListView(ListView):
-#     model = Parent
-
-from django.template.response import TemplateResponse
 
 
 
-class NotificationsView(TemplateView):
-    template_name = 'notifications.html'
-
-    def get(self, *args, **kwargs):
-        def mark_as_read(response):
-            context = self.get_context_data(**kwargs)
-            context['unread'].mark_all_as_read()
-        response = super().get(*args, **kwargs)
-        response.add_post_render_callback(mark_as_read)
-        return response
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        unread = self.request.user.notifications.unread()
-        read = self.request.user.notifications.read()
-        context.update({'unread' : unread,
-                        'read' : read})
+class ProfileDataMixin(object):
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+        profilee = self.get_object()
+        if TEACHER in profilee.roles():
+            context['classrooms_as_teacher'] = \
+                Classroom.objects.filter(
+                           teacher_set=profilee)
+        if PARENT in profilee.roles():
+            context['children_as_parent'] = profilee.child_set.all()
         return context
-
-
-
+    
 
 # this is only to be seen by the user (and perhaps site admin)
 # have ParentDetail for intra-classroom users
 # shouldnt need permissions rule, since view should determine which profile to show based on current user
-class PrivateProfileView(LoginRequiredMixin, DetailView):
+
+class PrivateProfileView(LoginRequiredMixin,
+                         ProfileDataMixin,
+                         DetailView):
 
     template_name = 'private_profile.html'
 
@@ -343,7 +294,9 @@ class PrivateProfileView(LoginRequiredMixin, DetailView):
         return self.request.user
 
 
-class PublicProfileView(LoginRequiredMixin, DetailView):
+class PublicProfileView(LoginRequiredMixin,
+                        ProfileDataMixin,
+                        DetailView):
 
     template_name = 'public_profile.html'
     model = User
@@ -354,7 +307,25 @@ class PublicProfileView(LoginRequiredMixin, DetailView):
         return get_object_or_404(User, username=username)
 
 
-class ChildDetailView(ChildMixin, DetailView):
+class ProfileEditView(LoginRequiredMixin,
+                      UpdateView):
+    model = User
+    fields = ['username']
+    template_name = 'profile_update.html'
+
+    def get_object(self):
+        return self.request.user
+
+    def get_success_url(self):
+        return reverse('profile')
+
+
+# class ParentRemoveView(ClassroomEditMixin, QuerysetInClassroomMixin, DetailView):
+#     model = Parent
+
+
+class ChildDetailView(ChildMixin,
+                      DetailView):
     model = Child
     template_name = 'child_detail.html'
 
@@ -418,16 +389,27 @@ class ChildDetailView(ChildMixin, DetailView):
         return context
 
 
-class ProfileEditView(UpdateView):
-    model = User
-    fields = ['username', 'email']
-    template_name = 'profile_update.html'
-    @method_decorator(login_required)
-    def get(self, request, *args, **kwargs):
-        return super().get(self, request, *args, **kwargs)
-    def get_object(self):
-        return self.request.user
 
 
-# class ParentRemoveView(ClassroomEditMixin, QuerysetInClassroomMixin, DetailView):
-#     model = Parent
+
+class NotificationsView(LoginRequiredMixin,
+                        TemplateView):
+
+    template_name = 'notifications.html'
+
+    def get(self, *args, **kwargs):
+        def mark_as_read(response):
+            context = self.get_context_data(**kwargs)
+            context['unread'].mark_all_as_read()
+        response = super().get(*args, **kwargs)
+        response.add_post_render_callback(mark_as_read)
+        return response
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if self.request.user.is_authenticated:
+            unread = self.request.user.notifications.unread()
+            read = self.request.user.notifications.read()
+            context.update({'unread' : unread,
+                            'read' : read})
+        return context

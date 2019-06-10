@@ -50,8 +50,9 @@ class CreateClassroomForm(Form):
     slug = SlugField()
     name = CharField()
     def cleaned_emails(self):
-        return [self.cleaned_data[email_field] for email_field in
-                ['scheduler_email_1', 'scheduler_email_2'] if self.cleaned_data[email_field]]
+        return [self.cleaned_data[email_field] for email_field in \
+                ['scheduler_email_1', 'scheduler_email_2'] \
+                if self.cleaned_data[email_field]]
 
 
     # def clean_slug(self):

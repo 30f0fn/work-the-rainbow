@@ -42,8 +42,8 @@ urlpatterns = [
     path('kids/<slug:child_slug>/add-parent',
          views.AddParentToChildView.as_view(),
          name='add-parent'),
-    path('kids/<slug:child_slug>/remove',
-         views.ChildRemoveView.as_view(), name='remove-child'),
+    # path('kids/<slug:child_slug>/remove',
+         # views.ChildRemoveView.as_view(), name='remove-child'),
 
 
 
@@ -62,7 +62,6 @@ urlpatterns = [
          views.ClassroomView.as_view(), name='classroom-roster'),
     path('<slug:classroom_slug>/manage', 
          views.ManageClassroomView.as_view(), name='manage-classroom'),
-    path('create_classroom', 
+    path('classrooms/create', 
          views.ClassroomCreateView.as_view(), name='create-classroom'),
-
 ]

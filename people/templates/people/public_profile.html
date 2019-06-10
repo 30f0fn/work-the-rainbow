@@ -20,7 +20,14 @@
     parent of...
     <ul>
       {% for child in profiled_user.child_set.all %}
-        <li>{% display_child child %} ({{child.classroom.slug}})
+        {% has_perm 'view_child' request.user child as can_view_child %}
+        <li>
+          {% if can_view_child %}
+            {% display_child child %}
+          {% else %}
+            {{child.nickname}}
+          {% endif %}
+          ({{child.classroom.slug}})
           {% if child.parent_set.count > 1%}
             with
             {% for parent in child.parent_set.all %}
@@ -34,17 +41,15 @@
     </ul>
   {% endif %}
 
-  {% if profiled_user.is_teacher %}
-    teacher
-    {% if profiled_user.classrooms_as_teacher%} in
-      <ul>
-        {% for classroom in profiled_user.classrooms_as_teacher %}
-          <li>
-            {{classroom}}
-          </li>
-        {% endfor %}
-      </ul>
-    {% endif %}
+  {% if classrooms_as_teacher %}
+    teacher in
+    <ul>
+      {% for classroom in classrooms_as_teacher %}
+        <li>
+          {{classroom}}
+        </li>
+      {% endfor %}
+    </ul>
   {% endif %}
 
 

@@ -30,7 +30,7 @@
             &gt;   
           </a>
         </li>
-        {% for child in request.user.children %}
+        {% for child in request.user.child_set.all %}
           {% if child.classroom == view.classroom %}
             <li>
               <a href="{% url 'edit-worktimecommitments-for-parent-by-month' view.classroom.slug child.slug view.date.year view.date.month view.date.day %}">

@@ -134,7 +134,6 @@
 <p id="n65" class="pln"><a href="#n65">65</a></p>
 <p id="n66" class="pln"><a href="#n66">66</a></p>
 <p id="n67" class="pln"><a href="#n67">67</a></p>
-<p id="n68" class="pln"><a href="#n68">68</a></p>
 
             </td>
             <td class="text">
@@ -182,8 +181,8 @@
 <p id="t42" class="pln">    <span class="nam">path</span><span class="op">(</span><span class="str">'kids/&lt;slug:child_slug>/add-parent'</span><span class="op">,</span><span class="strut">&nbsp;</span></p>
 <p id="t43" class="pln">         <span class="nam">views</span><span class="op">.</span><span class="nam">AddParentToChildView</span><span class="op">.</span><span class="nam">as_view</span><span class="op">(</span><span class="op">)</span><span class="op">,</span><span class="strut">&nbsp;</span></p>
 <p id="t44" class="pln">         <span class="nam">name</span><span class="op">=</span><span class="str">'add-parent'</span><span class="op">)</span><span class="op">,</span><span class="strut">&nbsp;</span></p>
-<p id="t45" class="pln">    <span class="nam">path</span><span class="op">(</span><span class="str">'kids/&lt;slug:child_slug>/remove'</span><span class="op">,</span><span class="strut">&nbsp;</span></p>
-<p id="t46" class="pln">         <span class="nam">views</span><span class="op">.</span><span class="nam">ChildRemoveView</span><span class="op">.</span><span class="nam">as_view</span><span class="op">(</span><span class="op">)</span><span class="op">,</span> <span class="nam">name</span><span class="op">=</span><span class="str">'remove-child'</span><span class="op">)</span><span class="op">,</span><span class="strut">&nbsp;</span></p>
+<p id="t45" class="pln">    <span class="com"># path('kids/&lt;slug:child_slug>/remove',</span><span class="strut">&nbsp;</span></p>
+<p id="t46" class="pln">         <span class="com"># views.ChildRemoveView.as_view(), name='remove-child'),</span><span class="strut">&nbsp;</span></p>
 <p id="t47" class="pln"><span class="strut">&nbsp;</span></p>
 <p id="t48" class="pln"><span class="strut">&nbsp;</span></p>
 <p id="t49" class="pln"><span class="strut">&nbsp;</span></p>
@@ -202,10 +201,9 @@
 <p id="t62" class="pln">         <span class="nam">views</span><span class="op">.</span><span class="nam">ClassroomView</span><span class="op">.</span><span class="nam">as_view</span><span class="op">(</span><span class="op">)</span><span class="op">,</span> <span class="nam">name</span><span class="op">=</span><span class="str">'classroom-roster'</span><span class="op">)</span><span class="op">,</span><span class="strut">&nbsp;</span></p>
 <p id="t63" class="pln">    <span class="nam">path</span><span class="op">(</span><span class="str">'&lt;slug:classroom_slug>/manage'</span><span class="op">,</span><span class="strut">&nbsp;</span></p>
 <p id="t64" class="pln">         <span class="nam">views</span><span class="op">.</span><span class="nam">ManageClassroomView</span><span class="op">.</span><span class="nam">as_view</span><span class="op">(</span><span class="op">)</span><span class="op">,</span> <span class="nam">name</span><span class="op">=</span><span class="str">'manage-classroom'</span><span class="op">)</span><span class="op">,</span><span class="strut">&nbsp;</span></p>
-<p id="t65" class="pln">    <span class="nam">path</span><span class="op">(</span><span class="str">'create_classroom'</span><span class="op">,</span><span class="strut">&nbsp;</span></p>
+<p id="t65" class="pln">    <span class="nam">path</span><span class="op">(</span><span class="str">'classrooms/create'</span><span class="op">,</span><span class="strut">&nbsp;</span></p>
 <p id="t66" class="pln">         <span class="nam">views</span><span class="op">.</span><span class="nam">ClassroomCreateView</span><span class="op">.</span><span class="nam">as_view</span><span class="op">(</span><span class="op">)</span><span class="op">,</span> <span class="nam">name</span><span class="op">=</span><span class="str">'create-classroom'</span><span class="op">)</span><span class="op">,</span><span class="strut">&nbsp;</span></p>
-<p id="t67" class="pln"><span class="strut">&nbsp;</span></p>
-<p id="t68" class="pln"><span class="op">]</span><span class="strut">&nbsp;</span></p>
+<p id="t67" class="pln"><span class="op">]</span><span class="strut">&nbsp;</span></p>
 
             </td>
         </tr>
@@ -216,7 +214,7 @@
     <div class="content">
         <p>
             <a class="nav" href="index.html">&#xab; index</a> &nbsp; &nbsp; <a class="nav" href="https://coverage.readthedocs.io">coverage.py v4.5.3</a>,
-            created at 2019-05-20 13:13
+            created at 2019-06-05 09:38
         </p>
     </div>
 </div>

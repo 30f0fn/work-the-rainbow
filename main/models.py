@@ -66,8 +66,7 @@ class EventManager(models.Manager):
         return super().get_queryset().filter(start__lte=start,
                                              end__gte=end)
 
-    
-    def by_date(self, start, end, restriction=None):
+        def by_date(self, start, end, restriction=None):
         events = super().get_queryset().filter(start__lte=end,
                              end__gte=start)
         dates = dates_in_range(start, end)
@@ -80,7 +79,6 @@ class EventManager(models.Manager):
     def dates_for_range(self, start, end, restriction=None):
         events = self.by_date(start, end, restriction=restriction)
         return [date for date in events if events[date]]
-        
 
     def by_date_and_time(self, start, end, restriction=None):
         by_date = self.by_date(start, end, restriction=restriction)
@@ -457,19 +455,14 @@ class CareDayAssignment(models.Model):
 
 
 
-class ExtraCareDay(Event):
+# class ExtraCareDay(Event):
 
-    child = models.ForeignKey(Child, on_delete=models.CASCADE)
-    extended = models.BooleanField(default=False)
-
-
-
-
+#     child = models.ForeignKey(Child, on_delete=models.CASCADE)
+#     extended = models.BooleanField(default=False)
 
 # class CancelledCareDay(models.Model):
     # child = models.ForeignKey(Child, on_delete=models.CASCADE)
     # date = models.DateField()
-
 
 # todo how about adding/deleting late stay?
 
