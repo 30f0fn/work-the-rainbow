@@ -89,7 +89,7 @@
             <td class="text">
 <p id="t1" class="stm run hide_run"><span class="key">import</span> <span class="nam">rules</span><span class="strut">&nbsp;</span></p>
 <p id="t2" class="stm run hide_run"><span class="key">from</span> <span class="nam">people</span><span class="op">.</span><span class="nam">models</span> <span class="key">import</span> <span class="nam">Classroom</span><span class="strut">&nbsp;</span></p>
-<p id="t3" class="stm run hide_run"><span class="key">from</span> <span class="nam">people</span><span class="op">.</span><span class="nam">rules</span> <span class="key">import</span> <span class="nam">is_admin</span><span class="op">,</span> <span class="nam">is_teacher</span><span class="op">,</span> <span class="nam">is_parent</span><span class="op">,</span> <span class="nam">is_scheduler</span><span class="op">,</span> <span class="nam">is_scheduler_in_classroom</span><span class="op">,</span> <span class="nam">is_teacher_in_classroom</span><span class="op">,</span> <span class="nam">is_teacher_of</span><span class="strut">&nbsp;</span></p>
+<p id="t3" class="stm run hide_run"><span class="key">from</span> <span class="nam">people</span><span class="op">.</span><span class="nam">rules</span> <span class="key">import</span> <span class="nam">is_admin</span><span class="op">,</span> <span class="nam">is_teacher</span><span class="op">,</span> <span class="nam">is_parent</span><span class="op">,</span> <span class="nam">is_scheduler</span><span class="op">,</span> <span class="nam">is_scheduler_in</span><span class="op">,</span> <span class="nam">is_teacher_in</span><span class="op">,</span> <span class="nam">is_teacher_in_classroom_of</span><span class="strut">&nbsp;</span></p>
 <p id="t4" class="pln"><span class="strut">&nbsp;</span></p>
 <p id="t5" class="stm run hide_run"><span class="op">@</span><span class="nam">rules</span><span class="op">.</span><span class="nam">predicate</span><span class="strut">&nbsp;</span></p>
 <p id="t6" class="pln"><span class="key">def</span> <span class="nam">owns_worktimecommitment</span><span class="op">(</span><span class="nam">user</span><span class="op">,</span> <span class="nam">worktimecommitment</span><span class="op">)</span><span class="op">:</span><span class="strut">&nbsp;</span></p>
@@ -98,12 +98,12 @@
 <p id="t9" class="pln"><span class="strut">&nbsp;</span></p>
 <p id="t10" class="stm run hide_run"><span class="nam">rules</span><span class="op">.</span><span class="nam">add_rule</span><span class="op">(</span><span class="str">'main.edit_worktimecommitment'</span><span class="op">,</span><span class="strut">&nbsp;</span></p>
 <p id="t11" class="pln">               <span class="nam">is_admin</span> <span class="op">|</span><span class="strut">&nbsp;</span></p>
-<p id="t12" class="pln">               <span class="nam">is_scheduler_in_classroom</span> <span class="op">|</span><span class="strut">&nbsp;</span></p>
+<p id="t12" class="pln">               <span class="nam">is_scheduler_in</span> <span class="op">|</span><span class="strut">&nbsp;</span></p>
 <p id="t13" class="pln">               <span class="nam">owns_worktimecommitment</span><span class="op">)</span><span class="strut">&nbsp;</span></p>
 <p id="t14" class="pln"><span class="strut">&nbsp;</span></p>
 <p id="t15" class="stm run hide_run"><span class="nam">rules</span><span class="op">.</span><span class="nam">add_perm</span><span class="op">(</span><span class="str">'main.score_worktime_attendance'</span><span class="op">,</span><span class="strut">&nbsp;</span></p>
 <p id="t16" class="pln">               <span class="nam">is_admin</span> <span class="op">|</span><span class="strut">&nbsp;</span></p>
-<p id="t17" class="pln">               <span class="nam">is_teacher_in_classroom</span><span class="op">)</span><span class="strut">&nbsp;</span></p>
+<p id="t17" class="pln">               <span class="nam">is_teacher_in</span><span class="op">)</span><span class="strut">&nbsp;</span></p>
 
             </td>
         </tr>
@@ -114,7 +114,7 @@
     <div class="content">
         <p>
             <a class="nav" href="index.html">&#xab; index</a> &nbsp; &nbsp; <a class="nav" href="https://coverage.readthedocs.io">coverage.py v4.5.3</a>,
-            created at 2019-05-30 12:00
+            created at 2019-06-12 11:58
         </p>
     </div>
 </div>

@@ -173,6 +173,11 @@ class Classroom(NamingMixin, models.Model):
     def get_absolute_url(self):
         return reverse_lazy('classroom-roster', kwargs={'classroom_slug':self.slug})
 
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return self.name
 
