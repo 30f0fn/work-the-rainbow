@@ -112,7 +112,7 @@ for c in classroom.child_set.all():
     shifts = list(itertools.chain.from_iterable([
         careday.shifts for careday in caredays]))
     s = random.choice(shifts)
-    sp = ShiftPreference.objects.get_or_create(child=c, shift=s, rank=1)
+    sp = ShiftPreference.objects.create(child=c, shift=s, rank=1)
     print(sp)
      
     

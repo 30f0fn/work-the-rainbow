@@ -1,20 +1,17 @@
 import datetime
 import ast
 from collections import defaultdict
-from itertools import chain
-import json
-
-import random
-import constraint
-from constraint import *
 import itertools
+import json
+import random
+from constraint import *
 
 from django.db import models
 from django.utils import timezone
 
 from people.models import Child, Classroom
 from main.model_fields import WeekdayField, NumChoiceField, WEEKDAYS
-from main.utilities import WeekdayIterator, next_date_with_given_weekday, add_delta_to_time, dates_in_range, in_a_week, serialize_datetime, deserialize_datetime
+from main.utilities import WeekdayIterator, next_date_with_given_weekday, dates_in_range, in_a_week, serialize_datetime, deserialize_datetime
 # import main.scheduler
 from people.views import ClassroomMixin
 
@@ -56,31 +53,30 @@ class EventManager(models.Manager):
         return super().get_queryset().filter(start__lte=end,
                                              end__gte=start)
 
-    # 
     def spans(self, start, end): 
-        """get all h which span given start and end datetimes"""
+        """get all events which span given start and end datetimes"""
         return super().get_queryset().filter(start__lte=start,
                                              end__gte=end)
 
-    # def _by_date(self, start, end, restriction=None):
-    #     """map each date in range to the list of its events"""
-    #     events = super().get_queryset().filter(start__lte=end,
-    #                          end__gte=start)
-    #     dates = dates_in_range(start, end)
-    #     results = defaultdict(list)
-    #     for event in events:
-    #         # if event.start.date() <= date <= event.end.date():
-    #         results[event.start.date()].append(event)
-    #     return results
+    def _by_date(self, start, end, restriction=None):
+        """map each date in range to the list of its events"""
+        events = super().get_queryset().filter(start__lte=end,
+                             end__gte=start)
+        dates = dates_in_range(start, end)
+        results = defaultdict(list)
+        for event in events:
+            # if event.start.date() <= date <= event.end.date():
+            results[event.start.date()].append(event)
+        return results
 
-    # def by_date_and_time(self, start, end, restriction=None):
-    #     """map each date to a mapping from times to events"""
-    #     by_date = self._by_date(start, end, restriction=restriction)
-    #     results = defaultdict(dict)
-    #     for date in by_date:
-    #         for event in by_date[date]:
-    #             results[date][event.start.time()] = event
-    #     return results
+    def by_date_and_time(self, start, end, restriction=None):
+        """map each date to a mapping from times to events"""
+        by_date = self._by_date(start, end, restriction=restriction)
+        results = defaultdict(lambda : defaultdict(list))
+        for date in by_date:
+            for event in by_date[date]:
+                results[date][event.start.time()].append(event)
+        return results
 
     def _dates_for_range(self, start, end, restriction=None):
         """return all dates spanned by any event within given range
@@ -90,9 +86,10 @@ class EventManager(models.Manager):
         # dates = (date for event in self.overlaps(start, end)
                  # for date in event.all_dates()
                  # if start <= date <= end)
+        # print(f"overlaps = {self.overlaps(start, end)}")
         return set(date for event in self.overlaps(start, end)
                  for date in event.all_dates()
-                 if start <= date <= end)
+                   if start.date() <= date <= end.date())
 
 
 
@@ -122,40 +119,67 @@ class Event(models.Model):
 
 
 
+class _WeeklyEventFormatter(object):
+    """various functions drawing on data from ._events() 
+    classes which implement events, so support below functions are
+    WeeklyEventQuerySet, WeeklyEvent"""
 
-class WeeklyEventManager(EventManager):
+    def by_weekday(self):
+        events_by_weekday = [[] for _ in range(7)]
+        for event in self._events():
+            events_by_weekday[int(event.weekday)].append(event) 
+        return events_by_weekday
 
-    # todo support filtering ?
+    # def by_weekday_and_time(self):
+    #     # for each weekday, list all shifts in order of time
+    #     shifts_dict = defaultdict(list)
+    #     for shift in shifts:
+    #         shifts_dict[shift.weekday].append(shift)
+    #     return shifts_dict
+
     def occurrences_for_date_range(self, start, end, ignore_holidays=False):
-        """enumerate all occurrences in range, for all weekly events"""
-        occ_nest = (weekly_event.occurrences_for_date_range(start, end,
-                                                   ignore_holidays=True)
-                    for weekly_event in super().get_queryset().all())
-        occurrences = list(chain.from_iterable(occ_nest))
-        occurrences.sort(key=lambda x: x.start)
-        exdates = ([] if ignore_holidays
-                   else Holiday.objects._dates_for_range(start, end))
-        for occ in occurrences:
-            if occ.start not in exdates:
-                yield occ
+        """enumerate all occurrences with date in daterange, inclusive"""
+        exclusions = ([] if ignore_holidays
+                      else Holiday.objects._dates_for_range(start, end))
+        for date in dates_in_range(start, end):
+            if date not in exclusions:
+                for event in self.by_weekday()[date.weekday()]:
+                    yield event.initialize_occurrence(date)
 
-    # return a dictionary of dictionaries
-    def occurrences_by_date_and_time(self, start, end):
-        # this makes sense only if no two instances same start dt
-        results = defaultdict(dict)
-        # date = start.date()
-        occurrences = self.occurrences_for_date_range(start, end)
-        for occurrence in occurrences:
-            results[occurrence.start.date()][occurrence.start.time()] = occurrence
-        return results
+    def occurrences_by_date(self, start, end, ignore_holidays=False):
+        occurrences = self.occurrences_for_date_range(
+            start, end, ignore_holidays=ignore_holidays)
+        retval = defaultdict(list)
+        retval.update({date : list(occs)
+                       for date, occs in itertools.groupby(
+                               occurrences, lambda o : o.start.date())})
+        return retval
+            
+    def occurrences_by_date_and_time(self, start, end, ignore_holidays=False):
+        occurrences_by_date = self.occurrences_by_date(
+            start, end, ignore_holidays=ignore_holidays)
+        data = {date : {time : list(occs) for time, occs in itertools.groupby(
+            occurrences_by_date[date], lambda o : o.start.time())}
+                for date in occurrences_by_date}
+        return defaultdict(lambda : defaultdict(list), data)
 
 
-class WeeklyEvent(models.Model):
+class WeeklyEventQuerySet(_WeeklyEventFormatter,
+                          models.QuerySet):
+
+    def _events(self):
+        return self.all()
+
+
+class WeeklyEvent(_WeeklyEventFormatter, models.Model):
     start_time = models.TimeField() # todo timezone-aware?
     end_time = models.TimeField()
     weekday = WeekdayField()
 
-    objects = WeeklyEventManager()
+    objects = WeeklyEventQuerySet.as_manager()
+
+    def _events(self):
+        return [self]
 
     def _occurrence_class(self):
         return globals()[self.__class__.__name__+'Occurrence']
@@ -165,21 +189,6 @@ class WeeklyEvent(models.Model):
         return self._occurrence_class()(self, date)
 
 
-    def occurrences_for_date_range(self, start, end, ignore_holidays=False):
-        """yield all occurrences of the WeeklyEvent on any date between dates of start and end datetimes, inclusive"""
-        exclusions = ({} if ignore_holidays 
-                      else Holiday.objects._dates_for_range(start, end))
-        dt = timezone.datetime.combine(
-            next_date_with_given_weekday(self.weekday, start),
-            self.start_time)
-        if not end.tzinfo:
-            end = timezone.make_aware(end)
-        dt = timezone.make_aware(dt)
-
-        while dt.date() <= end.date():
-            if dt.date() not in exclusions:
-                yield self.initialize_occurrence(dt)
-            dt += datetime.timedelta(days=7)
 
     class Meta:
         abstract = True
@@ -189,15 +198,27 @@ class WeeklyEvent(models.Model):
         return WEEKDAYS[self.weekday]
 
 
-
+# todo implement equality?
 class WeeklyEventOccurrence(object):
 
     def __init__(self, weekly_event, date):
         weekly_cls_name = self.__class__.__name__[:-len("Occurrence")]
         setattr(self, weekly_cls_name.lower(), weekly_event)
         # self.weekly_event = weekly_event
-        self.start = timezone.datetime.combine(date, weekly_event.start_time)
-        self.end = timezone.datetime.combine(date, weekly_event.end_time)
+        self.start = timezone.make_aware(
+            timezone.datetime.combine(date, weekly_event.start_time))
+        self.end = timezone.make_aware(
+            timezone.datetime.combine(date, weekly_event.end_time))
+
+    def __hash__(self):
+        return hash(self.__identity__()) if '__identity__' in dir(self) else super().__hash__()
+
+    def __eq__(self, other):
+        return self.__identity__() == other.__identity__() if '__identity__' in dir(self) else super().__eq__(other)
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
 
     class Meta:
         abstract = True
@@ -241,11 +262,17 @@ class Period(Event):
 #######################
 
 
+
+
+
+
+
+
 class CareDay(WeeklyEvent):
     """regular day and extension are disjoint caredays"""
     classroom = models.ForeignKey(Classroom, on_delete=models.CASCADE)
 
-    @property
+    # @property
     def shifts(self):
         return Shift.objects.filter(weekday=self.weekday, 
                                     start_time__gte=self.start_time,
@@ -268,7 +295,10 @@ class CareDayOccurrence(WeeklyEventOccurrence):
         super().__init__(careday, date)
         self.careday = careday
         self.classroom=self.careday.classroom
-
+        
+    def __identity__(self):
+        return (self.careday.pk,
+                self.start, self.end)
 
     def children(self):
         return Child.objects.filter(classroom=self.careday.classroom,
@@ -284,37 +314,37 @@ class CareDayOccurrence(WeeklyEventOccurrence):
                                           classroom=self.classroom):
             yield ShiftOccurrence(shift=shift, date=self.start.date())
 
+ 
 
 
+class CareDayAssignmentManager(EventManager):
 
-
-class CareDayAssignmentManager(WeeklyEventManager):
-
-    # not in use
-    def create_multiple(self, child, caredays, start, end):
-        for careday in caredays:
-            CareDayAssignment.objects.create(
-                child=child, careday=careday, start=start, end=end)
-
-    def create(self, child, careday, start, end):
-        overlaps = self.overlaps(child, start, end, careday=careday)
-        for assignment in overlaps:
-            assignment.extend_to(start, end)
-        if not overlaps:
-            super().create(child=child, careday=careday, start=start, end=end)
+    # # not in use
+    # def create_multiple(self, child, caredays, start, end):
+    #     for careday in caredays:
+    #         CareDayAssignment.objects.create(
+    #             child=child, careday=careday, start=start, end=end)
 
     def overlaps(self, child, start, end, careday=None):
         o = super().overlaps(start, end).filter(
-            child=child).select_related('careday')
+            child=child)
         if careday:
             o = o.filter(careday=careday)
         return o
 
-    def spans(self, start, end): 
-        # todo is this the right way to call filter in the manager?
-        return super().filter(start__lte=start,
-                              end__gte=end)
-
+    # def create(self, child, careday, start, end):
+    #     overlaps = self.overlaps(child, start, end, careday=careday)
+    #     new_start = min([o.start.date() for o in overlaps] + [start])
+    #     new_end = max([o.end.date() for o in overlaps] + [end])
+    #     super().create(child=child,
+    #                    careday=careday,
+    #                    start=new_start,
+    #                    end=new_end)
+    #     overlaps.delete()
+    #     # for assignment in overlaps:
+    #         # assignment.extend_to(start, end)
+    #     # if not overlaps:
+    #         # super().create(child=child, careday=careday, start=start, end=end)
 
     def remove_child_from_careday_for_range(self, careday, child, start, end):
         for assignment in self.overlaps(
@@ -322,28 +352,24 @@ class CareDayAssignmentManager(WeeklyEventManager):
                 careday=careday):
             assignment.retract_from(start, end)
 
-
-    # todo below seems sketchy
-    def careday_occurrences_for_child(self, child, start, end):
-        """for each weekday, list all caredayassignments which overlap the daterange; then for each date, yield caredayoccurrence if possible, then eliminate those caredayassignments with enddate <= that date"""
-        assignments_by_weekday = [[assignment for assignment in reversed(
-            self.overlaps(child, start, end))
-                                   if assignment.careday.weekday==weekday]
-                                  for weekday in WEEKDAYS]
-        # for w in assignments_by_weekday:
-        #      print(w)
+    # todo implement as queryset method, like with Shift
+    def occurrences_for_child(self, child, start, end):
+        assignments = self.overlaps(child, start, end)
+        assignments_by_weekday = [
+            [assignment for assignment in assignments
+             if assignment.careday.weekday==weekday]
+            for weekday in WEEKDAYS]
         for date in dates_in_range(start, end):
-            assignments = assignments_by_weekday[date.weekday()]
-            for assignment in reversed(assignments):
-                if assignment.end >= date:
-                    # print(assignment.careday.weekday)
-                    # print(date.weekday())
+            for assignment in assignments_by_weekday[date.weekday()]:
+                if assignment.start.date() <= date <= assignment.end.date():
                     yield assignment.careday.initialize_occurrence(date)
-                if assignment.start > date:
-                    break
-            for assignment in reversed(assignments):
-                if assignment.end <= date:
-                    assignments.remove(assignment)
+
+
+# todo this doesn't actually implement the intended behavior - what I want is to ensure that creating/editing/deleting allows at most one caredayassignment to cover any given caredayoccurrence
+# the API should have "delete" and "update".  However, "update" might simply delete the existing assignment and then create a new one.  This might be ensured by overriding the save method
+# for example, 
+
+
 
 
 class CareDayAssignment(models.Model):
@@ -354,35 +380,67 @@ class CareDayAssignment(models.Model):
 
     objects = CareDayAssignmentManager()
 
-    def extend_to(self, start, end):
-        # self must weakly overlap [start, end]
-        self.start = min(start, self.start.date())
-        self.end = max(end, self.end.date())
-        self.save()
-
     def retract_from(self, start, end):
-        if self.end > start:
-            self.end = start
-            if end < self.end: #strict inclusion, so need another
-                self.pk, second = None, self 
-                second.start = end 
-                second.save()
-        if self.start < end:
-            self.start = end
+        """revise self (creating another if necessary) as required to remove from child all assignments to caredays from start to end inclusive"""
+        assert start >= end
+        if self.end < start or self.start > end:
+            # disjoint
+            pass
+        elif self.start >= start and self.end <= end:
+            # self weakly included by range
+            self.delete()
+        elif self.start < start < end < self.end:
+            # self strictly includes range, so need split
+            self.end = start - datetime.timedelta(days = 1)
+            self.save()
+            CareDayAssignment.objects.create(
+                start = end + datetime.timedelta(days = 1),
+                end = self.end,
+                careday = self.careday)
+        elif self.start >= start:
+            # then self.end > start since per above, self is not weakly included
+            self.start = end + datetime.timedelta(days = 1)
+            self.save()
+        elif self.end <= end:
+            # then self.start < start since per above, self is not weakly included 
+            self.end = start - datetime.timedelta(days = 1)
             self.save()
 
-    def careday_occurrences(self, start, end):
-        careday_dict = defaultdict(dict)
-        for careday in self.caredays:
-            careday_dict[careday.weekday][careday.start_time] = careday
-        for date in self.dates_in_range:
-            for careday_occurrence in careday_dict[date.weekday()].values():
-                yield careday_occurrence
+        raise Exception("Unhandled daterange comparison!")
+
+    def save(self, *args, **kwargs):
+        # todo some view logic should prevent start > end
+        if self.start > self.end and self.pk:
+            self.delete()
+            return
+        overlaps = CareDayAssignment.objects.overlaps(
+            self.child, self.start, self.end, careday=self.careday)
+        new_start = min(cda.start for cda in list(overlaps) + [self])
+        new_end = max(cda.end for cda in list(overlaps) + [self])
+        overlaps.delete()
+        self.start = new_start
+        self.end = new_end
+        super().save()
+
+    def occurrences_for_date_range(self, start, end, ignore_holidays=True):
+        for occ in self.careday.occurrences_for_date_range(
+                start = max(self.start, start),
+                end = min(self.end, end),
+                ignore_holidays = ignore_holidays):
+            yield occ
+
+    # def careday_occurrences(self, start, end):
+    #     careday_dict = defaultdict(dict)
+    #     for careday in self.caredays:
+    #         careday_dict[careday.weekday][careday.start_time] = careday
+    #     for date in self.dates_in_range:
+    #         for careday_occurrence in careday_dict[date.weekday()].values():
+    #             yield careday_occurrence
         
-    def shift_occurrences(self, start, end):
-        for careday_occurrence in self.occurrences_for_date_range(start, end):
-            for shift_occurrence in careday_occurrence.shift_occurrences:
-                yield shift_occurrence
+    # def shift_occurrences(self, start, end):
+    #     for careday_occurrence in self.occurrences_for_date_range(start, end):
+    #         for shift_occurrence in careday_occurrence.shift_occurrences:
+    #             yield shift_occurrence
     
     def __repr__(self):
         return f"<{self.__class__.__name__} {self.pk}>: child={self.child}, careday={self.careday}, start={self.start}, end={self.end}"
@@ -406,56 +464,31 @@ conversely, access children from shift
 ##########
 
 
-class ShiftManager(WeeklyEventManager):
-
-    # todo shouldn't this be a method of WeeklyEventManager?
-    # or maybe a custom queryset method?
-    def occurrences_for_date_range(self, start, end,
-                                   include_commitments=False,
-                                   classrooms=[],
-                                   child=None):
-        occ_nest = (shift.occurrences_for_date_range(
-            start, end, ignore_holidays=True)
-                    for shift in self.all().select_related('classroom'))
-        occurrences = list(chain.from_iterable(occ_nest))
-        occurrences.sort(key=lambda x: x.start)
-        exdates = Holiday.objects._dates_for_range(start, end)
-        for occ in occurrences:
-            if occ.start not in exdates:
-                yield occ
-
+class ShiftQuerySet(WeeklyEventQuerySet):
     def occurrences_by_date_and_time(self, start, end,
-                                     include_commitments=False,
-                                     classrooms=[]):
-        """option to include worktime commitments for given shiftoccurrences"""
-        results = super().occurrences_by_date_and_time(start, end)
+                                     ignore_holidays=False,
+                                     include_commitments=False):
+        """just adds option to include commitments for a classroom"""
+        results = super().occurrences_by_date_and_time(
+            start, end, ignore_holidays=ignore_holidays)
         if include_commitments:
-            commitments = WorktimeCommitment.objects.filter( 
-                start__range=(start, end)).select_related("child")
-            if classrooms:
-                commitments = commitments.filter(child__classroom__in=classrooms)
+            commitments = WorktimeCommitment.objects.filter(
+                    shift__in=self.all(),
+                    start__gte=start,
+                    end__lte=end)
             for commitment in commitments:
                 start = commitment.start
-                results[start.date()][start.time()].commitment = commitment
-                # print(commitment)
-                # print(results[start.date()][start.time()])
-                # print(results[start.date()][start.time()].commitment)
+                for occ in results[start.date()][start.time()]:
+                    if occ.shift == commitment.shift:
+                        occ.commitment = commitment
         return results
-
-    def by_weekday_and_time(self, classroom):
-        shifts = Shift.objects.filter(classroom=classroom).order_by('start_time')
-        # for each weekday, list all shifts in order of time
-        shifts_dict = defaultdict(list)
-        for shift in shifts:
-            shifts_dict[shift.weekday].append(shift)
-        return shifts_dict
-
+    
 
 class Shift(WeeklyEvent):
 
     classroom = models.ForeignKey(Classroom, on_delete=models.CASCADE)
 
-    objects = ShiftManager()
+    objects = ShiftQuerySet.as_manager()
 
     def children(self):
         return self.careday().children()
@@ -468,6 +501,7 @@ class Shift(WeeklyEvent):
     def __repr__(self):
         return f"<Shift {self.pk}: weekday={self.weekday}, time={self.start_time}>"
 
+    
     def __str__(self):
         return f"{WEEKDAYS[self.weekday]} {self.start_time}"
 
@@ -481,17 +515,25 @@ class ShiftOccurrence(WeeklyEventOccurrence):
         # date = kwargs.pop('date')
         if int(shift.weekday) != (date.weekday()):
             raise ValueError(
-                f"The shift {shift} has no occurrence on {date}, because {shift.weekday} != {date.weekday()}")
+                f"The shift {shift} has no occurrence on {date},\
+                because {shift.weekday} != {date.weekday()}")
         super().__init__(shift, date)
         self.classroom=self.shift.classroom
         self.commitment = kwargs.pop('commitment', None)
 
-    # dont inherit
+    def __identity__(self):
+        return (self.classroom, self.start)
+
     def create_commitment(self, child):
+        # shouldn't this call is_available_to_child?
+        shift = Shift.objects.get(classroom=child.classroom,
+                                  start_time=self.start.time(),
+                                  weekday=str(self.start.date().weekday()))
         commitment = WorktimeCommitment(
             start = self.start,
             end = self.end,
-            child = child)
+            child = child,
+            shift = shift)
         commitment.save()
 
     def get_commitment(self):
@@ -501,13 +543,21 @@ class ShiftOccurrence(WeeklyEventOccurrence):
 
     def is_available_to_child(self, child):
         # todo make configurable from settings
+        # todo this doesn't make sense since it doesn't account for caredayassignment
+        # also, is shiftoccurrence available to c when already committed to c?
+        # there are three separate issues which should be split up:
+        # (i) is it not too late to sign up for this?
+        # (ii) is it covered by the child's caredayassignments? (I really need corresponding methods on caredayassignment queryset (to generate its occurrences, and shiftoccurrences)
+        # (iii) is it already taken?
         maxtime = timezone.datetime.max.time()
         earliest = timezone.now().replace(
             hour=maxtime.hour, minute=maxtime.minute)
         if not self.start.tzinfo:
             self.start = timezone.make_aware(self.start)
+        # note that the below will give false results unless the ignore_commitments flag is set to false
         return self.start >= earliest\
-            and (getattr(self, "commitment", None)==None or self.commitment.child==child)
+            and (getattr(self, "commitment", None)==\
+                 None or self.commitment.child==child)
 
 
     def __str__(self):
@@ -537,18 +587,7 @@ class ShiftOccurrence(WeeklyEventOccurrence):
         sh_occ.commitment = repr_dict.get('commitment')
         return sh_occ
 
-
         
-class WorktimeCommitmentManager(EventManager):
-    
-    def create(self):
-        super().create()
-        # todo add notification
-
-    def delete(self):
-        super.delete()
-        # todo add notification
-
          
 # don't create these directly; instead use create_commitment instance method of ShiftOccurrence
 class WorktimeCommitment(Event):
@@ -575,7 +614,6 @@ class WorktimeCommitment(Event):
         self.start = shift_occurrence.start
         self.end = shift_occurrence.end
         self.save()
-        
 
     def save(self, *args, **kwargs):
         self.shift = self.shift or Shift.objects.get(
@@ -585,32 +623,30 @@ class WorktimeCommitment(Event):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return str(self.shift_occurrence())
+        return f'commitment of {str(self.child)} to {str(self.shift_occurrence())}'
 
     def alternatives(self, earlier, later):
+        """enumerate all shiftoccurrences for classroom of child of commitment, minus those already committed, plus shiftoccurrence of current commitment, whose careday is in the caredayassignment of the child"""
         dt_min = max(timezone.now(), self.start - earlier).replace(
             hour=timezone.datetime.min.hour,
             minute=timezone.datetime.min.minute)
         dt_max = max(timezone.now(), self.start + later).replace(
             hour=timezone.datetime.max.hour,
             minute=timezone.datetime.max.minute)
-        maybe_alts = self.child.possible_shifts(
-            start=dt_min,
-            end=dt_max)
-        commitments = WorktimeCommitment.objects.by_date_and_time(
-            start=dt_min, end=dt_max)
-        print("COMMITMENTS: ", commitments)
-        for occ in maybe_alts:
-            # print(getattr(occ, 'commitment', None))
-            c = commitments[occ.start.date()].get(occ.start.time())
-            print(c)
-            if c in [None, self]:
-                occ.commitment = c
-                yield occ
+        sh_occs = (sh_occ for cdo in CareDayAssignment.objects.occurrences_for_child(
+            child=self.child, start=dt_min, end=dt_max)
+                   for sh_occ in cdo.shift_occurrences())
+        commitments_by_start = {wtc.start : wtc \
+                                for wtc in WorktimeCommitment.objects.filter(
+                                        child__classroom=self.child.classroom,
+                                        start=dt_min, end=dt_max)}
+        for proposed_occ in sh_occs:
+            if commitments_by_start.get(proposed_occ.start, self) == self:
+                yield proposed_occ 
 
     class Meta:
         unique_together = (("shift", "start"),)
-
+ 
 
 class ShiftPreferenceManager(models.Manager):
 
@@ -651,7 +687,7 @@ class ShiftPreference(models.Model):
         return f"<ShiftPreference {self.pk}: {self.child} ranks {self.shift} as {self.rank}>"
 
     class Meta:
-        unique_together = (("child", "shift", "period"), )
+        # unique_together = (("child", "shift", "period"), )
         ordering = ('period', 'rank', 'shift')
 
 
@@ -659,13 +695,14 @@ class ShiftAssignmentCollectionManager(models.Manager):
 
     # todo below is super-ugly and should be in scheduler.py
     def generate(self, period, no_worse_than=1):
+        """generate shiftassignments"""
         ShiftAssignmentCollection.objects.filter(period=period).delete()
         problem = Problem()
         all_families = Child.objects.filter(classroom=period.classroom)
         families = []
         preferences = []
         for f, child in enumerate(all_families):
-            print(child)
+            # print(child)
             fam_prefs = ShiftPreference.objects.filter(
                 child=child,
                 rank__lte=no_worse_than,
@@ -676,7 +713,7 @@ class ShiftAssignmentCollectionManager(models.Manager):
         for f in range(len(families)):
             problem.addVariable(f, preferences[f])
         for c1,c2,c3 in itertools.combinations(range(len(families)), 3):
-            print("c1,c2,c3:", c1,c2,c3)
+            # print("c1,c2,c3:", c1,c2,c3)
             problem.addConstraint((lambda p1, p2, p3:
                                    not(p1.shift == p2.shift == p3.shift)),
                                   [c for c in [c1,c2,c3]])
@@ -686,15 +723,15 @@ class ShiftAssignmentCollectionManager(models.Manager):
         solutions = problem.getSolutions()
         # print("solutions", solutions)
         for solution in solutions:
-            print("solution:", solution)
+            # print("solution:", solution)
             collection = ShiftAssignmentCollection.objects.create(period=period)
             for f, family in enumerate(families):
                 sh = ShiftAssignment.objects.create(child=family,
                                                     shift=solution[f].shift,
                                                     collection=collection,
                                                     rank=solution[f].rank)
-            retval.append(solution)
-            print("retval", retval)
+            retval.append(collection)
+            # print("retval", retval)
         return retval
 
 
@@ -739,7 +776,7 @@ class ShiftAssignmentCollection(models.Model):
             for child in families:
                 first_index = available_indices.pop()
                 assign_from_index(child, first_index)
-                available_indices.remove(first_index)
+                # available_indices.remove(first_index)
                 if child.shifts_per_month == 2:
                     second_index = (first_index + 2) % 4
                     # must be available, since child has at most one predecessor (else sum of children's shifts per months exceeds four), and that predecessor has different parity 
@@ -762,3 +799,4 @@ class ShiftAssignment(models.Model):
 
 
 
+ 

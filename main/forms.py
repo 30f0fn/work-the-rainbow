@@ -247,5 +247,4 @@ class CareDayAssignmentUpdateForm(ModelForm):
         model = main.models.Period
         fields = ['start', 'end']
     
-
     

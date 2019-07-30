@@ -3,7 +3,7 @@ import constraint
 from constraint import *
 import itertools
 
-from main.models import Shift, ShiftAssignment
+from main.models import Shift, ShiftAssignment, ShiftAssignmentCollection
 from people.models import Classroom, Child
 
 """

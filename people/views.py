@@ -379,6 +379,8 @@ class ChildDetailView(ChildMixin,
     #     # assumes four months per period
     #     return self.child.shifts_per_month * 4
 
+    def careday_assignments(self):
+        return self.child.caredayassignment_set.all().distinct().select_related('careday')
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
@@ -386,6 +388,7 @@ class ChildDetailView(ChildMixin,
         context['commitments_by_period'] = self.commitments_by_period()
         # context['min_commitments_per_period'] = self.min_commitments_per_period()
         context['now'] = timezone.now()
+        context['careday_assignments'] = self.careday_assignments()
         return context
 
 

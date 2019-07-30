@@ -40,10 +40,10 @@ def occurrences_for_date_range(rule, from_date, to_date, exclusions=[]):
     # return next_date_with_given_weekday(1, from_date) - datetime.timedelta(days=7)
 
 
-def add_delta_to_time(time, timedelta):
-    stupid_datetime = (datetime.datetime.combine(
-        datetime.datetime.now().date(), time))
-    return (stupid_datetime + timedelta).time()
+# def add_delta_to_time(time, timedelta):
+#     stupid_datetime = (datetime.datetime.combine(
+#         datetime.datetime.now().date(), time))
+#     return (stupid_datetime + timedelta).time()
 
 def week_from(first_day):
     return [start_date + datetime.timedelta(days=i)
@@ -70,8 +70,9 @@ def weeks_for_month(year, month, outliers=False):
 
 
 def dates_in_range(start, end):
-    date = start
-    while date <= end:
+    """enumerate dates from start to end, INCLUSIVELY"""
+    date = start.date()
+    while date <= end.date():
         yield date
         date += datetime.timedelta(days=1)
 

@@ -166,10 +166,10 @@ class ClassroomWorktimeMixin(object):
     # for this, CalendarMixin is enough
 
     def shifts_dict(self):
-        return Shift.objects.occurrences_by_date_and_time(
-            self.start, self.end,
-            include_commitments=True,
-            classrooms=[self.classroom])
+        return Shift.objects.filter(classroom=classroom)\
+                            .occurrences_by_date_and_time(
+                                self.start, self.end,
+                                include_commitments=True)
 
     # todo use just occurrences_for_date_range instead of shifts_dict here
     def shifts_by_week(self):
@@ -180,18 +180,21 @@ class ClassroomWorktimeMixin(object):
 
 
 class PerChildEditWorktimeMixin(object):
-    # rename to available_shifts_for_child
+
+    # todo... this is too much logic for a view function
+    # plus seems ridiculous to construct dictionary then flatten it out again
+
     # is this already a model method?
     # requires shifts e.g. from ClassroomWorktimeMixin 
     # todo this does'nt make sense for the EditWorktimeCommitmentView
 
     # todo this should use just occurrences_for_date_range
     def available_shifts(self):
-        sh_dict = Shift.objects.occurrences_by_date_and_time(
-            self.start, self.end,
-            include_commitments=True,
-            classrooms=[self.classroom])
-        ret =  [sh for day in sh_dict for sh in sh_dict[day].values()
+        sh_occs = Shift.objects.filter(classroom=classroom)\
+                               .occurrences_by_date_and_time(
+                                   self.start, self.end,
+                                   include_commitments=True)
+        ret = [sh for day in sh_dict for sh in sh_dict[day].values()
                 if sh.is_available_to_child(self.child)]
         return ret
 
@@ -613,10 +616,11 @@ class WorktimePreferencesSubmitView(ChildEditMixin,
         return super().post(request, *args, **kwargs)
 
     def shifts(self):
-        assignments = CareDayAssignment.objects.spans(
-            self.object.start, self.object.end).filter(
-                child=self.child).select_related('careday')
-        return list(chain.from_iterable(a.careday.shifts for a in assignments))
+        assignments = CareDayAssignment.objects.filter(
+            start__lte=self.object.start,
+            end__gte=self.object.end,
+            child=self.child).select_related('careday')
+        return list(chain.from_iterable(a.careday.shifts() for a in assignments))
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
@@ -707,7 +711,6 @@ class CareDayAssignmentDeleteView(ChildEditMixin,
     def get_success_url(self):
         return reverse('child-profile',
                        kwargs={'child_slug' : self.child.slug})
-
 
 
 
@@ -1038,11 +1041,11 @@ class PreferencesDisplayView(ClassroomEditMixin,
             # print(i)
         # return prefs
 
-
-    def shifts(self):
-        shifts = Shift.objects.by_weekday_and_time(classroom=self.object.classroom)
-        # print(shifts)
-        return shifts
+    # def shifts(self):
+    #     shifts = Shift.objects.by_weekday_and_time(
+    #         classroom=self.object.classroom)
+    #     # print(shifts)
+    #     return shifts
 
     def weekdays(self):
         return WEEKDAYS

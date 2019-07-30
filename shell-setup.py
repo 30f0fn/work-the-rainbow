@@ -16,7 +16,7 @@ from notifications.models import Notification
 
 
 user = User.objects.first()
-u = User.objects.get(username='max78')
+# u = User.objects.first()
 child = Child.objects.first()
 classroom = Classroom.objects.first()
 period = Period.objects.filter(classroom=classroom).first()

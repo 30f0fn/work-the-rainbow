@@ -202,34 +202,29 @@ class Child(NamingMixin, models.Model):
     parent_set = models.ManyToManyField(User)
     birthday = models.DateField(blank=True, null=True)
 
-    # todo test this
-    def has_careday_occurrence(self, occ):
-        return main.models.CareDayAssignment.objects.filter(
-            child=child,
-            start__lte=occ.start,
-            end__gte=self.start,
-            caredays=self.careday).exists()
+    # # todo test this
+    # def has_careday_occurrence(self, occ):
+    #     return main.models.CareDayAssignment.objects.filter(
+    #         child=child,
+    #         start__lte=occ.start,
+    #         end__gte=self.start,
+    #         caredays=self.careday).exists()
 
 
-    def careday_occurrences(self, start, end):
-        for careday in main.models.CareDayAssignment.objects.careday_occurrences_for_child(
-                child=self, start=start, end=end):
-            yield careday
+    # def careday_occurrences(self, start, end):
+        # for careday in main.models.CareDayAssignment.objects.careday_occurrences_for_child(
+                # child=self, start=start, end=end):
+            # yield careday
 
-    def possible_shifts(self, start, end):
-        # commitments = [] if not include_commitments else \
-            # WorktimeCommitment.objects.filter(start__range=(start, end),
-                                              # child__classroom=child.classroom)
-        for careday_occurrence in self.careday_occurrences(start, end):
-            for shift_occurrence in careday_occurrence.shift_occurrences():
-                yield shift_occurrence
+    # # todo move to main.models.ShiftManager
+    # def possible_shifts(self, start, end):
+    #     # commitments = [] if not include_commitments else \
+    #         # WorktimeCommitment.objects.filter(start__range=(start, end),
+    #                                           # child__classroom=child.classroom)
+    #     for careday_occurrence in self.careday_occurrences(start, end):
+    #         for shift_occurrence in careday_occurrence.shift_occurrences():
+    #             yield shift_occurrence
 
-    def careday_assignments(self):
-        return self.caredayassignment_set.all().distinct().select_related('careday')
-
-    @property
-    def worktime_commitments(self):
-        return main.models.WorktimeCommitment.objects.filter(child=self)
 
     def __str__(self):
         return f"{self.nickname}"
