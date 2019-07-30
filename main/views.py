@@ -188,14 +188,19 @@ class PerChildEditWorktimeMixin(object):
     # requires shifts e.g. from ClassroomWorktimeMixin 
     # todo this does'nt make sense for the EditWorktimeCommitmentView
 
-    # todo this should use just occurrences_for_date_range
     def available_shifts(self):
-        sh_occs = Shift.objects.filter(classroom=classroom)\
-                               .occurrences_by_date_and_time(
+        # todo this should use just occurrences_for_date_range
+        # sh_occs = Shift.objects.filter(classroom=classroom)\
+                               # .occurrences_by_date_and_time(
+                                   # self.start, self.end,
+                                   # include_commitments=True)
+        # ret = [sh for day in sh_dict for sh in sh_dict[day].values()
+                # if sh.is_available_to_child(self.child)]
+        shoccs = Shift.objects.filter(classroom=self.classroom)\
+                               .occurrences_for_date_range(
                                    self.start, self.end,
                                    include_commitments=True)
-        ret = [sh for day in sh_dict for sh in sh_dict[day].values()
-                if sh.is_available_to_child(self.child)]
+        ret = [shocc for shocc in shoccs if shocc.is_available_to_child(self.child)]
         return ret
 
 
@@ -753,40 +758,40 @@ class SchedulerCalendarView(MonthlyCalendarMixin,
 
 
 
-# todo is this the correct inheritance order?
-class FourWeekSchedulerCalendarView(ClassroomEditMixin,
-                                    ClassroomWorktimeMixin,
-                                    CalendarMixin,
-                                    TemplateView):
+# # todo is this the correct inheritance order?
+# class FourWeekSchedulerCalendarView(ClassroomEditMixin,
+#                                     ClassroomWorktimeMixin,
+#                                     CalendarMixin,
+#                                     TemplateView):
 
-    num_weeks = 4
-    template_name = 'scheduler_calendar.html'
-    unit_name = 'weekly'
+#     num_weeks = 4
+#     template_name = 'scheduler_calendar.html'
+#     unit_name = 'weekly'
     
 
-    # todo break period into three four-week sections, show active section
-    @property
-    def start_date(self):
-        most_recent_monday = self.date() - datetime.timedelta(days = self.date().weekday())
-        return most_recent_monday
+#     # todo break period into three four-week sections, show active section
+#     @property
+#     def start_date(self):
+#         most_recent_monday = self.date() - datetime.timedelta(days = self.date().weekday())
+#         return most_recent_monday
     
-    @property
-    def end_date(self):
-        return self.start_date + self.num_weeks * datetime.timedelta(days=7)
+#     @property
+#     def end_date(self):
+#         return self.start_date + self.num_weeks * datetime.timedelta(days=7)
 
 
-    def jump_url(self, increment):
-        new_date = self.jump_date(increment)
-        kwargs= {'classroom_slug' : self.classroom.slug,
-                 'year':new_date.year, 'month':new_date.month, 'day':new_date.day}
-        return reverse_lazy('scheduler-calendar',
-                            kwargs=kwargs)
+#     def jump_url(self, increment):
+#         new_date = self.jump_date(increment)
+#         kwargs= {'classroom_slug' : self.classroom.slug,
+#                  'year':new_date.year, 'month':new_date.month, 'day':new_date.day}
+#         return reverse_lazy('scheduler-calendar',
+#                             kwargs=kwargs)
  
-    def next(self):
-        return self.jump_url(4)
+#     def next(self):
+#         return self.jump_url(4)
 
-    def previous(self):
-        return self.jump_url(-4)
+#     def previous(self):
+#         return self.jump_url(-4)
 
 
 
@@ -870,15 +875,13 @@ class EditWorktimeCommitmentView(ClassroomMixin,
         else:
             return super().date()
 
-    @property
     def start_date(self):
         # most_recent_monday = self.date - datetime.timedelta(days = self.date.weekday())
         return nearest_monday(self.date())
         # return most_recent_monday
 
-    @property
     def end_date(self):
-        return self.start_date + self.num_weeks * datetime.timedelta(days=7)
+        return self.start_date() + self.num_weeks * datetime.timedelta(days=7)
 
     def commitment(self):
         return self.object

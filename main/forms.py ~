@@ -1,4 +1,0 @@
-from django.forms import Form, CharField, EmailField, SlugField, ValidationError, ModelChoiceField, IntegerField, ModelForm
-from django.forms.widgets import HiddenInput
-
-class PreferenceSubmitForm(Form):

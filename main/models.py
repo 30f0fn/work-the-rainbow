@@ -483,6 +483,9 @@ class ShiftQuerySet(WeeklyEventQuerySet):
                         occ.commitment = commitment
         return results
     
+    def occurrences_available_to_child(self, child, start, end):
+        
+
 
 class Shift(WeeklyEvent):
 

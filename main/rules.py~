@@ -1,3 +1,0 @@
-import rules
-from people.models import Classroom
-

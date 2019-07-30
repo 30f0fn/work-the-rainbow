@@ -1,8 +1,0 @@
-import random
-import constraint
-from constraint import *
-import itertools
-
-from main.models import ShiftPreference
-from people.models import Classroom
-
