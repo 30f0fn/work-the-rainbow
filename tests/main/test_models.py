@@ -1,5 +1,3 @@
-# 7938
-
 import datetime
 import random
 
@@ -11,20 +9,23 @@ from main.models import *
 from main.model_fields import WEEKDAYS
 
 from tests.main.test_utils import *
-
+from tests.main.daycare_testcase import *
 
 class _EventAlgebraTest(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.dates = [timezone.now() + datetime.timedelta(i)
-                 for i in range(-4, 4)]
+        # INTERVAL = (0, 1)
+        INTERVAL = (-4, 4)
+        """within interval -4, 4, build event with start,end == i, j for all i, j in interval with i < j"""
+        cls.dates = [timezone.now() + datetime.timedelta(days=i)
+                 for i in range(*INTERVAL)]
         cls.events = {index1 :
                         {index2 : cls.event_class.objects.create(
                             start=date1,
                             end=date2)
                          for index2, date2 in enumerate(cls.dates[index1:])}
-                        for index1, date1 in enumerate(cls.dates)}
+                      for index1, date1 in enumerate(cls.dates)}
 
     def _test_spans(self):
         h = self.events[2][5]
@@ -51,55 +52,54 @@ class _EventAlgebraTest(TestCase):
                     self.assertTrue(h in overlap)
 
 
-# class _EventByDateAndTimeTest(TestCase):
+class _EventByDateAndTimeTest(TestCase):
 
-#     @classmethod
-#     def setUpTestData(cls):
-#         start = timezone.datetime(2019, 1, 1, 0, 0, 0)
-#         end = timezone.datetime(2019, 2, 1, 0, 0, 0)
-#         cls.datetimes = [random.uniform(start, end) for _ in range(50)]
-#         cls.events = [cls.event_class.objects.create(
-#             start=random.choice(cls.datetimes)) for _ in range(100)]
+    @classmethod
+    def setUpTestData(cls):
+        start = timezone.make_aware(timezone.datetime(2019, 1, 1, 0, 0, 0))
+        end = timezone.make_aware(timezone.datetime(2019, 2, 1, 0, 0, 0))
+        cls.datetimes = [random.uniform(start, end) for _ in range(50)]
+        cls.events = [cls.event_class.objects.create(
+            start=random.choice(cls.datetimes)) for _ in range(100)]
         
-    # def _test_by_date_and_time(self):
-    #     actual = self.event_class.objects.by_date_and_time(
-    #         timezone.datetime(2019, 1, 5, 0, 0, 0),
-    #         timezone.datetime(2019, 1, 10, 0, 0, 0))
-    #     print(f"actual.items() : {actual.items()}")
-    #     for event in self.events:
-    #         for date, times in actual.items():
-    #             print(date, times)
-    #             for time, events in times.items():
-    #                 print(time, events)
-    #                 self.assertEqual(event.start.date() == date\
-    #                            and event.start.time() == time,
-    #                            event in events)
+    def _test_by_date_and_time(self):
+        actual = self.event_class.objects.by_date_and_time(
+            timezone.make_aware(timezone.datetime(2019, 1, 5, 0, 0, 0)),
+            timezone.make_aware(timezone.datetime(2019, 1, 10, 0, 0, 0)))
+        for event in self.events:
+            for date, times in actual.items():
+                for time, events in times.items():
+                    self.assertEqual(event.start.date() == date\
+                               and event.start.time() == time,
+                               event in events)
 
 
-# class HolidayByDateAndTimeTest(_EventByDateAndTimeTest):
-#     event_class = Holiday
+class HolidayByDateAndTimeTest(_EventByDateAndTimeTest):
+    event_class = Holiday
 
-#     def test_by_date_and_time(self):
-#         return  self._test_by_date_and_time()
+    def test_by_date_and_time(self):
+        return  self._test_by_date_and_time()
 
 
 class HolidayAlgebraTest(_EventAlgebraTest):
 
     event_class = Holiday
 
+    def test_overlaps(self):
+        return self._test_overlaps()
+
     def test_spans(self):
         return self._test_spans()
 
-    def test_overlaps(self):
-        return self._test_overlaps()
     
 
 class HolidayDatesForRangeTest(TestCase):
 
     def setUp(self):
+        NUM_HOLIDAYS = 1
         self.dates = [timezone.now() + datetime.timedelta(days = i)
                       for i in range(-50, 50)]
-        starts = [random.choice(self.dates) for _ in range(20)]
+        starts = [random.choice(self.dates) for _ in range(NUM_HOLIDAYS)]
         ends = [d + datetime.timedelta(days=random.randrange(7))
                              for d in starts]
         self.holidays = [Holiday.objects.create(start=start, end=end)
@@ -111,8 +111,8 @@ class HolidayDatesForRangeTest(TestCase):
         for holiday in self.holidays:
             for date in holiday.all_dates():
                 self.assertEqual(date in found_holiday_dates,
-                                 start <= date <= end)
-            
+                                 start.date() <= date <= end.date())
+                    
 
 class HappeningAlgebraTest(_EventAlgebraTest):
 
@@ -125,45 +125,6 @@ class HappeningAlgebraTest(_EventAlgebraTest):
         return self._test_overlaps()
 
 
-# class _WeeklyEventTest(TestCase):
-
-#     @classmethod
-#     def setUpTestData(cls):
-#         NUM_TRIALS = 10
-#         DATERANGE_LEN_MAX = 60
-#         DATERANGE_START_RANGE = 365
-#         start_times = (timezone.time(random.randrange(8, 16), 1, 1)
-#                             for _ in range(NUM_TRIALS))
-#         end_times = (start_time + datetime.timedelta(
-#             hours=random.randrange(1,4))
-#                           for start_time in start_times) 
-#         weekdays = (random.choice(WEEKDAYS)
-#                         for _ in start_times)
-#         weekly_events = {wd : 
-#             cls.weekly_event_class.objects.create(
-#                 start_time = st,
-#                 end_time = et,
-#                 weekday = wd)
-#             for st, et, wd in zip(start_times, end_times, weekdays)}
-#         setattr(cls,
-#                 cls.weekly_event_class.__name__.lower() + "_list",
-#                 weekly_events)
-#         cls.weekly_events = {wd : 
-#             cls.weekly_event_class.objects.create(
-#                 start_time = st,
-#                 end_time = et,
-#                 weekday = wd)
-#             for st, et, wd in zip(start_times, end_times, weekdays)}
-#         def random_daterange():
-#             start = random.uniform(
-#             timezone.now() - datetime.timedelta(
-#                 days=DATERANGE_START_SPREAD),
-#             timezone.now())
-#             end = start + datetime.timedelta(
-#                 days = random.randrange(1, DATERANGE_LEN_MAX))
-#             return start, end
-#         cls.date_ranges = [random_daterange() for _ in range(NUM_TRIALS)]
-
 class ClassroomTestCase(TestCase):
 
     @classmethod
@@ -171,32 +132,60 @@ class ClassroomTestCase(TestCase):
         cls.classroom = Classroom.objects.create(name="some test classroom")
 
 
-class CareDayOccurrencesForDateRangeTest(ClassroomTestCase):
+class CareDayInstanceOccurrencesForDateRangeTest(ClassroomTestCase):
 
-    def _test_careday_for_date_range(self, careday, start, end):
-            actual_occs = careday.occurrences_for_date_range(
-                start, end,
-                ignore_holidays=True)
-            for date in dates_in_range(start, end):
-                if str(date.weekday()) == str(careday.weekday):
-                    careday.initialize_occurrence(date)
-                    self.assertEqual(
-                        next(actual_occs).start.date(),
-                        date.date())
-            self.assertRaises(StopIteration,
-                lambda : next(actual_occs))
-            occs_display = list(careday.occurrences_for_date_range(
-                start, end,
-                ignore_holidays=True))
-            # print(f"verified that {careday} has {len(occs_display)} occurrences from {start} until {end}")
+    def _test_careday_for_date_range(self, careday, start, end,
+                                     ignore_holidays=False):
+        # Holiday.objects.create(start=start,
+                               # end=start+datetime.timedelta(days=15))
+        actual_occs = careday.occurrences_for_date_range(
+            start, end,
+            ignore_holidays=ignore_holidays
+        )
+        # occs_display = list(careday.occurrences_for_date_range(
+            # start, end))
+        # print(occs_display)
+        exclusions = Holiday.objects._dates_for_range(start, end)
+        # print(f"exclusions found in test: {exclusions}")
+        for date in dates_in_range(start, end):
+            if str(date.weekday()) == str(careday.weekday) and date not in exclusions:
+                careday.initialize_occurrence(date)
+                self.assertEqual(date,
+                                 next(actual_occs).start.date())
+        self.assertRaises(StopIteration,
+                          lambda : next(actual_occs))
+        occs_display = list(careday.occurrences_for_date_range(
+            start, end,
+            # ignore_holidays=True
+        ))
+        # print(f"verified that {careday} has {len(occs_display)} occurrences from {start} until {end}")
 
 
     def test_occurrences_for_date_range_oneoff(self):
         """pick careday and daterange, verify its occurrences_for_date_range
         """
+        start = timezone.make_aware(timezone.datetime(2019, 1, 1, 0, 0, 0))
+        end = timezone.make_aware(timezone.datetime(2019, 2, 1, 0, 0, 0))
+        classroom = Classroom.objects.create(name="test classroom")
+        careday = CareDay.objects.create(
+            start_time = datetime.time(8, 0, 0),
+            end_time = datetime.time(10, 0, 0),
+            weekday = "0",
+            classroom = classroom)
+        self._test_careday_for_date_range(careday, start, end, ignore_holidays=True)
+
+    def test_occurrences_for_date_range_oneoff_with_holidays(self):
+        """pick careday and daterange, verify its occurrences_for_date_range
+        """
         start = timezone.datetime(2019, 1, 1, 0, 0, 0)
         end = timezone.datetime(2019, 2, 1, 0, 0, 0)
+        # print("before make_aware", start)
+        start = timezone.make_aware(start)
+        # print("after make_aware", start)
+        end = timezone.make_aware(end)
         classroom = Classroom.objects.create(name="test classroom")
+        Holiday.objects.create(start=start,
+                               end=start + datetime.timedelta(days=15))
         careday = CareDay.objects.create(
             start_time = datetime.time(8, 0, 0),
             end_time = datetime.time(10, 0, 0),
@@ -204,9 +193,8 @@ class CareDayOccurrencesForDateRangeTest(ClassroomTestCase):
             classroom = classroom)
         self._test_careday_for_date_range(careday, start, end)
 
-
     def test_occurrences_for_date_range_random(self):
-        NUM_TRIALS = 500
+        NUM_TRIALS = 100
         DATERANGE_LEN_MAX = 100
         DATERANGE_START_RANGE = 500
         EVENT_LEN_MAX = 7
@@ -221,8 +209,445 @@ class CareDayOccurrencesForDateRangeTest(ClassroomTestCase):
                                              weekday = weekday,
                                              classroom=self.classroom)
             date_range = random_daterange()
-            self._test_careday_for_date_range(careday, *date_range)
-            
+            self._test_careday_for_date_range(careday, *date_range, ignore_holidays=True)
 
+    def test_occurrences_for_date_range_random_with_holidays(self):
+        NUM_TRIALS = 100
+        DATERANGE_LEN_MAX = 100
+        DATERANGE_START_RANGE = 500
+        EVENT_LEN_MAX = 7
+        START_TIME_RANGE = (8, 16)
+        for _ in range(NUM_TRIALS):
+            start_time = datetime.time(random.randrange(*START_TIME_RANGE), 0, 0)
+            end_time = datetime.time(
+                start_time.hour + random.randrange(1, EVENT_LEN_MAX), 0, 0)
+            weekday = random.choice(list(WEEKDAYS.keys()))
+            careday = CareDay.objects.create(start_time = start_time,
+                                             end_time = end_time,
+                                             weekday = weekday,
+                                             classroom = self.classroom)
+            date_range = random_daterange()
+            holiday_start = random.uniform(*date_range)
+            holiday_duration = datetime.timedelta(days=random.randrange(7))
+            Holiday.objects.create(start=holiday_start,
+                                   end=holiday_start + holiday_duration)
+            self._test_careday_for_date_range(careday, *date_range)
+
+
+class CareDayQuerySetTest(DayCareTestCase):
+
+    def test__by_weekday(self):
+        careday_qs = CareDay.objects.all()
+        actual_by_weekday = careday_qs.by_weekday()
+        for careday in careday_qs:
+            self.assertTrue(careday in actual_by_weekday[int(careday.weekday)])
+        for weekday in WEEKDAYS:
+            actual = len(actual_by_weekday[int(weekday)])
+            expected = CareDay.objects.filter(weekday=weekday).count()
+            self.assertEqual(actual, expected)
+
+    def _test_for_date_range(self, careday_qs, start, end,
+                                        ignore_holidays=False):
+        found_occs = careday_qs.occurrences_for_date_range(
+            start, end,
+            ignore_holidays=ignore_holidays)
+        caredays = careday_qs.by_weekday()
+        # print(caredays)
+        exclusions = ([] if ignore_holidays\
+            else Holiday.objects._dates_for_range(start, end))
+        for date in dates_in_range(start, end):
+            for careday in caredays[date.weekday()]:
+                # print(Holiday.objects.filter(start__lte=date, end__gte=date))
+                if date not in exclusions:
+                    found_occ = next(found_occs)
+                    expected_occ = careday.initialize_occurrence(date)
+                    self.assertEqual(
+                        found_occ.start.date(),
+                        expected_occ.start.date())
+        # print(list(found_occs))
+        # self.assertEqual(len(found_occs), 0)
+        self.assertRaises(StopIteration,
+                          lambda : next(found_occs))
+    
+    def test_singleton_occs_for_date_range(self):
+        careday_qs = CareDay.objects.filter(weekday="0", start_time="8:30")
+        # daterange = random_daterange(earliest=timezone.now(),
+                              # latest=timezone.now() + datetime.timedelta(days=300))
+        daterange = (timezone.now(), timezone.now() + datetime.timedelta(days=30))
+        self._test_for_date_range(
+            careday_qs,
+            *daterange,
+            ignore_holidays=True)
+            # timezone.now() - datetime.timedelta(days=30),
+            # timezone.now())
+
+    def test_occs_for_date_range(self): 
+        careday_qs = CareDay.objects.filter(
+            classroom=Classroom.objects.first())
+        date_range = (timezone.now() - datetime.timedelta(days=30),
+                      timezone.now())
+        self._test_for_date_range(
+            careday_qs,
+            *date_range,
+            ignore_holidays=True)
+
+    def test_singleton_qs_occs_for_date_range_excluding_holidays(self):
+        careday_qs = CareDay.objects.filter(weekday="0", start_time="8:30")
+        daterange = (timezone.now(), timezone.now() + datetime.timedelta(days=30))
+        self._test_for_date_range(
+            careday_qs,
+            *daterange,
+            ignore_holidays=False)
+            # timezone.now() - datetime.timedelta(days=30),
+            # timezone.now())
+
+    def test_occs_for_date_range_excluding_holidays(self): 
+        careday_qs = CareDay.objects.filter(
+            classroom=Classroom.objects.first())
+        date_range = (timezone.now() - datetime.timedelta(days=30),
+                      timezone.now())
+        self._test_for_date_range(
+            careday_qs,
+            *date_range,
+            ignore_holidays=False)
+        
+    def _test_occs_by_date(self, careday_qs, start, end,
+                           ignore_holidays=False):
+        found_occs = careday_qs.occurrences_by_date(
+            start, end,
+            ignore_holidays=ignore_holidays)
+        caredays_by_date = careday_qs.occurrences_by_date(start, end,
+                                              ignore_holidays=ignore_holidays)
+        # print(caredays)
+        exclusions = ([] if ignore_holidays\
+            else Holiday.objects._dates_for_range(start, end))
+        for date in dates_in_range(start, end):
+            if date not in exclusions:
+                expected_occ_starts = {careday.initialize_occurrence(date).start
+                                 for careday in careday_qs.by_weekday()[date.weekday()]}
+                actual_occ_starts = {cdo.start for cdo in caredays_by_date[date]}
+                # print(f"expected_occ_starts={expected_occ_starts},\
+                # actual_occ_starts={actual_occ_starts}")
+                self.assertEqual(
+                    expected_occ_starts,
+                    actual_occ_starts)
+
+    def test_occs_by_date(self):
+        careday_qs = CareDay.objects.filter(
+            classroom=Classroom.objects.first())
+        date_range = (timezone.now() - datetime.timedelta(days=30),
+                      timezone.now())
+        self._test_occs_by_date(
+            careday_qs,
+            *date_range,
+            ignore_holidays=False)
+
+    def _test_occs_by_date_and_time(self, careday_qs, start, end,
+                                    ignore_holidays=False):
+        found_occs = careday_qs.occurrences_by_date_and_time(
+            start, end,
+            ignore_holidays=ignore_holidays)
+        # caredays_by_weekday_time = careday_qs.occurrences_by_date_and_time(start, end,
+                                              # ignore_holidays=ignore_holidays)
+        # print(caredays)
+        exclusions = ([] if ignore_holidays\
+            else Holiday.objects._dates_for_range(start, end))
+        for date in dates_in_range(start, end):
+            if date not in exclusions:
+                # print(f"by weekday of {date}...",
+                      # careday_qs.by_weekday()[date.weekday()])
+                expected_occ_times = sorted(list({
+                    careday.initialize_occurrence(date).start.time()\
+                    for careday in
+                    careday_qs.by_weekday()[date.weekday()]
+                }))
+                actual_occ_times = list(found_occs[date].keys())
+                self.assertEqual(expected_occ_times, actual_occ_times)
+
+    def test_occs_by_date_and_time(self):
+        careday_qs = CareDay.objects.filter(
+            classroom=Classroom.objects.first())
+        date_range = (timezone.now() - datetime.timedelta(days=30),
+                      timezone.now())
+        self._test_occs_by_date_and_time(
+            careday_qs,
+            *date_range)
+
+
+        
+class CareDayTest(DayCareTestCase):
+    
+    def test_shifts(self):
+        classroom = Classroom.objects.first()
+        careday = CareDay.objects.get(weekday=0,
+                                      start_time__hour=8,
+                                      classroom=classroom)
+        # print(careday.shifts())
+        actual = careday.shifts()
+        expected = Shift.objects.filter(weekday=careday.weekday,
+                                        start_time__gte=careday.start_time,
+                                        end_time__lte=careday.end_time,
+                                        classroom=careday.classroom)
+
+class CareDayOccurrenceTest(DayCareTestCase):
+
+    def test_children(self):
+        careday = CareDay.objects.first()
+        date = next_date_with_given_weekday(careday.weekday, timezone.now())
+        cdo = careday.initialize_occurrence(date)
+        cda_list = CareDayAssignment.objects.filter(
+            child__classroom=careday.classroom,
+            start__lte=date, end__gte=date,
+            careday=careday
+        )
+        actual_children = cdo.children()
+        for cda in cda_list:
+            self.assertTrue(cda.child in actual_children)
+        # for child in cdo.children():
+            # CareDayAssignment.objects.get()
+
+    def test_shift_occurrences(self):
+        careday = CareDay.objects.first()
+        date = next_date_with_given_weekday(careday.weekday, timezone.now()).date()
+        cdo = careday.initialize_occurrence(date)
+        sh_occ_shifts = [sh_occ.shift for sh_occ in cdo.shift_occurrences()]
+        expected_sh_occ_shifts = list(Shift.objects.filter(
+            weekday=careday.weekday,
+            start_time__lte=careday.start_time,
+            end_time__gte=careday.start_time,
+            classroom=careday.classroom))
+        self.assertEqual(sh_occ_shifts, expected_sh_occ_shifts)
+        sh_occ_dates = [sh_occ.start.date() for sh_occ in cdo.shift_occurrences()]
+        expected_sh_occ_dates = [date for _ in expected_sh_occ_shifts]
+        self.assertEqual(sh_occ_dates, expected_sh_occ_dates)
+
+
+class CareDayAssignmentMaintenanceTest(CareDayAssignmentTestCase):
+    """ make sure caredayassignments are maintained nicely, so that no two overlap for same careday
+        create/edit sequentially some caredayassignments for a given child.
+        at each step, memoize resulting "correct" set AssignedOccurrences of assigned caredayoccurrences
+        then, verify (i) no two assignments have common caredayoccurrence, and 
+        (ii) that an occurrence is covered by a caredayassignment iff it is belongs to AssignedOccurrences
+        """
+    
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        cls.classroom = Classroom.objects.first()
+        cls.child = random.choice(list(Child.objects.filter(classroom=cls.classroom)))
+        cls.caredays = CareDay.objects.filter(classroom=cls.classroom)
+        cls.start = timezone.make_aware(timezone.datetime(2018,9,1,0,0,0))
+        cls.end = cls.start + datetime.timedelta(days=365)
+
+    def memoize_creation(self, cda, memo):
+        for occ in cda.occurrences_for_date_range(self.start, self.end):
+            memo.add(occ)
+            # print(f"added occ {occ}")
+
+    def memoize_deletion(self, cda, memo):
+        for occ in cda.occurrences_for_date_range(self.start, self.end):
+            memo.discard(occ)
+            # print(f"removed occ {occ}")
+
+    def _create_and_memoize(self, memo):
+        start, end = random_daterange(earliest = self.start,
+                                      latest = self.end,
+                                      max_delta_days = 365)
+        cda = CareDayAssignment(start=start,
+                                end=end,
+                                child=self.child,
+                                careday=random.choice(self.caredays))
+        cda.save()
+        self.memoize_creation(cda, memo)
+
+    def _delete_and_memoize(self, memo):
+        assignments = list(CareDayAssignment.objects.filter(child=self.child))
+        if not assignments:
+            return
+        cda = random.choice(assignments)
+        cda.delete()
+        self.memoize_deletion(cda, memo)
+
+    def _revise_and_memoize(self, memo):
+        assignments = list(CareDayAssignment.objects.filter(child=self.child))
+        if not assignments:
+            return
+        max_delta_days=60
+        cda = random.choice(assignments)
+        attr = random.choice(['start', 'end'])
+        delta = datetime.timedelta(days = random.randrange(-max_delta_days,
+                                                           max_delta_days))
+        newVal = getattr(cda, attr) + delta
+        new_start = {attr : newVal}.get('start') or cda.start
+        new_end = {attr : newVal}.get('end') or cda.end
+        cda.delete()
+        self.memoize_deletion(cda, memo)
+        cda = CareDayAssignment(start=new_start,
+                                end=new_end,
+                                child=self.child,
+                                careday=cda.careday)
+        cda.save()
+        self.memoize_creation(cda, memo)
+
+
+    def _verify(self, memo):
+        actual = set(CareDayAssignment.objects.occurrences_for_child(
+            self.child, start=self.start, end=self.end))
+        expected = memo
+        # print(f"size of actual = {len(actual)};\nactual = {actual}\n")
+        # print(f"size of expected = {len(expected)};\nexpected = {expected}")
+        self.assertEqual(actual, expected)
+        for occ in actual:
+            assignments = CareDayAssignment.objects.filter(
+                careday=occ.careday,
+                start__date__lte=occ.start, end__date__gte=occ.end)
+            try:
+                self.assertEqual(1, assignments.count())
+            except AssertionError:
+                print(assignments)
+                self.assertEqual(1, assignments.count())
+
+        # print(CareDayAssignment.objects.filter(careday__classroom = self.classroom))
+
+    def test_create(self):
+        """
+        create a bunch of caredayassignments, recording what caredayoccurrences should be given for child
+        then verify that these are the occurrences generated by assignments created for child, and that each occurrence is generated by only one assignment
+        """
+        memo = set()
+        num_creations = 30
+        for _ in range(num_creations):
+                self._create_and_memoize(memo)
+        self._verify(memo)
+
+    def test_revise(self):
+        
+        memo = set()
+        num_creations = 30
+        num_random_actions = 100
+        for _ in range(num_creations):
+                self._create_and_memoize(memo)
+        for _ in range(num_random_actions):
+            action = random.choice(('_create_and_memoize',
+                                    '_revise_and_memoize',
+                                    '_delete_and_memoize'))
+            getattr(self, action)(memo)
+        self._verify(memo)
+
+class ShiftAvailabilityTest(DayCareTestCase):
+    
+    def test_availability(self):
+        for classroom in Classroom.objects.all():
+            period = Period.objects.filter(classroom=classroom).first()
+            children = Child.objects.filter(classroom=classroom)
+            assignments = CareDayAssignment.objects.filter(child__classroom=classroom)
+            assignments_by_child = {child : [cda for cda in assignments\
+                                             if cda.child == child]
+                                    for child in children}
+            for shift in Shift.objects.filter(classroom=classroom):
+                shoccs = shift.occurrences_for_date_range(period.start, period.end)
+                for child in children:
+                    for shocc in shoccs:
+                        actual = shocc.is_available_to_child(child)
+                        expected =  [cda for cda in assignments_by_child[child] if
+                                    cda.careday.weekday == shocc.start.date().weekday
+                                    and cda.careday.start_time \
+                                     <= shocc.start_time <= cda.careday.end_time\
+                                    and start.date() <= shocc.start.date() <= end.date()
+                        ] != []
+                        self.assertEqual(actual, expected)
+        
+
+    
+class _WorktimeCommitmentTestCase(DayCareTestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        for classroom in cls.classrooms:
+            for period in Period.objects.filter(classroom=classroom):
+                create_shiftpreferences(period)
+                create_shiftassignments(period)
+                create_worktimecommitments(period)
+        # # cls.create_random_commitments()
+        # cls.period = Period.objects.first()
+        # cls.child = Child.objects.first()
+        # cls.cdos = CareDayAssignment.objects.occurrences_for_child(
+        #     cls.child, cls.period.start, cls.period.end)
+        # cls.wtcs = [shocc.create_commitment(cls.child)
+        #              for cdo in cls.cdos
+        #              for shocc in cdo.shift_occurrences()]
+        # print(f"num commitments created: {len(cls.wtcs)}")
+
+class ShiftQuerySetTest(_WorktimeCommitmentTestCase):
+    """
+    methods to test
+    - occurrences_by_date_and_time with include_commitments=True
+    """
+    def test_occs_with_commitments(self):
+        for classroom in self.classrooms:
+            for period in Period.objects.filter(classroom=classroom):
+                expected_commitments = set(WorktimeCommitment.objects.filter(
+                    child__classroom=classroom,
+                    start__gte=period.start,
+                    end__lte=period.end))
+                # print(f"num commitments expected: {len(expected_commitments)}")
+                shocc_qs = Shift.objects.filter(
+                    classroom=classroom).occurrences_by_date_and_time(
+                        start=period.start, end=period.end,
+                        include_commitments=True,
+                        # ignore_holidays=True
+)
+                commitments_from_shoccs = {shocc.commitment
+                                           for times in shocc_qs.values()
+                                           for shocc_list in times.values()
+                                           for shocc in shocc_list
+                                           if shocc.commitment}
+                self.assertEqual(commitments_from_shoccs, expected_commitments)
+
+
+class ShiftOccurrenceCommitmentMethodsTest(TestCase):
+    """
+    methods to test
+    - create_commitment, get_commitment, is_available_to_child
+    """
+    @classmethod
+    def setUpTestData(cls):
+        cls.classroom = create_classrooms(num=1)[0]
+        create_caredays(cls.classroom)
+        create_shifts(cls.classroom)
+        cls.period = create_periods(cls.classroom, num=1)[0]
+        cls.kid1 = Child.objects.create(classroom=cls.classroom, nickname='kid1')
+        cls.kid2 = Child.objects.create(classroom=cls.classroom, nickname='kid2')
+        careday1 = CareDay.objects.get(classroom=cls.classroom,
+                                       weekday='1', start_time__hour=8)
+        careday2 = CareDay.objects.get(classroom=cls.classroom,
+                                       weekday='2', start_time__hour=8)
+        CareDayAssignment.objects.create(
+            child=cls.kid1,
+            careday = careday1,
+            start=cls.period.start, end=cls.period.end)
+        CareDayAssignment.objects.create(
+            child=cls.kid1,
+            careday = careday2,
+            start=cls.period.start, end=cls.period.end)
+
+    def test_commitment_methods(self):
+        child = Child.objects.first()
+        shifts = Shift.objects.filter(classroom=child.classroom)
+        # print(shifts)
+        shoccs = shifts.occurrences_for_date_range(self.period.start, self.period.end)
+        for shocc in shoccs:
+            yes = shocc.start.weekday() in [0, 1] and shocc.start.hour <= 13
+            # print(shocc, yes, shocc.start.weekday, shocc.start.hour)
+            self.assertEqual(yes, shocc.is_available_to_child(self.kid1))
+                
+        
+
+class ShiftOccurrenceSerializationTest(_WorktimeCommitmentTestCase):
+    """
+    methods to test 
+    - serialize, deserialize
+    """
 
 
