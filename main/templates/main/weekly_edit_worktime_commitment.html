@@ -11,7 +11,7 @@
     reschedule worktime commitment
   </h1>
 <h2>
-{{view.child}} ({{view.child.classroom}}), originally {{view.commitment.start}}
+{{view.child}} ({{view.child.classroom}}), originally {{view.commitment.start}}  
 </h2>
 
 
@@ -34,22 +34,25 @@
   <form action="{{request.path}}" method="post">
     {% csrf_token %}
     <ul>
-      {% for day, shifts in view.shifts_by_week.0.items %}
+      {# {{view.shifts_dict}} #}
+      {# {% for day in view.shifts_dict %} {{day}} {% endfor %} #}
+      {# {{view.shifts_dict}} #}
+      {% for day, day_sched in view.shifts_dict.items %}
         <li>
           {{day|date:"l, F j"}} 
-          <ul>  
-            {% for shift in shifts %}   
+          <ul>  {{shifts}}
+            {% for time, shift in day_sched.items %} 
               <li>  
                 {{shift.start |time:"g:i"}}: 
-                {% with shift.commitment as commitment %}
-                  {% if commitment and commitment.child != view.child %} 
-                    {{commitment.child.nickname}} 
-                    {% elif shift_instance.serialize in form.fields %}  
-                    {% else %}
-                      {{ form|render_field_from_string:shift.serialize}}
-                      &nbsp;
-                  {% endif %} 
-                {% endwith %} 
+                {% with shift.commitment as commitment %} 
+                  {% if commitment is not None and commitment.child != view.child %}  
+                    {{commitment.child.nickname}}  
+                  {# {% elif shift_instance.serialize in form.fields %}     #}
+                  {% else %} 
+                    {{ form|render_field_from_string:shift.serialize}} 
+                    &nbsp; 
+                  {% endif %}  
+                {% endwith %}  
               </li>  
             {% endfor %}   
           </ul> 

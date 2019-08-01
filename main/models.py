@@ -120,8 +120,8 @@ class Event(models.Model):
 
 
 class _WeeklyEventFormatter(object):
-    """various functions drawing on data from ._events() 
-    classes which implement events, so support below functions are
+    """various functions drawing on data from _events() 
+    classes which implement _events() include
     WeeklyEventQuerySet, WeeklyEvent"""
 
     def by_weekday(self):
@@ -146,20 +146,20 @@ class _WeeklyEventFormatter(object):
                 for event in self.by_weekday()[date.weekday()]:
                     yield event.initialize_occurrence(date)
 
-    def occurrences_by_date(self, start, end, ignore_holidays=False):
+    def occurrences_by_date(self, start, end, ignore_holidays=False, **kwargs):
         occurrences = self.occurrences_for_date_range(
-            start, end, ignore_holidays=ignore_holidays)
+            start, end, ignore_holidays=ignore_holidays,
+            **kwargs)
         retval = defaultdict(list)
         retval.update({date : list(occs)
                        for date, occs in itertools.groupby(
                                occurrences, lambda o : o.start.date())})
         return retval
             
-    def occurrences_by_date_and_time(self, start, end, ignore_holidays=False):
+    def occurrences_by_date_and_time(self, start, end, ignore_holidays=False, **kwargs):
         occurrences_by_date = self.occurrences_by_date(
-            start, end, ignore_holidays=ignore_holidays)
-        data = {date : {time : list(occs) for time, occs in itertools.groupby(
-            occurrences_by_date[date], lambda o : o.start.time())}
+            start, end, ignore_holidays=ignore_holidays, **kwargs)
+        data = {date : {occ.start.time() : occ for occ in occurrences_by_date[date]}
                 for date in occurrences_by_date}
         return defaultdict(lambda : defaultdict(list), data)
 
@@ -313,7 +313,6 @@ class CareDayOccurrence(WeeklyEventOccurrence):
                                           end_time__gte=self.careday.start_time,
                                           classroom=self.classroom):
             yield ShiftOccurrence(shift=shift, date=self.start.date())
-
  
 
 
@@ -465,27 +464,22 @@ conversely, access children from shift
 
 
 class ShiftQuerySet(WeeklyEventQuerySet):
-    def occurrences_by_date_and_time(self, start, end,
-                                     ignore_holidays=False,
-                                     include_commitments=False):
-        """just adds option to include commitments for a classroom"""
-        results = super().occurrences_by_date_and_time(
-            start, end, ignore_holidays=ignore_holidays)
+
+    def occurrences_for_date_range(self, start, end, ignore_holidays=False, include_commitments=False):
+        """option to include commitments for a classroom"""
+        
+        wtc_dict = {}
         if include_commitments:
-            commitments = WorktimeCommitment.objects.filter(
+            for wtc in WorktimeCommitment.objects.filter(
                     shift__in=self.all(),
                     start__gte=start,
-                    end__lte=end)
-            for commitment in commitments:
-                start = commitment.start
-                for occ in results[start.date()][start.time()]:
-                    if occ.shift == commitment.shift:
-                        occ.commitment = commitment
-        return results
+                    end__lte=end):
+                wtc_dict[wtc.start] = wtc
+        occs = super().occurrences_for_date_range(start, end, ignore_holidays)
+        for occ in occs:
+            occ.commitment = wtc_dict.get(occ.start, None)
+            yield occ
     
-    def occurrences_available_to_child(self, child, start, end):
-        
-
 
 class Shift(WeeklyEvent):
 
@@ -528,7 +522,8 @@ class ShiftOccurrence(WeeklyEventOccurrence):
         return (self.classroom, self.start)
 
     def create_commitment(self, child):
-        # shouldn't this call is_available_to_child?
+        """commit child to this occurrence
+        doesn't check whether it's covered by a careday"""
         shift = Shift.objects.get(classroom=child.classroom,
                                   start_time=self.start.time(),
                                   weekday=str(self.start.date().weekday()))
@@ -537,30 +532,23 @@ class ShiftOccurrence(WeeklyEventOccurrence):
             end = self.end,
             child = child,
             shift = shift)
+        self.commitment = commitment
         commitment.save()
+        return commitment
 
     def get_commitment(self):
-        return WorktimeCommitment.objects.get(
+        return getattr(self, 'commitment', None) or WorktimeCommitment.objects.get(
             shift=self.shift,
-            date=self.date)
+            start=self.start)
 
-    def is_available_to_child(self, child):
-        # todo make configurable from settings
-        # todo this doesn't make sense since it doesn't account for caredayassignment
-        # also, is shiftoccurrence available to c when already committed to c?
-        # there are three separate issues which should be split up:
-        # (i) is it not too late to sign up for this?
-        # (ii) is it covered by the child's caredayassignments? (I really need corresponding methods on caredayassignment queryset (to generate its occurrences, and shiftoccurrences)
-        # (iii) is it already taken?
+    def reservation_deadline(self):
         maxtime = timezone.datetime.max.time()
-        earliest = timezone.now().replace(
-            hour=maxtime.hour, minute=maxtime.minute)
+        day_before = self.start - datetime.timedelta(days=1)
         if not self.start.tzinfo:
             self.start = timezone.make_aware(self.start)
-        # note that the below will give false results unless the ignore_commitments flag is set to false
-        return self.start >= earliest\
-            and (getattr(self, "commitment", None)==\
-                 None or self.commitment.child==child)
+        deadline = day_before.replace(
+            hour=maxtime.hour, minute=maxtime.minute)
+        return deadline
 
 
     def __str__(self):
@@ -582,18 +570,25 @@ class ShiftOccurrence(WeeklyEventOccurrence):
         return repr(repr_dict)
 
     @staticmethod
-    def deserialize(repr_string):
+    def deserialize(repr_string, include_commitment=False):
         repr_dict = ast.literal_eval(repr_string)
-        shift = Shift.objects.get(pk = repr_dict['shift'])
+        shift = Shift.objects.get(pk=repr_dict['shift'])
         dt = deserialize_datetime(repr_dict['start'])
-        sh_occ = ShiftOccurrence(shift, dt)
-        sh_occ.commitment = repr_dict.get('commitment')
-        return sh_occ
+        shocc = ShiftOccurrence(shift, dt)
+        if include_commitment:
+            shocc.commitment = WorktimeCommitment.objects.get(pk=int(repr_dict.get('commitment')))
+        return shocc
 
-        
-         
-# don't create these directly; instead use create_commitment instance method of ShiftOccurrence
+
+
 class WorktimeCommitment(Event):
+    """assignment of Child to ShiftOccurrence (via shift, date fields)
+    don't create these directly; 
+    instead use create_commitment instance method of ShiftOccurrence
+    note that the fields are a bit redundant, because from event superclass it has a datetimefield start while theshift field gives it a timefield start_time
+    todo: throw error if we try to assign commitment to holiday?
+    """
+
     child = models.ForeignKey(Child, on_delete=models.CASCADE)
     completed = models.NullBooleanField()
     shift = models.ForeignKey(Shift, on_delete=models.CASCADE)
@@ -604,7 +599,6 @@ class WorktimeCommitment(Event):
 
     def show_completion_status(self):
         return self.completion_status_dict[self.completed]
-        
 
     def shift_occurrence(self):
         return ShiftOccurrence(shift=self.shift,

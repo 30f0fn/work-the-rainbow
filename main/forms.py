@@ -132,7 +132,7 @@ class EditWorktimeCommitmentForm(Form):
 
     def clean(self, *args, **kwargs):
         data = super().clean(*args, **kwargs)
-        yesses = [key for key,val in self.cleaned_data.items()
+        yesses = [key for key, val in self.cleaned_data.items()
                   if val==True]
         if len(yesses) != 1:
             raise ValidationError("Please select exactly one new shift occurrence!");
@@ -146,7 +146,7 @@ class EditWorktimeCommitmentForm(Form):
         new_shiftoccurrence = self.cleaned_data['new_shift']
         if new_shiftoccurrence.start != self.commitment.start or\
            new_shiftoccurrence.shift != self.commitment.shift:
-            print("commitment hmm", self.commitment.shift, self.commitment.start, self.commitment.pk)
+            # print("commitment hmm", self.commitment.shift, self.commitment.start, self.commitment.pk)
             old_shiftoccurrence = self.commitment.shift_occurrence()
             self.commitment.move_to(new_shiftoccurrence)
             self.commitment.save()

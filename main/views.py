@@ -48,13 +48,13 @@ class UpcomingEventsMixin(object):
 
     def holidays(self):
         return Holiday.objects.filter(
-            start__range = (self.start_date,
-                            self.end_date))
+            start__range = (self.start_date(),
+                            self.end_date()))
 
     def events(self):
         return Happening.objects.filter(
-            start__range = (self.start_date,
-                            self.end_date))
+            start__range = (self.start_date(),
+                            self.end_date()))
 
 
 class DateMixin(object):
@@ -90,25 +90,21 @@ class DateIntervalMixin(DateMixin):
 
     # todo python3 ABC
     # @abstractmethod
-    @property
     def start_date(self):
         return self.date()
 
     # todo
     # @abstractmethod
-    @property
     def end_date(self):
-        return self.start_date
+        return self.start_date()
 
-    @property
     def start(self):
-        dt = timezone.datetime.combine(self.start_date,
+        dt = timezone.datetime.combine(self.start_date(),
                                          timezone.datetime.min.time())
         return timezone.make_aware(dt)
 
-    @property
     def end(self):
-        dt = timezone.datetime.combine(self.end_date,
+        dt = timezone.datetime.combine(self.end_date(),
                                          timezone.datetime.max.time())
         return timezone.make_aware(dt)
 
@@ -128,7 +124,7 @@ class CalendarMixin(DateIntervalMixin):
     # @property
     # todo yucky, maybe I don't need it
     def weeks(self):
-        return [[(self.start_date + datetime.timedelta(days=week*7+day))
+        return [[(self.start_date() + datetime.timedelta(days=week*7+day))
                  for day in range(5)]
                 for week in range(self.num_weeks)]
 
@@ -166,10 +162,10 @@ class ClassroomWorktimeMixin(object):
     # for this, CalendarMixin is enough
 
     def shifts_dict(self):
-        return Shift.objects.filter(classroom=classroom)\
+        return dict(Shift.objects.filter(classroom=self.classroom)\
                             .occurrences_by_date_and_time(
-                                self.start, self.end,
-                                include_commitments=True)
+                                self.start(), self.end(),
+                                include_commitments=True))
 
     # todo use just occurrences_for_date_range instead of shifts_dict here
     def shifts_by_week(self):
@@ -181,26 +177,15 @@ class ClassroomWorktimeMixin(object):
 
 class PerChildEditWorktimeMixin(object):
 
-    # todo... this is too much logic for a view function
-    # plus seems ridiculous to construct dictionary then flatten it out again
-
-    # is this already a model method?
-    # requires shifts e.g. from ClassroomWorktimeMixin 
-    # todo this does'nt make sense for the EditWorktimeCommitmentView
+    # todo... "available" is kind of a misnomer
 
     def available_shifts(self):
-        # todo this should use just occurrences_for_date_range
-        # sh_occs = Shift.objects.filter(classroom=classroom)\
-                               # .occurrences_by_date_and_time(
-                                   # self.start, self.end,
-                                   # include_commitments=True)
-        # ret = [sh for day in sh_dict for sh in sh_dict[day].values()
-                # if sh.is_available_to_child(self.child)]
         shoccs = Shift.objects.filter(classroom=self.classroom)\
                                .occurrences_for_date_range(
-                                   self.start, self.end,
+                                   self.start(), self.end(),
                                    include_commitments=True)
-        ret = [shocc for shocc in shoccs if shocc.is_available_to_child(self.child)]
+        ret = [shocc for shocc in shoccs
+               if timezone.now() <= shocc.reservation_deadline()]
         return ret
 
 
@@ -277,9 +262,9 @@ class DailyClassroomCalendarView(ClassroomMixin,
     def caredays(self):
         # todo FILTER BY CLASSROOM!
         caredays = CareDay.objects.filter(classroom=self.classroom,
-                                          weekday=self.start.weekday())
+                                          weekday=self.start().weekday())
         for careday in caredays:
-            yield careday.initialize_occurrence(self.start)
+            yield careday.initialize_occurrence(self.start())
 
 
     def get_context_data(self, *args, **kwargs):
@@ -294,11 +279,9 @@ class DailyClassroomCalendarView(ClassroomMixin,
         context.update(data)
         return context
 
-    @property
     def start_date(self):
         return self.date()
 
-    @property
     def end_date(self):
         return self.date()
 
@@ -317,21 +300,19 @@ class WeeklyClassroomCalendarView(ClassroomMixin,
     view_name = 'weekly-classroom-calendar'
     num_weeks = 1
 
-    @property
     def start_date(self):
         # most_recent_monday = self.date - datetime.timedelta(days = self.date.weekday())
         return nearest_monday(self.date())
         # return most_recent_monday
 
-    @property
     def end_date(self):
-        return self.start_date + self.num_weeks * datetime.timedelta(days=7)
+        return self.start_date() + self.num_weeks * datetime.timedelta(days=7)
 
     def get_commitments(self):
         return WorktimeCommitment.objects.filter(
             child__classroom = self.classroom,
-            start__range = (self.start_date,
-                            self.end_date)).order_by('-start')
+            start__range = (self.start_date(),
+                            self.end_date())).order_by('-start')
 
 
 class MonthlyCalendarMixin(object):
@@ -345,11 +326,9 @@ class MonthlyCalendarMixin(object):
                 if week[0].month == self.date().month
                 or week[4].month == self.date().month]
 
-    @property
     def start_date(self):
         return self.weeks()[0][0]
 
-    @property
     def end_date(self):
         return self.weeks()[-1][-1]
     
@@ -403,16 +382,15 @@ class ParentHomeView(UpcomingEventsMixin,
     num_weeks = 4
     unit_name = 'weekly'
 
-    @property
     def end_date(self):
-        return self.start_date + datetime.timedelta(days=self.num_weeks * 7)
+        return self.start_date() + datetime.timedelta(days=self.num_weeks * 7)
     
     def worktime_commitments(self):
         # today = timezone.now().date(),
         return WorktimeCommitment.objects.filter(
             child__parent_set=self.request.user,
-            start__range = (self.start_date,
-                            self.end_date)).select_related(
+            start__range = (self.start_date(),
+                            self.end_date())).select_related(
                                 'child__classroom').order_by('start')
 
     def jump_url(self, increment):
@@ -777,7 +755,7 @@ class SchedulerCalendarView(MonthlyCalendarMixin,
     
 #     @property
 #     def end_date(self):
-#         return self.start_date + self.num_weeks * datetime.timedelta(days=7)
+#         return self.start_date() + self.num_weeks * datetime.timedelta(days=7)
 
 
 #     def jump_url(self, increment):
@@ -799,7 +777,6 @@ class SchedulerCalendarView(MonthlyCalendarMixin,
 
 # todo is this the correct inheritance order?
 class MakeWorktimeCommitmentsView(MonthlyCalendarMixin,
-                                  # ClassroomEditMixin,
                                   ClassroomMixin,
                                   ClassroomWorktimeMixin,
                                   CalendarMixin,
@@ -827,7 +804,6 @@ class MakeWorktimeCommitmentsView(MonthlyCalendarMixin,
         })
         return kwargs
 
-    # todo
     def get_initial(self, *args, **kwargs):
         initial = super().get_initial(*args, **kwargs)
         data = {sh_occ.serialize() :
@@ -1115,14 +1091,12 @@ class FourWeekMakeWorktimeCommitmentsView(MonthlyCalendarMixin,
 
     # this makes sense only if link sends to first day of month
     # else, try to extract this from a period
-    @property
     def start_date(self):
         most_recent_monday = self.date() - datetime.timedelta(days = self.date().weekday())
         return most_recent_monday
     
-    @property
     def end_date(self):
-        return self.start_date + self.num_weeks * datetime.timedelta(days=7)
+        return self.start_date() + self.num_weeks * datetime.timedelta(days=7)
 
     def jump_url(self, increment):
         new_date = self.jump_date(increment)

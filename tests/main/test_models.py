@@ -534,30 +534,6 @@ class CareDayAssignmentMaintenanceTest(CareDayAssignmentTestCase):
             getattr(self, action)(memo)
         self._verify(memo)
 
-class ShiftAvailabilityTest(DayCareTestCase):
-    
-    def test_availability(self):
-        for classroom in Classroom.objects.all():
-            period = Period.objects.filter(classroom=classroom).first()
-            children = Child.objects.filter(classroom=classroom)
-            assignments = CareDayAssignment.objects.filter(child__classroom=classroom)
-            assignments_by_child = {child : [cda for cda in assignments\
-                                             if cda.child == child]
-                                    for child in children}
-            for shift in Shift.objects.filter(classroom=classroom):
-                shoccs = shift.occurrences_for_date_range(period.start, period.end)
-                for child in children:
-                    for shocc in shoccs:
-                        actual = shocc.is_available_to_child(child)
-                        expected =  [cda for cda in assignments_by_child[child] if
-                                    cda.careday.weekday == shocc.start.date().weekday
-                                    and cda.careday.start_time \
-                                     <= shocc.start_time <= cda.careday.end_time\
-                                    and start.date() <= shocc.start.date() <= end.date()
-                        ] != []
-                        self.assertEqual(actual, expected)
-        
-
     
 class _WorktimeCommitmentTestCase(DayCareTestCase):
 
@@ -600,54 +576,97 @@ class ShiftQuerySetTest(_WorktimeCommitmentTestCase):
 )
                 commitments_from_shoccs = {shocc.commitment
                                            for times in shocc_qs.values()
-                                           for shocc_list in times.values()
-                                           for shocc in shocc_list
+                                           for shocc in times.values()
                                            if shocc.commitment}
                 self.assertEqual(commitments_from_shoccs, expected_commitments)
-
 
 class ShiftOccurrenceCommitmentMethodsTest(TestCase):
     """
     methods to test
-    - create_commitment, get_commitment, is_available_to_child
+    - create_commitment, get_commitment
     """
     @classmethod
     def setUpTestData(cls):
         cls.classroom = create_classrooms(num=1)[0]
-        create_caredays(cls.classroom)
+        # create_caredays(cls.classroom)
         create_shifts(cls.classroom)
         cls.period = create_periods(cls.classroom, num=1)[0]
         cls.kid1 = Child.objects.create(classroom=cls.classroom, nickname='kid1')
-        cls.kid2 = Child.objects.create(classroom=cls.classroom, nickname='kid2')
-        careday1 = CareDay.objects.get(classroom=cls.classroom,
-                                       weekday='1', start_time__hour=8)
-        careday2 = CareDay.objects.get(classroom=cls.classroom,
-                                       weekday='2', start_time__hour=8)
-        CareDayAssignment.objects.create(
-            child=cls.kid1,
-            careday = careday1,
-            start=cls.period.start, end=cls.period.end)
-        CareDayAssignment.objects.create(
-            child=cls.kid1,
-            careday = careday2,
-            start=cls.period.start, end=cls.period.end)
+        # cls.kid2 = Child.objects.create(classroom=cls.classroom, nickname='kid2')
+        # careday1 = CareDay.objects.get(classroom=cls.classroom,
+                                       # weekday='1', start_time__hour=8)
+        # careday2 = CareDay.objects.get(classroom=cls.classroom,
+                                       # weekday='2', start_time__hour=8)
+        # CareDayAssignment.objects.create(
+            # child=cls.kid1,
+            # careday = careday1,
+            # start=cls.period.start, end=cls.period.end)
+        # CareDayAssignment.objects.create(
+            # child=cls.kid1,
+            # careday = careday2,
+            # start=cls.period.start, end=cls.period.end)
 
-    def test_commitment_methods(self):
-        child = Child.objects.first()
-        shifts = Shift.objects.filter(classroom=child.classroom)
-        # print(shifts)
-        shoccs = shifts.occurrences_for_date_range(self.period.start, self.period.end)
-        for shocc in shoccs:
-            yes = shocc.start.weekday() in [0, 1] and shocc.start.hour <= 13
-            # print(shocc, yes, shocc.start.weekday, shocc.start.hour)
-            self.assertEqual(yes, shocc.is_available_to_child(self.kid1))
-                
-        
+    def testCreateAndGetCommitment(self):
+        shift = Shift.objects.get(classroom=self.classroom,
+                                  weekday='1',start_time__hour=8)
+        shocc = next(shift.occurrences_for_date_range(self.period.start, self.period.end))
+        created_wtc = shocc.create_commitment(self.kid1)
+        gotten_wtc = shocc.get_commitment()
+        self.assertEqual(created_wtc, gotten_wtc)
 
-class ShiftOccurrenceSerializationTest(_WorktimeCommitmentTestCase):
+class ShiftOccurrenceSerializationTest(TestCase):
     """
     methods to test 
     - serialize, deserialize
     """
+    @classmethod
+    def setUpTestData(cls):
+        cls.classroom = create_classrooms(num=1)[0]
+        create_shifts(cls.classroom)
+        create_kids(Classroom.objects.get(),
+                    num=1)
+        cls.kid = Child.objects.first()
+        cls.shift = Shift.objects.get(classroom=cls.classroom,
+                                       weekday='1',start_time__hour=8)
+        cls.start = timezone.now() - datetime.timedelta(days=30)
+        cls.end = timezone.now()
 
 
+        
+    def test_serialize_and_deserialize(self):
+        shoccs = self.shift.occurrences_for_date_range(self.start, self.end)
+        for shocc in shoccs:
+            self.assertEqual(shocc, ShiftOccurrence.deserialize(shocc.serialize()))
+
+    def test_serialize_and_deserialize_with_commitment(self):
+        shoccs = self.shift.occurrences_for_date_range(self.start, self.end)
+        for shocc in shoccs:
+            wtc = shocc.create_commitment(self.kid)
+            self.assertEqual(wtc,
+                             ShiftOccurrence.deserialize(
+                                 shocc.serialize(),
+                                 include_commitment=True).commitment)
+
+
+class WorktimeCommitmentTest(Event):
+
+    """methods to test:
+    save [verify that shift gets set]
+    alternatives - enumerates all shiftoccurrences for classroom of child of commitment, minus those already committed, plus shiftoccurrence of current commitment, whose careday is in the caredayassignment of the child
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.classroom = create_classrooms(num=1)[0]
+        create_shifts(cls.classroom)
+        create_kids(Classroom.objects.get(),
+                    num=1)
+        cls.kid = Child.objects.first()
+        cls.shift = Shift.objects.get(classroom=cls.classroom,
+                                       weekday='1',start_time__hour=8)
+        self.shocc = cls.shift.initialize_occurrence(timezone.datetime(2019, 5, 7, 8, 30))
+ # = next(shift.occurrences_for_date_range(self.period.start, self.period.end))
+        cls.wtc = timezone.datetime(2019, 5, 7)
+        cls.start = timezone.now() - datetime.timedelta(days=30)
+        cls.end = timezone.now()
+    
