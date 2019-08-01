@@ -403,8 +403,6 @@ class CareDayOccurrenceTest(DayCareTestCase):
         actual_children = cdo.children()
         for cda in cda_list:
             self.assertTrue(cda.child in actual_children)
-        # for child in cdo.children():
-            # CareDayAssignment.objects.get()
 
     def test_shift_occurrences(self):
         careday = CareDay.objects.first()
@@ -413,8 +411,7 @@ class CareDayOccurrenceTest(DayCareTestCase):
         sh_occ_shifts = [sh_occ.shift for sh_occ in cdo.shift_occurrences()]
         expected_sh_occ_shifts = list(Shift.objects.filter(
             weekday=careday.weekday,
-            start_time__lte=careday.start_time,
-            end_time__gte=careday.start_time,
+            start_time__hour__in=[8, 13],
             classroom=careday.classroom))
         self.assertEqual(sh_occ_shifts, expected_sh_occ_shifts)
         sh_occ_dates = [sh_occ.start.date() for sh_occ in cdo.shift_occurrences()]
@@ -648,10 +645,9 @@ class ShiftOccurrenceSerializationTest(TestCase):
                                  include_commitment=True).commitment)
 
 
-class WorktimeCommitmentTest(Event):
+class WorktimeCommitmentTest(TestCase):
 
     """methods to test:
-    save [verify that shift gets set]
     alternatives - enumerates all shiftoccurrences for classroom of child of commitment, minus those already committed, plus shiftoccurrence of current commitment, whose careday is in the caredayassignment of the child
     """
 
@@ -659,14 +655,50 @@ class WorktimeCommitmentTest(Event):
     def setUpTestData(cls):
         cls.classroom = create_classrooms(num=1)[0]
         create_shifts(cls.classroom)
+        create_caredays(cls.classroom)
         create_kids(Classroom.objects.get(),
-                    num=1)
+                    num=10)
         cls.kid = Child.objects.first()
+        cls.other_kids = Child.objects.filter(pk__gt=cls.kid.pk)
         cls.shift = Shift.objects.get(classroom=cls.classroom,
                                        weekday='1',start_time__hour=8)
-        self.shocc = cls.shift.initialize_occurrence(timezone.datetime(2019, 5, 7, 8, 30))
- # = next(shift.occurrences_for_date_range(self.period.start, self.period.end))
-        cls.wtc = timezone.datetime(2019, 5, 7)
-        cls.start = timezone.now() - datetime.timedelta(days=30)
-        cls.end = timezone.now()
-    
+
+
+    def test_wtc_alternatives(self):
+        self.kid_caredays = CareDay.objects.filter(classroom=self.classroom,
+                                                    weekday__in=['0', '1', '2'],
+                                                    start_time__hour=8)
+        for careday in self.kid_caredays:
+            CareDayAssignment.objects.create(
+                child=self.kid,
+                careday=careday,
+                start=timezone.make_aware(timezone.datetime(2024, 2, 1)),
+                end=timezone.make_aware(timezone.datetime(2024, 4, 30)))
+        kid_shift = Shift.objects.get(start_time__hour=8,
+                                      classroom=self.kid.classroom,
+                                      weekday='0')
+        kid_shocc_date = timezone.make_aware(timezone.datetime(2024, 3, 4))
+        while kid_shocc_date <= timezone.make_aware(timezone.datetime(2024, 4, 30)):
+            shocc = kid_shift.initialize_occurrence(kid_shocc_date)
+            wtc = shocc.create_commitment(self.kid)
+            kid_shocc_date += datetime.timedelta(days=14)
+            # should be 3/4, 3/18, 4/1, 4/15,, 4/29
+
+        kid_shifts = Shift.objects.filter(
+            classroom=self.kid.classroom,
+            weekday__in=['0', '1', '2'],
+            start_time__hour__in=[8, 13])
+        month_day_pairs = [(2,26), (2,27), (2,28), (3,4), (3,5), (3,6), (3,11)]
+        expected_alt_dates = [timezone.make_aware(timezone.datetime(2024, *md))
+                              for md in month_day_pairs]
+        expected_alt_shoccs = set(shift.initialize_occurrence(date)
+                               for shift in kid_shifts
+                               for date in expected_alt_dates
+                               if int(shift.weekday) == date.weekday())
+        wtc = WorktimeCommitment.objects.get(
+            start = timezone.make_aware(timezone.datetime(2024, 3, 4, 8, 30)),
+            child = self.kid)
+        delta_week = datetime.timedelta(days=7)
+        actual_alt_shoccs = set(wtc.alternatives(earlier=delta_week, later=delta_week))
+        self.assertEqual(expected_alt_shoccs, actual_alt_shoccs)
+            

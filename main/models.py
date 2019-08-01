@@ -309,8 +309,8 @@ class CareDayOccurrence(WeeklyEventOccurrence):
     
     def shift_occurrences(self):
         for shift in Shift.objects.filter(weekday=self.careday.weekday,
-                                          start_time__lte=self.careday.start_time,
-                                          end_time__gte=self.careday.start_time,
+                                          start_time__gte=self.careday.start_time,
+                                          end_time__lte=self.careday.end_time,
                                           classroom=self.classroom):
             yield ShiftOccurrence(shift=shift, date=self.start.date())
  
@@ -363,10 +363,6 @@ class CareDayAssignmentManager(EventManager):
                 if assignment.start.date() <= date <= assignment.end.date():
                     yield assignment.careday.initialize_occurrence(date)
 
-
-# todo this doesn't actually implement the intended behavior - what I want is to ensure that creating/editing/deleting allows at most one caredayassignment to cover any given caredayoccurrence
-# the API should have "delete" and "update".  However, "update" might simply delete the existing assignment and then create a new one.  This might be ensured by overriding the save method
-# for example, 
 
 
 
@@ -524,14 +520,14 @@ class ShiftOccurrence(WeeklyEventOccurrence):
     def create_commitment(self, child):
         """commit child to this occurrence
         doesn't check whether it's covered by a careday"""
-        shift = Shift.objects.get(classroom=child.classroom,
-                                  start_time=self.start.time(),
-                                  weekday=str(self.start.date().weekday()))
+        # shift = Shift.objects.get(classroom=child.classroom,
+                                  # start_time=self.start.time(),
+                                  # weekday=str(self.start.date().weekday()))
         commitment = WorktimeCommitment(
             start = self.start,
             end = self.end,
             child = child,
-            shift = shift)
+            shift = self.shift)
         self.commitment = commitment
         commitment.save()
         return commitment
@@ -613,6 +609,7 @@ class WorktimeCommitment(Event):
         self.save()
 
     def save(self, *args, **kwargs):
+        """should be noop when instance is initialized through ShiftOccurrence instance method"""
         self.shift = self.shift or Shift.objects.get(
             classroom=self.child.classroom,
             start_time=self.start.time(),
@@ -630,8 +627,9 @@ class WorktimeCommitment(Event):
         dt_max = max(timezone.now(), self.start + later).replace(
             hour=timezone.datetime.max.hour,
             minute=timezone.datetime.max.minute)
-        sh_occs = (sh_occ for cdo in CareDayAssignment.objects.occurrences_for_child(
+        assignments = CareDayAssignment.objects.occurrences_for_child(
             child=self.child, start=dt_min, end=dt_max)
+        sh_occs = (sh_occ for cdo in assignments
                    for sh_occ in cdo.shift_occurrences())
         commitments_by_start = {wtc.start : wtc \
                                 for wtc in WorktimeCommitment.objects.filter(
