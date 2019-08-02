@@ -631,21 +631,26 @@ class WorktimeCommitment(Event):
             child=self.child, start=dt_min, end=dt_max)
         sh_occs = (sh_occ for cdo in assignments
                    for sh_occ in cdo.shift_occurrences())
+        # print(WorktimeCommitment.objects.all())
         commitments_by_start = {wtc.start : wtc \
                                 for wtc in WorktimeCommitment.objects.filter(
                                         child__classroom=self.child.classroom,
-                                        start=dt_min, end=dt_max)}
+                                        start__gte=dt_min, end__lte=dt_max)}
+        print(f"commitments_by_start={commitments_by_start}")
         for proposed_occ in sh_occs:
             if commitments_by_start.get(proposed_occ.start, self) == self:
-                yield proposed_occ 
+                print(f"yielded proposed_occ {proposed_occ}")
+                print(commitments_by_start.get(proposed_occ.start))
+                print(proposed_occ.start)
+                yield proposed_occ
+            else:
+                print(f"skipped proposed_occ {proposed_occ}")
 
     class Meta:
         unique_together = (("shift", "start"),)
  
 
 class ShiftPreferenceManager(models.Manager):
-
-# assume shifts_by_weekday_and_time
 
     def by_shift(self, period):
         shifts = Shift.objects.filter(classroom=period.classroom)
@@ -656,7 +661,6 @@ class ShiftPreferenceManager(models.Manager):
             prefs_dict[pref.shift].append(pref)
         return prefs_dict
 
-
     def by_time_and_weekday(self, period):
         preferences = super().filter(
             period=period).order_by('shift', 'rank').select_related('shift')
@@ -664,7 +668,6 @@ class ShiftPreferenceManager(models.Manager):
         for pref in preferences:
             prefs_dict[pref.shift.start_time][pref.shift.weekday] = pref
         return prefs_dict
-
 
 
 

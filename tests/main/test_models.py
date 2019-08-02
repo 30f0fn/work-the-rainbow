@@ -665,6 +665,10 @@ class WorktimeCommitmentTest(TestCase):
 
 
     def test_wtc_alternatives(self):
+        """add caredayassignments for kid, 
+        verify that alternatives are just the shiftoccurrences within their ranges, 
+        then add worktimecommitment to one shiftoccurrence for other kid, 
+        and verify that this shiftoccurrence is removed from alternatives"""
         self.kid_caredays = CareDay.objects.filter(classroom=self.classroom,
                                                     weekday__in=['0', '1', '2'],
                                                     start_time__hour=8)
@@ -701,4 +705,12 @@ class WorktimeCommitmentTest(TestCase):
         delta_week = datetime.timedelta(days=7)
         actual_alt_shoccs = set(wtc.alternatives(earlier=delta_week, later=delta_week))
         self.assertEqual(expected_alt_shoccs, actual_alt_shoccs)
-            
+
+        other_kid = self.other_kids.first()
+        other_shocc = kid_shift.initialize_occurrence(
+            timezone.make_aware(timezone.datetime(2024, 3, 11)))
+        other_wtc = other_shocc.create_commitment(other_kid)
+        expected_alt_shoccs.remove(other_shocc)
+        actual_alt_shoccs = set(wtc.alternatives(earlier=delta_week, later=delta_week))
+        # print(actual_alt_shoccs)
+        self.assertEqual(expected_alt_shoccs, actual_alt_shoccs)
