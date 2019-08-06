@@ -650,6 +650,7 @@ class WorktimeCommitment(Event):
         unique_together = (("shift", "start"),)
  
 
+
 class ShiftPreferenceManager(models.Manager):
 
     def by_shift(self, period):
@@ -664,11 +665,10 @@ class ShiftPreferenceManager(models.Manager):
     def by_time_and_weekday(self, period):
         preferences = super().filter(
             period=period).order_by('shift', 'rank').select_related('shift')
-        prefs_dict = defaultdict(dict)
+        prefs_dict = defaultdict(lambda : defaultdict(list))
         for pref in preferences:
-            prefs_dict[pref.shift.start_time][pref.shift.weekday] = pref
+            prefs_dict[pref.shift.start_time][pref.shift.weekday].append(pref)
         return prefs_dict
-
 
 
 class ShiftPreference(models.Model):
@@ -714,7 +714,7 @@ class ShiftAssignmentCollectionManager(models.Manager):
             # print("c1,c2,c3:", c1,c2,c3)
             problem.addConstraint((lambda p1, p2, p3:
                                    not(p1.shift == p2.shift == p3.shift)),
-                                  [c for c in [c1,c2,c3]])
+                                  [c for c in [c1, c2, c3]])
             # print("constraint:", lambda s1, s2, s3: not(s1 == s2 == s3))
         # print("families with preferences: ", families)
         retval = []
@@ -740,18 +740,18 @@ class ShiftAssignmentCollection(models.Model):
     period = models.ForeignKey(Period, on_delete = models.CASCADE)
     objects = ShiftAssignmentCollectionManager()
     
-    def score(self):
-    #     # todo this is horribly inefficient but can't see how to combine all these scores into one query 
-        retval = 0
-        prefs = ShiftPreference.objects.filter(period=period)
-        for assn in self.shiftassignment_set.all():
-            for pref in prefs:
-                if pref.child == assn.child and pref.shift == asn.shift:
-                    retval += pref.rank
-                    break
-            retval += float("inf")
-            break
-        return retval
+    # def score(self):
+    # #     # todo this is horribly inefficient but can't see how to combine all these scores into one query 
+    #     retval = 0
+    #     prefs = ShiftPreference.objects.filter(period=period)
+    #     for assn in self.shiftassignment_set.all():
+    #         for pref in prefs:
+    #             if pref.child == assn.child and pref.shift == asn.shift:
+    #                 retval += pref.rank
+    #                 break
+    #         retval += float("inf")
+    #         break
+    #     return retval
 
     def create_commitments(self):
         shifts = Shift.objects.filter(classroom=self.period.classroom)
