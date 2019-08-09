@@ -21,7 +21,7 @@ from main import rules, scheduling_config
 from people.models import Child, Classroom, Role
 from people.views import ClassroomMixin, ClassroomEditMixin, ChildEditMixin, ChildMixin, AdminMixin
 from main.utilities import nearest_monday
-from main.models import Holiday, Happening, Shift, WorktimeCommitment, CareDayAssignment, CareDay, ShiftOccurrence, Period, ShiftPreference, ShiftAssignmentCollection
+from main.models import Holiday, Happening, Shift, WorktimeCommitment, CareDayAssignment, CareDay, ShiftOccurrence, Period, ShiftPreference, WorktimeSchedule
 from main.model_fields import WEEKDAYS
 import main.forms
 
@@ -1038,7 +1038,7 @@ class ShiftAssignmentCollectionsListView(ClassroomEditMixin,
     model = Period
 
     def assignment_collections(self):
-        return ShiftAssignmentCollection.objects.filter(period=self.object)
+        return WorktimeSchedule.objects.filter(period=self.object)
 
     def get_success_url(self):
         return reverse('scheduler-calendar', kwargs={
@@ -1054,7 +1054,7 @@ class ShiftAssignmentCollectionsListView(ClassroomEditMixin,
         # security issue here... verify pk is ok
         # print("request.POST:", request.POST)
         collection_pk = int(request.POST['collection_pk'])
-        collection = ShiftAssignmentCollection.objects.get(pk=collection_pk)
+        collection = WorktimeSchedule.objects.get(pk=collection_pk)
         collection.create_commitments()
         return HttpResponseRedirect(self.get_success_url())
 
