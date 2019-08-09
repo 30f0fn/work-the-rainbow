@@ -816,10 +816,14 @@ class WorktimeSchedule(models.Model):
     period = models.ForeignKey(Period, on_delete = models.CASCADE)
     assignments = models.ManyToManyField(ShiftAssignable)
     objects = WorktimeScheduleManager()
+    committed = models.BooleanField(default=False)
 
     def commit(self):
+        if WorktimeSchedule.objects.filter(
+                period=self.period, commited=True).exists():
+            raise Exception("some schedule was already used to generate assignments for this period!")
         for assignable in self.assignments.all():
             assignable.create_commitments()
-            
+        self.committed = True
 
 

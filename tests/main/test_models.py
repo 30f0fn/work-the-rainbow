@@ -893,6 +893,9 @@ class ShiftAssignableTest(ShiftTestCase):
             preference=pref3, offset=1, offset_modulus=4)
         cls.sa4 = ShiftAssignable.objects.create(
             preference=pref3, offset=0, offset_modulus=2)
+        cls.sa5 = ShiftAssignable.objects.create(
+            preference=pref3, offset=1, offset_modulus=2)
+
         Holiday.objects.create(name="test holiday 1",
                                start=timezone.make_aware(timezone.datetime(2000, 12, 1)),
                                end=timezone.make_aware(timezone.datetime(2000, 12, 31)))
@@ -929,6 +932,7 @@ class ShiftAssignableTest(ShiftTestCase):
             self.assertEqual(actual2, expected2)
 
         def test_is_compatible_with(self):
+            self.assertTrue(self.sa1.is_compatible_with(self.sa1))
             self.assertTrue(self.sa1.is_compatible_with(self.sa2))
             self.assertTrue(self.sa1.is_compatible_with(self.sa2))
             self.assertFalse(self.sa1.is_compatible_with(self.sa3))
@@ -963,7 +967,7 @@ class WorktimeScheduleManagerTest(ShiftTestCase):
             # {"shift" : self.shifts[2, 8], "child" : self.kids[1]},
             {"shift" : self.shifts[1, 8], "child" : self.kids[2]},
             # {"shift" : self.shifts[1, 13], "child" : self.kids[2]},
-            {"shift" : self.shifts[2, 8], "child" : self.kids[3]},
+            {"shift" : self.shifts[1, 8], "child" : self.kids[3]},
             # {"shift" : self.shifts[0, 15], "child" : self.kids[3]},
         ]
         prefs = [ShiftPreference.objects.create(
@@ -977,14 +981,24 @@ class WorktimeScheduleManagerTest(ShiftTestCase):
            
             {"preference" : prefs[2], "offset" : 0},
             {"preference" : prefs[2], "offset" : 1},
-            \
             {"preference" : prefs[3], "offset" : 1},
         ]
         assignables = [ShiftAssignable.objects.create(
             offset_modulus=2, is_active=True, **kwargs)
                        for kwargs in assignables_data]
-        schedules = WorktimeSchedule.objects.generate(self.periods[0])
-        print(f"schedules = {list(schedules)}")
+        actual_schedules = list(WorktimeSchedule.objects.generate(self.periods[0]))
                 
-                
-            
+        # should have two assignments on kids 0, 1; two on kid 2; and one on kid 3
+        # so four possible total assignments
+        
+        self.assertEqual(2, len(actual_schedules))
+        for sched in actual_schedules:
+            self.assertTrue(assignables[0] in sched.assignments_set.all()\
+                            != assignables[1] in sched.assignments_set.all())
+            self.assertTrue(assignables[2] in sched.assignments_set.all()\
+                            != assignables[3] in sched.assignments_set.all())
+            self.assertTrue(assignables[0] in sched.assignments_set.all()\
+                            != assignables[2] in sched.assignments_set.all())
+            self.assertTrue(assignables[6] in sched.assignments_set.all())
+            self.assertFalse(assignables[5] in sched.assignments_set.all())
+            self.assertTrue(assignables[4] in sched.assignments_set.all())            
