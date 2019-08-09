@@ -835,17 +835,17 @@ class ShiftAssignableManagerTest(ShiftPreferenceTestCase):
         period = self.periods[1]
         actual_assignables = set(ShiftAssignable.objects.generate(period=period))
         prefs = (ShiftPreference.objects.get(child=self.kids[0],
-                                 shift=self.shifts[0, 13],
-                                 period=self.periods[1]),
+                                             shift=self.shifts[0, 13],
+                                             period=self.periods[1]),
                  ShiftPreference.objects.get(child=self.kids[0],
-                                 shift=self.shifts[1, 13],
-                                 period=self.periods[1]),
+                                             shift=self.shifts[1, 13],
+                                             period=self.periods[1]),
                  ShiftPreference.objects.get(child=self.kids[1],
-                                 shift=self.shifts[0, 8],
-                                 period=self.periods[1]),
+                                             shift=self.shifts[0, 8],
+                                             period=self.periods[1]),
                  ShiftPreference.objects.get(child=self.kids[1],
-                                 shift=self.shifts[1, 13],
-                                 period=self.periods[1]))
+                                             shift=self.shifts[1, 13],
+                                             period=self.periods[1]))
         expected_assignable_data = [
             {"preference" : prefs[0], "offset" : 0, "offset_modulus" : 2},
             {"preference" : prefs[0], "offset" : 1, "offset_modulus" : 2},
@@ -947,3 +947,44 @@ class ShiftAssignableTest(ShiftTestCase):
                 WorktimeCommitment.objects.get(timezone.datetime(2000,11,20, 8, 0)),
             ]
             self.assertEqual(set(actual_created), set(expected_created))
+
+
+class WorktimeScheduleManagerTest(ShiftTestCase):
+        
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+            
+    def test_generate_all_ranked_1(self):
+        pref_data = [
+            {"shift" : self.shifts[0, 8], "child" : self.kids[0]},
+            # {"shift" : self.shifts[1, 8], "child" : self.kids[0]},
+            {"shift" : self.shifts[0, 8], "child" : self.kids[1]},
+            # {"shift" : self.shifts[2, 8], "child" : self.kids[1]},
+            {"shift" : self.shifts[1, 8], "child" : self.kids[2]},
+            # {"shift" : self.shifts[1, 13], "child" : self.kids[2]},
+            {"shift" : self.shifts[2, 8], "child" : self.kids[3]},
+            # {"shift" : self.shifts[0, 15], "child" : self.kids[3]},
+        ]
+        prefs = [ShiftPreference.objects.create(
+            rank=1, period=self.periods[0], **kwargs)
+                     for kwargs in pref_data]
+        assignables_data = [
+            {"preference" : prefs[0], "offset" : 0},
+            {"preference" : prefs[0], "offset" : 1},
+            {"preference" : prefs[1], "offset" : 0},
+            {"preference" : prefs[1], "offset" : 1},
+           
+            {"preference" : prefs[2], "offset" : 0},
+            {"preference" : prefs[2], "offset" : 1},
+            \
+            {"preference" : prefs[3], "offset" : 1},
+        ]
+        assignables = [ShiftAssignable.objects.create(
+            offset_modulus=2, is_active=True, **kwargs)
+                       for kwargs in assignables_data]
+        schedules = WorktimeSchedule.objects.generate(self.periods[0])
+        print(f"schedules = {list(schedules)}")
+                
+                
+            

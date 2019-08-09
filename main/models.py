@@ -120,9 +120,9 @@ class Event(models.Model):
 
 
 class _WeeklyEventFormatter(object):
-    """various functions drawing on data from _events() 
-    classes which implement _events() include
-    WeeklyEventQuerySet, WeeklyEvent"""
+    """various functions drawing on data from _events method 
+    classes which implement that method include
+    WeeklyEvent and WeeklyEventQuerySet"""
 
     def by_weekday(self):
         events_by_weekday = [[] for _ in range(7)]
@@ -214,7 +214,6 @@ class IdentityMixin(object):
         return not self.__eq__(other)
 
 
-# todo implement equality?
 class WeeklyEventOccurrence(IdentityMixin, object):
 
     def __init__(self, weekly_event, date):
@@ -616,7 +615,7 @@ class WorktimeCommitment(Event):
         self.save()
 
     def save(self, *args, **kwargs):
-        """should be noop when instance is initialized through ShiftOccurrence instance method"""
+        """just super().save when instance is initialized through ShiftOccurrence instance method"""
         self.shift = self.shift or Shift.objects.get(
             classroom=self.child.classroom,
             start_time=self.start.time(),
@@ -724,8 +723,8 @@ class ShiftAssignableManager(models.Manager):
 class ShiftAssignable(models.Model):
     preference = models.ForeignKey(ShiftPreference, on_delete=models.CASCADE)
     is_active = models.BooleanField(default=False)
-    offset = models.IntegerField()
-    offset_modulus = models.IntegerField()
+    offset = models.IntegerField() 
+    offset_modulus = models.IntegerField() # derived from preference.child.shifts_per_month
     NORMAL_MODULUS = 4
     objects = ShiftAssignableManager()
 
@@ -737,6 +736,10 @@ class ShiftAssignable(models.Model):
     def period(self):
         return self.preference.period
 
+    # # @property
+    # def offset_modulus(self):
+    #     return self.preference.child.shifts_per_month
+
     def occurrences(self):
         occ_pool = self.shift.occurrences_for_date_range(
             self.period.start, self.period.end)
@@ -744,22 +747,26 @@ class ShiftAssignable(models.Model):
                 if index % self.offset_modulus == self.offset)
 
     def _normalized_offsets(self):
-        if self.NORMAL_MODULUS % self.modulus != 0:
+        if self.NORMAL_MODULUS % self.offset_modulus != 0:
             raise Exception(
                 f"the value {self.modulus} as modulus of recurrence is not normalizable!")
         return {self.offset + i
-                for i in range(0, self.NORMAL_MODULUS, self.NORMAL_MODULUS // modulus)}
+                for i in range(0,
+                               self.NORMAL_MODULUS,
+                               self.NORMAL_MODULUS // self.offset_modulus)}
 
     def is_compatible_with(self, other):
-        return self._normalized_offsets().is_disjoint(
-            other._normalized_offsets())
-
-    # def __identity__(self):
-        # return (self.preference.pk, self.offset, self.offset_modulus)
+        return self == other\
+            or self._normalized_offsets().isdisjoint(
+                other._normalized_offsets())\
+                or self.preference.shift != other.preference.shift
 
     def create_commitments(self):
         for shocc in self.occurrences():
             shocc.create_commitment(self.preference.child)
+
+    def __str__(self):
+        return f"<ShiftAssignable {self.pk}: shift={self.preference.shift.pk}, offset={self.offset}, modulus={self.offset_modulus}>"        
      
 
 class WorktimeScheduleManager(models.Manager):
@@ -773,18 +780,30 @@ class WorktimeScheduleManager(models.Manager):
     def generate(self, period, no_worse_than=1):
         problem = Problem()
         assignables = ShiftAssignable.objects.filter(
-            period=period,
-            select_related=(['preference__child']),
-            is_active=True)
+            preference__period=period,
+            is_active=True).select_related('preference__child')
+        print(f"assignables={assignables}")
         doms = defaultdict(list)
         for assignable in assignables:
             doms[assignable.preference.child.pk].append(assignable)
+        # print(f"doms={doms}")
         for k, dom in doms.items():
             problem.addVariable(k, dom)
+        # print(f"problem={problem}")
+        # problem.addConstraint(lambda a1, a2: a1.is_compatible_with(a2),
+                              # (k1, k2))
         for k1, k2 in itertools.combinations(doms.keys(), 2):
+            print(doms[k1])
+            for a1, a2 in itertools.product(doms[k1], doms[k2]):
+                print(f"a1={a1}")
+                compatibility = a1.is_compatible_with(a2)
+                print(f"{a1}, {a2} are compatible?: {compatibility}")
+            # print(f"\n{k1} is compatible with {k2}? {dom[k1].is_compatible_with(dom[k2])}")
+            # print(f"{dom[k1]} is {'' if not dom[k1].is_compatible_with(dom[k2]) else 'not '} compatible with {dom[k2]}")
             problem.addConstraint(lambda a1, a2: a1.is_compatible_with(a2),
                                   (k1, k2))
         solutions = problem.getSolutions()
+        print(f"solutions={solutions}")
         for solution in solutions:
             schedule = WorktimeSchedule.objects.create(period=period)
             for assignable in solution.values():
