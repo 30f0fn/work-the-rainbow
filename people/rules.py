@@ -62,13 +62,10 @@ def is_teacher_in_classroom_of(user, child):
     return acts_as(user, TEACHER) and\
         user in child.classroom.teacher_set.all()
 
-
-
 rules.add_perm('people.edit_child',
                is_parent_of
                | is_scheduler_in_classroom_of
-               | is_admin
-)
+               | is_admin)
 
 rules.add_perm('people.view_child_profile',
                is_admin |
@@ -91,7 +88,6 @@ rules.add_perm('people.view_classroom',
 
 rules.add_perm('admin',
                is_admin)
-
 
 
 

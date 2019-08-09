@@ -7,6 +7,9 @@
 {% block content %}
   {% has_perm 'main.score_worktime_attendance' user classroom as can_score_worktime_attendance %}
 
+  {# {{user.active_role}} #}
+  {# {{ can_score_worktime_attendance }} #}
+
 <h1> {{view.classroom.name}} - week of {{view.start_date|date:"n/j/y"}}</h1>
   {% include 'calendar-nav.html' %}
   <ul>

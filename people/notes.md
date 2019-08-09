@@ -1,3 +1,14 @@
+
+todo 
+note that django's auth backend automatically returns True for any invocation of has_perm on a user which has is_superuser
+But, the site is designed so that permissions depend on the user's active_role... 
+so it looks weird to users with the is_superuser property... not sure how to fix this
+
+one way to do this would be to add another role, SITE_ADMIN
+another way would be to override is_admin on the user model
+distinguish roles ADMIN and SITE_ADMIN
+
+
 identity management
 -------------------
 
