@@ -49,9 +49,9 @@ def create_caredays(classroom):
 
 def create_kids(classroom, num=None, num_range=KIDS_PER_CLASSROOM_RANGE):
     num_kids = num if num is not None else random.randrange(*KIDS_PER_CLASSROOM_RANGE)
-    for _ in range(num_kids):
-        child = Child.objects.create(
+    return [Child.objects.create(
             nickname=f"kid {random_str()}", classroom=classroom)
+              for _ in range(num_kids)]
 
 
 def create_shifts(classroom):

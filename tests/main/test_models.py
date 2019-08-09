@@ -1,5 +1,6 @@
 import datetime
 import random
+import collections
 
 from django.test import TestCase
 from people.models import *
@@ -714,3 +715,235 @@ class WorktimeCommitmentTest(TestCase):
         actual_alt_shoccs = set(wtc.alternatives(earlier=delta_week, later=delta_week))
         # print(actual_alt_shoccs)
         self.assertEqual(expected_alt_shoccs, actual_alt_shoccs)
+
+
+class ShiftTestCase(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        cls.classroom = create_classrooms(num=1)[0]
+        create_shifts(cls.classroom)
+        create_caredays(cls.classroom)
+        cls.kids = create_kids(classroom=cls.classroom, num=5)
+        cls.periods = create_periods(cls.classroom, num=2)
+        cls.shifts = {(weekday, hour) :
+                      Shift.objects.get(
+                          weekday=weekday,
+                          start_time__hour=int(hour),
+                          classroom=cls.classroom)
+                      for hour in (8, 13, 15)
+                      for weekday in (0, 1, 2, 3, 4)}
+
+
+class ShiftPreferenceTestCase(ShiftTestCase):
+    @classmethod
+    def setUpTestData(cls):    
+        super().setUpTestData()
+
+        def build_pref(cls, kid_index, weekday, hour, rank, period_index):
+            ShiftPreference.objects.create(
+                child=cls.kids[kid_index], shift=cls.shifts[weekday, hour], 
+                rank=rank, period=cls.periods[period_index])
+            
+        PrefDatum = collections.namedtuple('PrefDatum',
+                                           ['kid_index', 'weekday', 'hour', 'rank', 'period_index'])
+        cls.pref_data = [PrefDatum(0, 0, 8, 1, 0),
+                         PrefDatum(0, 1, 8, 1, 0),
+                         PrefDatum(0, 2, 13, 2, 0),
+                         PrefDatum(0, 3, 13, 3, 0),
+                         \
+                         PrefDatum(0, 0, 13, 1, 1),
+                         PrefDatum(0, 1, 13, 2, 1),
+                         \
+                         PrefDatum(1, 0, 8, 1, 1),
+                         PrefDatum(1, 1, 13, 2, 1),
+                         \
+                         PrefDatum(1, 0, 13, 1, 0),
+                         PrefDatum(1, 1, 13, 1, 0),
+                         PrefDatum(1, 2, 13, 2, 0)]
+
+        for datum in cls.pref_data:
+            build_pref(cls, **datum._asdict())
+
+        # cls.shift08 = cls.shifts[0,8]
+        # cls.shift013 = cls.shifts[0,13]
+        # cls.shift113 = cls.shifts[1,13]
+        # cls.pref008 = ShiftPreference.objects.get(child=cls.kids[0].pk,
+                                                  # shift=cls.shift08)
+        # cls.pref0013 = ShiftPreference.objects.get(child=cls.kids[0].pk,
+                                                   # shift=cls.shift013)
+        # cls.pref1113 = ShiftPreference.objects.get(child=self.kids[1].pk, shift=shift113)
+
+
+class ShiftPreferenceManagerTest(ShiftPreferenceTestCase):
+
+    def test_by_time_and_weekday(self):
+        act_dict = ShiftPreference.objects.by_time_and_weekday(self.periods[0])
+        shift08 = self.shifts[0,8]
+        shift013 = self.shifts[0,13]
+        actual08 = set(act_dict[shift08.start_time][shift08.weekday])
+        expected08 = set(ShiftPreference.objects.filter(
+            shift=shift08,
+            period=self.periods[0]))
+        self.assertEqual(actual08, expected08)
+        actual013 = set(act_dict[shift013.start_time][shift013.weekday])
+        expected013 = set(ShiftPreference.objects.filter(
+            shift=shift013,
+            period=self.periods[0]))
+        self.assertEqual(actual013, expected013)
+        self.assertNotEqual(actual08, actual013)
+
+
+    def test_by_shift(self):
+        shift08 = self.shifts[0,8]
+        actual08 = set(ShiftPreference.objects.by_shift(self.periods[0])[shift08])
+        expected08 = set(ShiftPreference.objects.filter(shift=shift08,
+                                                        period=self.periods[0]))
+        self.assertEqual(actual08, expected08)
+        shift013 = self.shifts[0,13]
+        actual013 = set(ShiftPreference.objects.by_shift(self.periods[1])[shift013])
+        expected013 = set(ShiftPreference.objects.filter(shift=shift013,
+                                                      period=self.periods[1]))
+        self.assertEqual(actual013, expected013)
+        self.assertNotEqual(actual08, actual013)
+        
+
+class ShiftPreferenceTest(ShiftPreferenceTestCase):
+
+    def test_generate_assignables(self):
+        pref008 = ShiftPreference.objects.get(child=self.kids[0],
+                                              shift=self.shifts[0, 8],
+                                              period=self.periods[0])
+        actual008 = set(pref008.generate_assignables())
+        expected008 = set(ShiftAssignable.objects.create(preference=pref008,
+                                                        offset=i, offset_modulus=2)
+                      for i in range(2))
+        self.assertEqual(actual008, expected008)
+        pref1013 = ShiftPreference.objects.get(child=self.kids[1],
+                                               shift=self.shifts[0, 13],
+                                               period=self.periods[0])
+        actual1013 = set(pref1013.generate_assignables())
+        expected1013 = set(ShiftAssignable(preference=pref1013,
+                                           offset=i, offset_modulus=2)
+                      for i in range(2))
+        self.assertEqual(actual1013, expected1013)
+        self.assertNotEqual(actual008, actual1013)
+
+
+class ShiftAssignableManagerTest(ShiftPreferenceTestCase):
+    def test_generate(self):
+        period = self.periods[1]
+        actual_assignables = set(ShiftAssignable.objects.generate(period=period))
+        prefs = (ShiftPreference.objects.get(child=self.kids[0],
+                                 shift=self.shifts[0, 13],
+                                 period=self.periods[1]),
+                 ShiftPreference.objects.get(child=self.kids[0],
+                                 shift=self.shifts[1, 13],
+                                 period=self.periods[1]),
+                 ShiftPreference.objects.get(child=self.kids[1],
+                                 shift=self.shifts[0, 8],
+                                 period=self.periods[1]),
+                 ShiftPreference.objects.get(child=self.kids[1],
+                                 shift=self.shifts[1, 13],
+                                 period=self.periods[1]))
+        expected_assignable_data = [
+            {"preference" : prefs[0], "offset" : 0, "offset_modulus" : 2},
+            {"preference" : prefs[0], "offset" : 1, "offset_modulus" : 2},
+            {"preference" : prefs[1], "offset" : 0, "offset_modulus" : 2},
+            {"preference" : prefs[1], "offset" : 1, "offset_modulus" : 2},
+            {"preference" : prefs[2], "offset" : 0, "offset_modulus" : 2},
+            {"preference" : prefs[2], "offset" : 1, "offset_modulus" : 2},
+            {"preference" : prefs[3], "offset" : 0, "offset_modulus" : 2},
+            {"preference" : prefs[3], "offset" : 1, "offset_modulus" : 2}
+        ]
+        expected_assignables = [ShiftAssignable.objects.get(**data_set)
+                        for data_set in expected_assignable_data]
+        self.assertEqual(set(actual_assignables), set(expected_assignables))
+        for assignable in actual_assignables:
+            self.assertEqual(assignable.preference.rank==1,
+                             assignable.is_active)
+            
+
+
+class ShiftAssignableTest(ShiftTestCase):
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        pref1 = ShiftPreference.objects.create(child=cls.kids[0],
+                                              shift=cls.shifts[0, 8],
+                                              period=cls.periods[0],
+                                              rank=1)
+        pref2 = ShiftPreference.objects.create(child=cls.kids[1],
+                                               shift=cls.shifts[2, 13],
+                                               period=cls.periods[1],
+                                               rank=2)
+        pref3 = ShiftPreference.objects.create(child=cls.kids[1],
+                                               shift=cls.shifts[0, 8],
+                                               period=cls.periods[0],
+                                               rank=1)
+        pref4 = ShiftPreference.objects.create(child=cls.kids[2],
+                                               shift=cls.shifts[0, 8],
+                                               period=cls.periods[0],
+                                               rank=1)
+        cls.sa1 = ShiftAssignable.objects.create(
+            preference=pref1, offset=1, offset_modulus=2)
+        cls.sa2 = ShiftAssignable.objects.create(
+            preference=pref2, offset=1, offset_modulus=4)
+        cls.sa3 = ShiftAssignable.objects.create(
+            preference=pref3, offset=1, offset_modulus=4)
+        cls.sa4 = ShiftAssignable.objects.create(
+            preference=pref3, offset=0, offset_modulus=2)
+        Holiday.objects.create(name="test holiday 1",
+                               start=timezone.make_aware(timezone.datetime(2000, 12, 1)),
+                               end=timezone.make_aware(timezone.datetime(2000, 12, 31)))
+        Holiday.objects.create(name="test holiday 2",
+                               start=timezone.make_aware(timezone.datetime(2001, 2, 1)),
+                               end=timezone.make_aware(timezone.datetime(2001, 2, 28)))
+
+    def test_occurrences(self):
+        actual_occs1 = self.sa1.occurrences()
+        expected_occs1 = [
+            ShiftOccurrence(shift=self.shifts[0, 8], date=timezone.datetime(2000,9,11)),
+            ShiftOccurrence(shift=self.shifts[0, 8], date=timezone.datetime(2000,9,25)),
+            ShiftOccurrence(shift=self.shifts[0, 8], date=timezone.datetime(2000,10,9)),
+            ShiftOccurrence(shift=self.shifts[0, 8], date=timezone.datetime(2000,10,23)),
+            ShiftOccurrence(shift=self.shifts[0, 8], date=timezone.datetime(2000,11,6)),
+            ShiftOccurrence(shift=self.shifts[0, 8], date=timezone.datetime(2000,11,20)),
+        ]
+        self.assertEqual(set(actual_occs1), set(expected_occs1))
+        # print(list(self.sa1.occurrences()))
+        actual_occs2 = self.sa2.occurrences()        
+        expected_occs2 = [
+            ShiftOccurrence(shift=self.shifts[2, 13], date=timezone.datetime(2001,1,10)),
+            ShiftOccurrence(shift=self.shifts[2, 13], date=timezone.datetime(2001,3,7)),
+            ShiftOccurrence(shift=self.shifts[2, 13], date=timezone.datetime(2001,4,4)),
+        ]
+        self.assertEqual(set(actual_occs2), set(expected_occs2))
+
+        def test_normalized_offsets(self):
+            actual1 = self.sa1._normalized_offsets()
+            expected1 = {1, 3}
+            self.assertEqual(actual1, expected1)
+            actual2 = self.sa1._normalized_offsets()
+            expected2 = {1}
+            self.assertEqual(actual2, expected2)
+
+        def test_is_compatible_with(self):
+            self.assertTrue(self.sa1.is_compatible_with(self.sa2))
+            self.assertTrue(self.sa1.is_compatible_with(self.sa2))
+            self.assertFalse(self.sa1.is_compatible_with(self.sa3))
+            self.assertTrue(self.sa1.is_compatible_with(self.sa4))
+
+        def test_create_commitments(self):
+            self.sa1.create_commitments()
+            actual_created = WorktimeCommitment.objects.filter(
+                child=self.kids[0])
+            expected_created = [
+                WorktimeCommitment.objects.get(timezone.datetime(2000, 9, 11, 8, 0)),
+                WorktimeCommitment.objects.get(timezone.datetime(2000,9,25, 8, 0)),
+                WorktimeCommitment.objects.get(timezone.datetime(2000,10,9, 8, 0)),
+                WorktimeCommitment.objects.get(timezone.datetime(2000,10,23, 8, 0)),
+                WorktimeCommitment.objects.get(timezone.datetime(2000,11,6, 8, 0)),
+                WorktimeCommitment.objects.get(timezone.datetime(2000,11,20, 8, 0)),
+            ]
+            self.assertEqual(set(actual_created), set(expected_created))

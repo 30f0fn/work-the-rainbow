@@ -114,7 +114,7 @@ class Event(models.Model):
     objects = EventManager()
 
     class Meta:
-        ordering = ['start', 'end']
+        ordering = ['start']
         abstract = True
 
 
@@ -198,8 +198,23 @@ class WeeklyEvent(_WeeklyEventFormatter, models.Model):
         return WEEKDAYS[self.weekday]
 
 
+class IdentityMixin(object):
+
+    def __hash__(self):
+        if '__identity__' in dir(self):
+            return hash(self.__identity__())
+        else:
+            return super().__hash__()
+
+    def __eq__(self, other):
+        return self.__identity__() == other.__identity__() if '__identity__' in dir(self) else super().__eq__(other)    
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+
 # todo implement equality?
-class WeeklyEventOccurrence(object):
+class WeeklyEventOccurrence(IdentityMixin, object):
 
     def __init__(self, weekly_event, date):
         weekly_cls_name = self.__class__.__name__[:-len("Occurrence")]
@@ -210,14 +225,6 @@ class WeeklyEventOccurrence(object):
         self.end = timezone.make_aware(
             timezone.datetime.combine(date, weekly_event.end_time))
 
-    def __hash__(self):
-        return hash(self.__identity__()) if '__identity__' in dir(self) else super().__hash__()
-
-    def __eq__(self, other):
-        return self.__identity__() == other.__identity__() if '__identity__' in dir(self) else super().__eq__(other)
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
 
 
     class Meta:
@@ -515,7 +522,7 @@ class ShiftOccurrence(WeeklyEventOccurrence):
         self.commitment = kwargs.pop('commitment', None)
 
     def __identity__(self):
-        return (self.classroom, self.start)
+        return (self.classroom.pk, self.start)
 
     def create_commitment(self, child):
         """commit child to this occurrence
@@ -574,8 +581,7 @@ class ShiftOccurrence(WeeklyEventOccurrence):
         if include_commitment:
             shocc.commitment = WorktimeCommitment.objects.get(pk=int(repr_dict.get('commitment')))
         return shocc
-
-
+ 
 
 class WorktimeCommitment(Event):
     """assignment of Child to ShiftOccurrence (via shift, date fields)
@@ -648,7 +654,7 @@ class WorktimeCommitment(Event):
 
     class Meta:
         unique_together = (("shift", "start"),)
- 
+        ordering = ['start']
 
 
 class ShiftPreferenceManager(models.Manager):
@@ -672,129 +678,127 @@ class ShiftPreferenceManager(models.Manager):
 
 
 class ShiftPreference(models.Model):
-    child = models.ForeignKey(Child, on_delete=models.CASCADE)
     shift = models.ForeignKey(Shift, on_delete=models.CASCADE)
+    period = models.ForeignKey(Period, on_delete=models.CASCADE)
+    child = models.ForeignKey(Child, on_delete=models.CASCADE)
     rank_choices = ((1, 'best'), (2, 'pretty good'), (3, 'acceptable'))
     rank = models.IntegerField(choices=rank_choices, default=3,
                                null=True, blank=True)
-    period = models.ForeignKey(Period, blank=True, null=True, on_delete=models.PROTECT)
-    
     objects = ShiftPreferenceManager()
+
+    def generate_assignables(self):
+        modulus = ShiftAssignable.NORMAL_MODULUS // self.child.shifts_per_month 
+        # print(f"modulus={modulus}")
+        for offset in range(modulus):
+            yield ShiftAssignable.objects.create(preference=self,
+                                                 offset_modulus=modulus,
+                                                 offset=offset)
+
+    class Meta:
+        unique_together = (("child", "shift", "period"), )
+        ordering = ('period', 'rank', 'shift')
 
     def __repr__(self):
         return f"<ShiftPreference {self.pk}: {self.child} ranks {self.shift} as {self.rank}>"
 
-    class Meta:
-        # unique_together = (("child", "shift", "period"), )
-        ordering = ('period', 'rank', 'shift')
 
+class _ShiftOffsetMixin(object):
+    """migrations need this, frk"""
+    pass
 
-class ShiftAssignmentCollectionManager(models.Manager):
-
-    # todo below is super-ugly and should be in scheduler.py
-    def generate(self, period, no_worse_than=1):
-        """generate shiftassignments"""
-        ShiftAssignmentCollection.objects.filter(period=period).delete()
-        problem = Problem()
-        all_families = Child.objects.filter(classroom=period.classroom)
-        families = []
-        preferences = []
-        for f, child in enumerate(all_families):
-            # print(child)
-            fam_prefs = ShiftPreference.objects.filter(
-                child=child,
-                rank__lte=no_worse_than,
-                period=period)
-            if fam_prefs:
-                preferences.append(fam_prefs)
-                families.append(child)
-        for f in range(len(families)):
-            problem.addVariable(f, preferences[f])
-        for c1,c2,c3 in itertools.combinations(range(len(families)), 3):
-            # print("c1,c2,c3:", c1,c2,c3)
-            problem.addConstraint((lambda p1, p2, p3:
-                                   not(p1.shift == p2.shift == p3.shift)),
-                                  [c for c in [c1, c2, c3]])
-            # print("constraint:", lambda s1, s2, s3: not(s1 == s2 == s3))
-        # print("families with preferences: ", families)
-        retval = []
-        solutions = problem.getSolutions()
-        # print("solutions", solutions)
-        for solution in solutions:
-            # print("solution:", solution)
-            collection = ShiftAssignmentCollection.objects.create(period=period)
-            for f, family in enumerate(families):
-                sh = ShiftAssignment.objects.create(child=family,
-                                                    shift=solution[f].shift,
-                                                    collection=collection,
-                                                    rank=solution[f].rank)
-            retval.append(collection)
-            # print("retval", retval)
-        return retval
-
-
-
-
-class ShiftAssignmentCollection(models.Model):
-    date = models.DateTimeField(default=timezone.now)
-    period = models.ForeignKey(Period, on_delete = models.CASCADE)
-    objects = ShiftAssignmentCollectionManager()
     
-    # def score(self):
-    # #     # todo this is horribly inefficient but can't see how to combine all these scores into one query 
-    #     retval = 0
-    #     prefs = ShiftPreference.objects.filter(period=period)
-    #     for assn in self.shiftassignment_set.all():
-    #         for pref in prefs:
-    #             if pref.child == assn.child and pref.shift == asn.shift:
-    #                 retval += pref.rank
-    #                 break
-    #         retval += float("inf")
-    #         break
-    #     return retval
+
+class ShiftAssignableManager(models.Manager):
+
+    def generate(self, period, rank_lte=1):
+        ShiftAssignable.objects.filter(preference__period=period).delete()
+        prefs = ShiftPreference.objects.filter(period=period)
+        for pref in prefs:
+            for assignable in pref.generate_assignables():
+                if pref.rank <= rank_lte:
+                    assignable.is_active = True
+                yield assignable
+
+
+class ShiftAssignable(IdentityMixin, models.Model):
+    preference = models.ForeignKey(ShiftPreference, on_delete=models.CASCADE)
+    is_active = models.BooleanField(default=False)
+    offset = models.IntegerField()
+    offset_modulus = models.IntegerField()
+    NORMAL_MODULUS = 4
+    objects = ShiftAssignableManager()
+
+    @property
+    def shift(self):
+        return self.preference.shift
+
+    @property
+    def period(self):
+        return self.preference.period
+
+    def occurrences(self):
+        occ_pool = self.shift.occurrences_for_date_range(
+            self.period.start, self.period.end)
+        return (occ for index, occ in enumerate(occ_pool)
+                if index % self.offset_modulus == self.offset)
+
+    def _normalized_offsets(self):
+        if self.NORMAL_MODULUS % self.modulus != 0:
+            raise Exception(
+                f"the value {self.modulus} as modulus of recurrence is not normalizable!")
+        return {self.offset + i
+                for i in range(0, self.NORMAL_MODULUS, self.NORMAL_MODULUS // modulus)}
+
+    def is_compatible_with(self, other):
+        return self._normalized_offsets().is_disjoint(
+            other._normalized_offsets())
+
+    # def __identity__(self):
+        # return (self.preference.pk, self.offset, self.offset_modulus)
 
     def create_commitments(self):
-        shifts = Shift.objects.filter(classroom=self.period.classroom)
-        assignments = self.shiftassignment_set.all()
-        offset = 0
-        for sh in shifts:
-            offset = offset + 1
-            available_indices = [(offset + i) % 4 for i in range(4)]
-            # instead of cycling the indices, keep a count of how many times an index has been used, then always pick the least-used index first
-            families = [assignment.child for assignment in assignments
-                        if assignment.shift == sh]
-            sh_occs = list(sh.occurrences_for_date_range(self.period.start,
-                                                         self.period.end))
-            assert(sum([child.shifts_per_month for child in families]) <= 4)
-            families.sort(key = lambda c : -c.shifts_per_month)
-            # so either [0,1,2,3] or [1,2,3,4]
-            def assign_from_index(child, index):
-                for occ in sh_occs[index::4]:
-                    commitment = occ.create_commitment(child)
-            for child in families:
-                first_index = available_indices.pop()
-                assign_from_index(child, first_index)
-                # available_indices.remove(first_index)
-                if child.shifts_per_month == 2:
-                    second_index = (first_index + 2) % 4
-                    # must be available, since child has at most one predecessor (else sum of children's shifts per months exceeds four), and that predecessor has different parity 
-                    available_indices.remove(second_index)
-                    assign_from_index(child, second_index)
+        for shocc in self.occurrences():
+            shocc.create_commitment(self.preference.child)
+     
+
+class WorktimeScheduleManager(models.Manager):
+
+    """ each child gets as domain a set of shifts-with-offset, 
+    which is generated by their shift preferences (then tweaked by scheduler)
+    the solution assigns each child a shift-with-offset, 
+    so that all assignments are compatible
+    """
+
+    def generate(self, period, no_worse_than=1):
+        problem = Problem()
+        assignables = ShiftAssignable.objects.filter(
+            period=period, select_related=(['preference', 'child']),
+            ordering=('kid'))
+        doms = defaultdict(list)
+        for assignable in assignables:
+            doms[assignable.preference.child.pk].append(assignable)
+        for k, dom in doms.items():
+            problem.addVariable(k, dom)
+        for k1, k2 in itertools.combinations(doms.keys(), 2):
+            problem.addConstraint(lambda a1, a2: a1.is_compatible_with(a2),
+                                  (k1, k2))
+        solutions = problem.getSolutions()
+        for solution in solutions:
+            schedule = WorktimeSchedule.objects.create(period=period)
+            for assignable in solution.values():
+                schedule.assignments.add(assignable)
+            yield schedule
 
 
-    
-class ShiftAssignment(models.Model):
-    child = models.ForeignKey(Child, on_delete=models.CASCADE)
-    shift = models.ForeignKey(Shift, on_delete=models.CASCADE)
-    collection = models.ForeignKey(ShiftAssignmentCollection,
-                                   on_delete=models.CASCADE)
-    rank_choices = ((1, 'best'), (2, 'pretty good'), (3, 'acceptable'))
-    rank = models.IntegerField(choices=rank_choices, default=3,
-                               null=True, blank=True)
+class WorktimeSchedule(models.Model):
+    date = models.DateTimeField(default=timezone.now)
+    period = models.ForeignKey(Period, on_delete = models.CASCADE)
+    assignments = models.ManyToManyField(ShiftAssignable)
+    objects = WorktimeScheduleManager()
 
-    def __repr__(self):
-        return f"<Assignment {self.pk} in collection {self.collection.pk}: {self.child.nickname} gets {self.shift}>"
+    def commit(self):
+        for assignable in self.assignments.all():
+            assignable.create_commitments()
+            
 
 
-
- 
