@@ -578,6 +578,10 @@ class ShiftQuerySetTest(_WorktimeCommitmentTestCase):
                                            if shocc.commitment}
                 self.assertEqual(commitments_from_shoccs, expected_commitments)
 
+
+
+
+
 class ShiftOccurrenceCommitmentMethodsTest(TestCase):
     """
     methods to test
@@ -815,7 +819,7 @@ class ShiftPreferenceTest(ShiftPreferenceTestCase):
                                               shift=self.shifts[0, 8],
                                               period=self.periods[0])
         actual008 = set(pref008.generate_assignables())
-        expected008 = set(ShiftAssignable.objects.create(preference=pref008,
+        expected008 = set(ShiftAssignable.objects.get(preference=pref008,
                                                         offset=i, offset_modulus=2)
                       for i in range(2))
         self.assertEqual(actual008, expected008)
@@ -823,8 +827,8 @@ class ShiftPreferenceTest(ShiftPreferenceTestCase):
                                                shift=self.shifts[0, 13],
                                                period=self.periods[0])
         actual1013 = set(pref1013.generate_assignables())
-        expected1013 = set(ShiftAssignable(preference=pref1013,
-                                           offset=i, offset_modulus=2)
+        expected1013 = set(ShiftAssignable.objects.get(preference=pref1013,
+                                                       offset=i, offset_modulus=2)
                       for i in range(2))
         self.assertEqual(actual1013, expected1013)
         self.assertNotEqual(actual008, actual1013)
@@ -993,12 +997,12 @@ class WorktimeScheduleManagerTest(ShiftTestCase):
         
         self.assertEqual(2, len(actual_schedules))
         for sched in actual_schedules:
-            self.assertTrue(assignables[0] in sched.assignments_set.all()\
-                            != assignables[1] in sched.assignments_set.all())
-            self.assertTrue(assignables[2] in sched.assignments_set.all()\
-                            != assignables[3] in sched.assignments_set.all())
-            self.assertTrue(assignables[0] in sched.assignments_set.all()\
-                            != assignables[2] in sched.assignments_set.all())
-            self.assertTrue(assignables[6] in sched.assignments_set.all())
-            self.assertFalse(assignables[5] in sched.assignments_set.all())
-            self.assertTrue(assignables[4] in sched.assignments_set.all())            
+            self.assertNotEqual((assignables[0] in sched.assignments.all()),
+                                (assignables[1] in sched.assignments.all()))
+            self.assertNotEqual(assignables[2] in sched.assignments.all(),
+                                assignables[3] in sched.assignments.all())
+            self.assertNotEqual(assignables[0] in sched.assignments.all(),
+                                assignables[2] in sched.assignments.all())
+            self.assertTrue(assignables[6] in sched.assignments.all())
+            self.assertFalse(assignables[5] in sched.assignments.all())
+            self.assertTrue(assignables[4] in sched.assignments.all())            

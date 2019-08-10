@@ -2,11 +2,12 @@ import datetime
 import ast
 from collections import defaultdict
 import itertools
+import functools
 import json
 import random
 from constraint import *
 
-from django.db import models
+from django.db import models, transaction
 from django.utils import timezone
 
 from people.models import Child, Classroom
@@ -422,7 +423,7 @@ class CareDayAssignment(models.Model):
         overlaps.delete()
         self.start = new_start
         self.end = new_end
-        super().save()
+        super().save(*args, **kwargs)
 
     def occurrences_for_date_range(self, start, end, ignore_holidays=True):
         for occ in self.careday.occurrences_for_date_range(
@@ -642,12 +643,12 @@ class WorktimeCommitment(Event):
                                 for wtc in WorktimeCommitment.objects.filter(
                                         child__classroom=self.child.classroom,
                                         start__gte=dt_min, end__lte=dt_max)}
-        print(f"commitments_by_start={commitments_by_start}")
+        # print(f"commitments_by_start={commitments_by_start}")
         for proposed_occ in sh_occs:
             if commitments_by_start.get(proposed_occ.start, self) == self:
-                print(f"yielded proposed_occ {proposed_occ}")
-                print(commitments_by_start.get(proposed_occ.start))
-                print(proposed_occ.start)
+                # print(f"yielded proposed_occ {proposed_occ}")
+                # print(commitments_by_start.get(proposed_occ.start))
+                # print(proposed_occ.start)
                 yield proposed_occ
             else:
                 print(f"skipped proposed_occ {proposed_occ}")
@@ -689,10 +690,12 @@ class ShiftPreference(models.Model):
     def generate_assignables(self):
         modulus = ShiftAssignable.NORMAL_MODULUS // self.child.shifts_per_month 
         # print(f"modulus={modulus}")
-        for offset in range(modulus):
-            yield ShiftAssignable.objects.create(preference=self,
-                                                 offset_modulus=modulus,
-                                                 offset=offset)
+        print("generating assignables")
+        with transaction.atomic():
+            ret = [ShiftAssignable.objects.create(
+                preference=self, offset_modulus=modulus, offset=offset)
+                   for offset in range(modulus)]
+        return ret
 
     class Meta:
         unique_together = (("child", "shift", "period"), )
@@ -710,14 +713,11 @@ class _ShiftOffsetMixin(object):
 
 class ShiftAssignableManager(models.Manager):
 
-    def generate(self, period, rank_lte=1):
+    def generate(self, period):
         ShiftAssignable.objects.filter(preference__period=period).delete()
         prefs = ShiftPreference.objects.filter(period=period)
-        for pref in prefs:
-            for assignable in pref.generate_assignables():
-                if pref.rank <= rank_lte:
-                    assignable.is_active = True
-                yield assignable
+        return [assignable for pref in prefs
+                for assignable in pref.generate_assignables()]
 
 
 class ShiftAssignable(models.Model):
@@ -726,6 +726,7 @@ class ShiftAssignable(models.Model):
     offset = models.IntegerField() 
     offset_modulus = models.IntegerField() # derived from preference.child.shifts_per_month
     NORMAL_MODULUS = 4
+    DEFAULT_ACTIVE_LEVEL = 1
     objects = ShiftAssignableManager()
 
     @property
@@ -765,6 +766,11 @@ class ShiftAssignable(models.Model):
         for shocc in self.occurrences():
             shocc.create_commitment(self.preference.child)
 
+    def save(self, *args, **kwargs):
+        if self.preference.rank <= self.DEFAULT_ACTIVE_LEVEL:
+            self.is_active = True
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"<ShiftAssignable {self.pk}: shift={self.preference.shift.pk}, offset={self.offset}, modulus={self.offset_modulus}>"        
      
@@ -778,11 +784,11 @@ class WorktimeScheduleManager(models.Manager):
     """
 
     def generate(self, period, no_worse_than=1):
+        print("solving assignment problem...")
         problem = Problem()
         assignables = ShiftAssignable.objects.filter(
             preference__period=period,
             is_active=True).select_related('preference__child')
-        print(f"assignables={assignables}")
         doms = defaultdict(list)
         for assignable in assignables:
             doms[assignable.preference.child.pk].append(assignable)
@@ -792,23 +798,21 @@ class WorktimeScheduleManager(models.Manager):
         # print(f"problem={problem}")
         # problem.addConstraint(lambda a1, a2: a1.is_compatible_with(a2),
                               # (k1, k2))
+        # assignments_compatible = lambda a1, a2: a1.is_compatible_with(a2)
+        cached_compatibility = functools.lru_cache()(lambda a1, a2:
+                                                     a1.is_compatible_with(a2))
         for k1, k2 in itertools.combinations(doms.keys(), 2):
-            print(doms[k1])
-            for a1, a2 in itertools.product(doms[k1], doms[k2]):
-                print(f"a1={a1}")
-                compatibility = a1.is_compatible_with(a2)
-                print(f"{a1}, {a2} are compatible?: {compatibility}")
-            # print(f"\n{k1} is compatible with {k2}? {dom[k1].is_compatible_with(dom[k2])}")
-            # print(f"{dom[k1]} is {'' if not dom[k1].is_compatible_with(dom[k2]) else 'not '} compatible with {dom[k2]}")
-            problem.addConstraint(lambda a1, a2: a1.is_compatible_with(a2),
-                                  (k1, k2))
+            problem.addConstraint(cached_compatibility, (k1, k2))
+            # problem.addConstraint(lambda a1, a2: a1.is_compatible_with(a2),
+                                  # (k1, k2))
         solutions = problem.getSolutions()
-        print(f"solutions={solutions}")
+        ret = []
         for solution in solutions:
             schedule = WorktimeSchedule.objects.create(period=period)
             for assignable in solution.values():
                 schedule.assignments.add(assignable)
-            yield schedule
+            ret.append(schedule)
+        return ret
 
 
 class WorktimeSchedule(models.Model):
@@ -820,7 +824,7 @@ class WorktimeSchedule(models.Model):
 
     def commit(self):
         if WorktimeSchedule.objects.filter(
-                period=self.period, commited=True).exists():
+                period=self.period, committed=True).exists():
             raise Exception("some schedule was already used to generate assignments for this period!")
         for assignable in self.assignments.all():
             assignable.create_commitments()
