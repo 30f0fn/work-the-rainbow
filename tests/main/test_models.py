@@ -1,6 +1,7 @@
 import datetime
 import random
 import collections
+import itertools
 
 from django.test import TestCase
 from people.models import *
@@ -990,7 +991,8 @@ class WorktimeScheduleManagerTest(ShiftTestCase):
         assignables = [ShiftAssignable.objects.create(
             offset_modulus=2, is_active=True, **kwargs)
                        for kwargs in assignables_data]
-        actual_schedules = list(WorktimeSchedule.objects.generate(self.periods[0]))
+        actual_schedules = list(
+            itertools.islice(WorktimeSchedule.objects.generate(self.periods[0]), 10))
                 
         # should have two assignments on kids 0, 1; two on kid 2; and one on kid 3
         # so four possible total assignments
