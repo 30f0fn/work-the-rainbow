@@ -816,5 +816,6 @@ class WorktimeSchedule(models.Model):
         for assignable in self.assignments.all():
             assignable.create_commitments()
         self.committed = True
+        self.save()
 
 
