@@ -14,9 +14,25 @@
 
 {# <a href='{% url 'solicit-preferences' classroom.slug period.pk %}'>solicit preferences</a> #}
 {# <a href='{% url 'nag-preferences' classroom.slug period.pk %}'>nag preferences</a> #}
-<a href='{% url 'display-preferences' classroom.slug period.pk %}'>see shift preferences</a>  
-<a href='{% url 'update-period' classroom.slug period.pk %}'>revise period dates</a>    
-<a href='{% url 'delete-period' classroom.slug period.pk %}'>delete period</a>   
+  <nav>
+    <ul>
+      <li>
+        <a href='{% url 'display-preferences' classroom.slug period.pk %}'>
+        see shift preferences
+        </a>
+      </li>
+      <li>
+        <a href='{% url 'update-period' classroom.slug period.pk %}'>
+          revise period dates
+        </a>
+      </li>
+      <li>
+        <a href='{% url 'delete-period' classroom.slug period.pk %}'>
+          delete period
+        </a>
+      </li>
+    </ul>
+  </nav>
 
 {# preferences : solicit, nag, view #}
 {# shift-assignment : build, generate, view #}

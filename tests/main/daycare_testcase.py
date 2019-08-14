@@ -106,20 +106,23 @@ def create_careday_assignments(period):
 
 
 def create_shiftpreferences(period):
-        for child in period.classroom.child_set.all():
-            caredays = CareDay.objects.filter(caredayassignment__child=child)
-            shifts = list(itertools.chain.from_iterable([
-                careday.shifts() for careday in caredays]))
-            shifts = random.sample(shifts, 2)
-            for shift in shifts:
-                ShiftPreference.objects.create(child=child, shift=shift, rank=1, period=period)
+    for child in period.classroom.child_set.all().distinct():
+        caredays = CareDay.objects.filter(caredayassignment__child=child).distinct()
+        shifts = list(itertools.chain.from_iterable([
+            careday.shifts() for careday in caredays]))
+        shifts = random.sample(shifts, 2)
+        for shift in shifts:
+            ShiftPreference.objects.create(
+                child=child, shift=shift, rank=1, period=period)
 
 def create_shiftassignments(period):
-    ShiftAssignmentCollection.objects.generate(period)
+    ShiftAssignable.objects.create_for_period(period)
+    list(itertools.islice(WorktimeSchedule.objects.generate(period), 10))
+    # WorktimeSchedule.objects.generate(period)
 
 def create_worktimecommitments(period):
-    shacoll = ShiftAssignmentCollection.objects.filter(period=period).first()
-    shacoll.create_commitments()
+    schedule = WorktimeSchedule.objects.filter(period=period).first()
+    schedule.commit()
 
 
 

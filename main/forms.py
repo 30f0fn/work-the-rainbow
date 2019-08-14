@@ -48,7 +48,7 @@ class PreferenceSubmitForm(Form):
                                                      label=str(self.shifts_dict[sh_pk]),
                                                      required=False)
                             for sh_pk in self.shifts_dict})
-
+        self.fields['note'] = CharField(max_length=1024)
 
     def clean(self, *args, **kwargs):
         super().clean(*args, **kwargs)
@@ -60,14 +60,22 @@ class PreferenceSubmitForm(Form):
             raise ValidationError(f"Please give at least {min_prefs} preferences!")
 
     def save(self):
+        if 'note' in self.changed_data:
+            contents = self.changed_data['note']
+            try:
+                self.existing_note.contents = contents
+                self.existing_note.save()
+            except AttributeError:
+                ShiftPreferenceNoteForPeriod.objects.create(
+                    period=self.period, child=self.child, contents=contents)
         for sh_pk_str in self.changed_data:
             if self.cleaned_data[sh_pk_str] == "":
                 self.existing_prefs[int(sh_pk_str)].delete()
             else:
                 try:
-                    new_pref = self.existing_prefs[int(sh_pk_str)]
-                    new_pref.rank = self.cleaned_data[sh_pk_str]
-                    new_pref.save()
+                    revised_pref = self.existing_prefs[int(sh_pk_str)]
+                    revised_pref.rank = self.cleaned_data[sh_pk_str]
+                    revised_pref.save()
                 except KeyError:
                     main.models.ShiftPreference.objects.create(
                         child = self.child,
@@ -75,6 +83,27 @@ class PreferenceSubmitForm(Form):
                         rank = self.cleaned_data[sh_pk_str],
                         period = self.period)
 
+
+
+
+# class WorktimeAttendanceForm(Form):
+
+#     def __init__(self, *args, **kwargs):
+#         assignables = kwargs.pop('assignables')
+#         super().__init__(*args, **kwargs)
+#         # print(f"FORM_KWARGS : {kwargs}")
+#         self.assignables = assignables
+#         for assignable in self.assignables:
+#             self.fields[str(assignable.pk)] = BooleanField(
+#                 label=f"{commitment.child.nickname}, {commitment}",
+#             )
+
+#     def save(self):
+#         for commitment in self.commitments:
+#             if str(commitment.pk) in self.changed_data:
+#                 commitment.completed = self.cleaned_data[str(commitment.pk)]
+#                 commitment.save()
+#         return self.changed_data
 
 
 

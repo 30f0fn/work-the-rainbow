@@ -123,8 +123,6 @@ classroom_scheduling_patterns = [
          views.PeriodDeleteView.as_view(),
          name='delete-period'),
 
-    # todo all below paths should be relativized to period
-
     # path('scheduling/preferences/solicit',
     #      views.PreferencesSolicitView.as_view(),
     #      name='solicit-preferences'),
@@ -134,12 +132,21 @@ classroom_scheduling_patterns = [
     #      # name='nag-preferences'),
 
     path('scheduling/preferences/display/<int:pk>',
-         views.PreferencesDisplayView.as_view(),
+         views.PreferencesView.as_view(),
          name='display-preferences'),
 
-    path('scheduling/shiftassignments/list/<int:pk>',
-         views.ShiftAssignmentCollectionsListView.as_view(),
-         name='list-shiftassignmentcollections'),
+    # path('scheduling/shiftassignments/list/<int:pk>',
+         # views.GeneratedSchedulesView.as_view(),
+         # name='list-shiftassignmentcollections'),
+
+    path('scheduling/assignables/<int:pk>',
+         views.AssignablesView.as_view(),
+         name='view-assignables'),
+
+    path('scheduling/generated-schedules/<int:pk>',
+         views.GeneratedSchedulesView.as_view(),
+         name='view-generated-schedules'),
+
 
 
     path('scheduling/calendar',

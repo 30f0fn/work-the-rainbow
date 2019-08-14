@@ -1,3 +1,39 @@
+
+todo rename CareDay to CareSession
+
+todo standardize __repr__ 
+
+todo subclass CareDayAssignment with ContractedCareDayAssignment, for preferences etc
+
+todo check for timezone awareness... timezone.datetime.combine seems to return non-aware datetimes (?)
+
+todo clarify which items have meaningful datetime, which have only meaningful date
+
+"""
+for generic __str__ method:
+str_attrs_list = ['attr1', 'attr2']
+str_attrs = ",".join([f"{attr}={getattr(self, attr)}" for attr in self.display_attrs])
+return f"<{self.__class__.__name__} {self.pk}: " + str_attrs + ">"
+"""
+    
+"""
+todo
+all events have start_date
+one-day events have computed property date
+maybe all events have an iterator dates?  ---not useful for queries
+"""
+
+"""
+what contents need to get indexed by date?
+
+shift, careday, holiday, worktimecommitment, 
+"""
+
+
+
+
+
+
 what is the event API required by view functions?
 
 kinds of event

@@ -6,75 +6,53 @@
 {% block content %}
   <h1>shift preferences ({{view.classroom.slug}})</h1>
 
+  <script>
+    function toggle(showHideDiv) {
+    var ele = document.getElementById(showHideDiv);
+    if(ele.style.display == "block") {
+    ele.style.display = "none";
+    }
+    else {
+    ele.style.display = "block";
+    }
+    } 
+  </script>
 
-  {# todo date display and navigation #}
+  <p>
+    {% if view.has_solution %}
+      <a href="{% url 'view-generated-schedules' view.classroom.slug view.period.pk%}">
+        At least one schedule
+      </a>
+      satisfies the below choice of allowable assignments!
+    {% else %}
+      No schedules satisfies the below choice of allowable assignments.
+      You can broaden the search by enabling more allowable assignments below.
+    {% endif %}
+  </p>
 
-
-  {% with view.prefs_by_shift as prefs %}
-    {% if prefs %} 
-      <ul>
-        {% for shift, prefs_for in prefs %}
-          <li>{{shift}}
-            <ul>
-          {% for pref in prefs_for %}
-            <li>
-              {{pref.child}} ({{pref.rank}})
-              </li>
-            {% endfor %}
-            </ul>
-          </li>
-        {% endfor%}
-      </ul>
-      {# <table>  #}
-      {#   <tr>  #}
-      {#     {% for weekday_name in view.weekdays.values %}  #}
-      {#       <th>  #}
-      {#         {{weekday_name}}  #}
-      {#       </th>  #}
-      {#     {% endfor %}  #}
-      {#   </tr>  #}
-      {#   {% for time in prefs %} #}
-      {#     <tr> #}
-      {#       for #}
-      {#     </tr> #}
-      {#   {% endfor %} #}
-        {# <tr>  #}
-        {#   {\# {% for weekday, times in prefs_dict.items %}  #\}  #}
-        {#   {% for weekday, shifts in view.shifts.items %}   #}
-        {#     <td>  #}
-        {#       <ul>  #}
-        {#         {% for shift in shifts %}  #}
-
-        {#         {% endfor %}  #}
-        {#       </ul>  #}
-        {#     </td>  #}
-        {#     <td>  #}
-        {#       {% for shift in shifts.weekday %}  #}
-        {#         {{shift}}  #}
-        {#         <ul>  #}
-        {#           {% for pref in child_pref %}  #}
-        {#             <li>  #}
-        {#               ({{pref.rank}})   #}
-        {#               {{pref.child.nickname}}  #}
-        {#             </li>  #}
-        {#           {% endfor %}  #}
-        {#         </ul>  #}
-        {#       {% endfor %}  #}
-        {#     </td>  #}
-        {#   {% endfor %}  #}
-        {# </tr>  #}
-      {# </table>  #}
-
-
-      <form action="{{request.path}}" method="post"> 
-        {% csrf_token %} 
-        <p>Try to generate shift assignments...</p> 
-        {{ form.as_p }} 
-        <input type="submit" value="Submit"> 
-      </form> 
-    {% else %} 
-      No preferences yet. 
-    {% endif %} 
+  {% with view.shifts_by_weekday as prefs_data %}
+    {% if view.prefs %} 
+      <table> 
+        {% for weekday, shift_dict in prefs_data.items %} 
+          <tr> 
+            {% for shift, prefs in shift_dict.items %} 
+              <td> 
+                {{shift}}
+                <ul>
+                  {% for pref in prefs %}
+                    <li>
+                      {% include 'preference_detail.html' %}
+                    </li>
+                  {% endfor %}
+                </ul>
+              </td> 
+            {% endfor %} 
+          </tr> 
+        {% endfor %} 
+      </table> 
+    {% else %}  
+      No preferences yet.  
+    {% endif %}  
   {% endwith %} 
 
 {% endblock content %}

@@ -16,36 +16,6 @@ from main.utilities import WeekdayIterator, next_date_with_given_weekday, dates_
 # import main.scheduler
 from people.views import ClassroomMixin
 
-# todo rename CareDay to CareSession
-
-# todo standardize __repr__ 
-
-# todo subclass CareDayAssignment with ContractedCareDayAssignment, for preferences etc
-
-# todo check for timezone awareness... timezone.datetime.combine seems to return non-aware datetimes (?)
-
-# todo clarify which items have meaningful datetime, which have only meaningful date
-
-"""
-for generic __str__ method:
-str_attrs_list = ['attr1', 'attr2']
-str_attrs = ",".join([f"{attr}={getattr(self, attr)}" for attr in self.display_attrs])
-return f"<{self.__class__.__name__} {self.pk}: " + str_attrs + ">"
-"""
-    
-"""
-todo
-all events have start_date
-one-day events have computed property date
-maybe all events have an iterator dates?  ---not useful for queries
-"""
-
-"""
-what contents need to get indexed by date?
-
-shift, careday, holiday, worktimecommitment, 
-"""
-
 
 class EventManager(models.Manager):
 
@@ -253,10 +223,11 @@ class Holiday(Event):
 
 class Happening(Event):
     name = models.CharField(max_length=50)
-    description = models.TextField()
+    description = models.TextField(blank=True)
     
 
 class Period(Event):
+    start = models.DateTimeField(default=lambda:timezone.now().date)
     classroom = models.ForeignKey(Classroom, on_delete=models.CASCADE)
     solicits_preferences = models.BooleanField(default=True)
 
@@ -650,8 +621,8 @@ class WorktimeCommitment(Event):
                 # print(commitments_by_start.get(proposed_occ.start))
                 # print(proposed_occ.start)
                 yield proposed_occ
-            else:
-                print(f"skipped proposed_occ {proposed_occ}")
+            # else:
+                # print(f"skipped proposed_occ {proposed_occ}")
 
     class Meta:
         unique_together = (("shift", "start"),)
@@ -682,18 +653,19 @@ class ShiftPreference(models.Model):
     shift = models.ForeignKey(Shift, on_delete=models.CASCADE)
     period = models.ForeignKey(Period, on_delete=models.CASCADE)
     child = models.ForeignKey(Child, on_delete=models.CASCADE)
+    note = models.TextField(blank=True)
     rank_choices = ((1, 'best'), (2, 'pretty good'), (3, 'acceptable'))
     rank = models.IntegerField(choices=rank_choices, default=3,
                                null=True, blank=True)
     objects = ShiftPreferenceManager()
 
-    def generate_assignables(self):
+    def generate_assignables(self, worst_rank=None):
         modulus = ShiftAssignable.NORMAL_MODULUS // self.child.shifts_per_month 
-        # print(f"modulus={modulus}")
-        # print("generating assignables")
+        to_activate = worst_rank if worst_rank is not None else ShiftAssignable.DEFAULT_ACTIVE_LEVEL
         with transaction.atomic():
             ret = [ShiftAssignable.objects.create(
-                preference=self, offset_modulus=modulus, offset=offset)
+                preference=self, offset_modulus=modulus, offset=offset,
+                is_active=to_activate)
                    for offset in range(modulus)]
         return ret
 
@@ -705,15 +677,20 @@ class ShiftPreference(models.Model):
         return f"<ShiftPreference {self.pk}: {self.child} ranks {self.shift} as {self.rank}>"
 
 
+class ShiftPreferenceNoteForPeriod(models.Model):
+    period = models.ForeignKey(Period, on_delete=models.CASCADE)
+    child = models.ForeignKey(Child, on_delete=models.CASCADE)
+    contents = models.TextField()
+    
+
 class _ShiftOffsetMixin(object):
     """migrations need this, frk"""
     pass
-
     
 
 class ShiftAssignableManager(models.Manager):
 
-    def generate(self, period):
+    def create_for_period(self, period):
         ShiftAssignable.objects.filter(preference__period=period).delete()
         prefs = ShiftPreference.objects.filter(period=period)
         return [assignable for pref in prefs
@@ -762,10 +739,8 @@ class ShiftAssignable(models.Model):
         for shocc in self.occurrences():
             shocc.create_commitment(self.preference.child)
 
-    def save(self, *args, **kwargs):
-        if self.preference.rank <= self.DEFAULT_ACTIVE_LEVEL:
-            self.is_active = True
-        super().save(*args, **kwargs)
+    class Meta:
+        ordering = ['preference', 'offset']
 
     def __str__(self):
         return f"pk={self.pk}, shift={self.preference.shift.pk}, offset={self.offset}, modulus={self.offset_modulus}>"        
@@ -787,6 +762,7 @@ class WorktimeScheduleManager(models.Manager):
             is_active=True).select_related('preference__child')
         doms = defaultdict(list)
         for assignable in assignables:
+
             doms[assignable.preference.child.pk].append(assignable)
         for k, dom in doms.items():
             problem.addVariable(k, dom)
@@ -819,3 +795,4 @@ class WorktimeSchedule(models.Model):
         self.save()
 
 
+            

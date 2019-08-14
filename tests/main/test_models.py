@@ -838,7 +838,8 @@ class ShiftPreferenceTest(ShiftPreferenceTestCase):
 class ShiftAssignableManagerTest(ShiftPreferenceTestCase):
     def test_generate(self):
         period = self.periods[1]
-        actual_assignables = set(ShiftAssignable.objects.generate(period=period))
+        actual_assignables = set(ShiftAssignable.objects.create_for_period(
+            period=period))
         prefs = (ShiftPreference.objects.get(child=self.kids[0],
                                              shift=self.shifts[0, 13],
                                              period=self.periods[1]),
