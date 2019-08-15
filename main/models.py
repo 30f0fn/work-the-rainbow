@@ -1,6 +1,6 @@
 import datetime
 import ast
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 import itertools
 import functools
 import json
@@ -179,7 +179,7 @@ class IdentityMixin(object):
             return super().__hash__()
 
     def __eq__(self, other):
-        return self.__identity__() == other.__identity__() if '__identity__' in dir(self) else super().__eq__(other)    
+        return self.__hash__() == other.__hash__()
 
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -227,7 +227,10 @@ class Happening(Event):
     
 
 class Period(Event):
-    start = models.DateTimeField(default=lambda:timezone.now().date)
+    def start_default():
+        """django can't serialize lambdas"""
+        return timezone.now().date()
+    start = models.DateTimeField(default=start_default)
     classroom = models.ForeignKey(Classroom, on_delete=models.CASCADE)
     solicits_preferences = models.BooleanField(default=True)
 
@@ -648,6 +651,10 @@ class ShiftPreferenceManager(models.Manager):
             prefs_dict[pref.shift.start_time][pref.shift.weekday].append(pref)
         return prefs_dict
 
+    def for_scheduler(self, period):
+        """by weekday, time, active, child"""
+
+
 
 class ShiftPreference(models.Model):
     shift = models.ForeignKey(Shift, on_delete=models.CASCADE)
@@ -655,19 +662,56 @@ class ShiftPreference(models.Model):
     child = models.ForeignKey(Child, on_delete=models.CASCADE)
     note = models.TextField(blank=True)
     rank_choices = ((1, 'best'), (2, 'pretty good'), (3, 'acceptable'))
-    rank = models.IntegerField(choices=rank_choices, default=3,
+    rank = models.IntegerField(choices=rank_choices, default=1,
                                null=True, blank=True)
     objects = ShiftPreferenceManager()
+    _modulus = models.IntegerField(null=True)
+    _active_offsets = models.IntegerField(null=True)
 
-    def generate_assignables(self, worst_rank=None):
-        modulus = ShiftAssignable.NORMAL_MODULUS // self.child.shifts_per_month 
-        to_activate = worst_rank if worst_rank is not None else ShiftAssignable.DEFAULT_ACTIVE_LEVEL
-        with transaction.atomic():
-            ret = [ShiftAssignable.objects.create(
-                preference=self, offset_modulus=modulus, offset=offset,
-                is_active=to_activate)
-                   for offset in range(modulus)]
-        return ret
+    def save(self, *args, **kwargs):
+        if self._modulus is None:
+            self._modulus = ShiftAssignable.NORMAL_MODULUS // self.child.shifts_per_month
+        worst_to_activate = ShiftAssignable.DEFAULT_ACTIVE_LEVEL
+        if self._active_offsets is None:
+            self._active_offsets = sum(1 << o for o in range(self.modulus)
+                                       if self.rank <= worst_to_activate)
+        super().save(*args, **kwargs)
+
+    @property
+    def modulus(self):
+        return self._modulus
+
+    def offset_is_active(self, offset):
+        return (self._active_offsets >> offset) & 1
+
+    def activate_offset(self, offset):
+        if offset >= self.modulus:
+            raise Exception("offset exceeds modulus!")
+        else:
+            self._active_offsets |= (1 << offset)
+
+    def deactivate_offset(self, offset):
+        if offset >= self.modulus:
+            raise Exception("offset exceeds modulus!")
+        else:
+            self._active_offsets &= ~(1 << offset)
+
+    def activate_all_offsets(self):
+        for o in range(self.modulus):
+            self.activate_offset(o)
+        
+    def deactivate_all_offsets(self):
+        self._active_offsets = 0
+
+    def assignable_from_offset(self, offset):
+        if offset >= self.modulus:
+            raise Exception("offset must be smaller than modulus!")
+        return ShiftAssignable(preference=self,
+                               offset=offset)
+
+    def assignables(self):
+        for offset in range(self.modulus):
+            yield self.assignable_from_offset(offset)
 
     class Meta:
         unique_together = (("child", "shift", "period"), )
@@ -686,48 +730,50 @@ class ShiftPreferenceNoteForPeriod(models.Model):
 class _ShiftOffsetMixin(object):
     """migrations need this, frk"""
     pass
-    
-
-class ShiftAssignableManager(models.Manager):
-
-    def create_for_period(self, period):
-        ShiftAssignable.objects.filter(preference__period=period).delete()
-        prefs = ShiftPreference.objects.filter(period=period)
-        return [assignable for pref in prefs
-                for assignable in pref.generate_assignables()]
 
 
-class ShiftAssignable(models.Model):
-    preference = models.ForeignKey(ShiftPreference, on_delete=models.CASCADE)
-    is_active = models.BooleanField(default=False)
-    offset = models.IntegerField() 
-    offset_modulus = models.IntegerField() # derived from preference.child.shifts_per_month
+class ShiftAssignable(IdentityMixin, object):
     NORMAL_MODULUS = 4
     DEFAULT_ACTIVE_LEVEL = 1
-    objects = ShiftAssignableManager()
+
+    def __init__(self, preference, offset):
+        self.preference = preference
+        self.offset = offset
+        self.child = preference.child
+        self.shift = preference.shift
+        self.rank = preference.rank
+        self.modulus = preference.modulus
+        self._is_active = preference.offset_is_active(offset)
 
     @property
-    def shift(self):
-        return self.preference.shift
+    def is_active(self):
+        return self._is_active
+
+    def __identity__(self):
+        return (self.preference.pk, self.offset)
 
     @property
     def period(self):
         return self.preference.period
 
+    def activate(self):
+        self.preference.activate_offset(self.offset)
+
+    def deactivate(self):
+        self.preference.deactivate_offset(self.offset)
+
     def occurrences(self):
         occ_pool = self.shift.occurrences_for_date_range(
             self.period.start, self.period.end)
         return (occ for index, occ in enumerate(occ_pool)
-                if index % self.offset_modulus == self.offset)
+                if index % self.modulus == self.offset)
 
     def _normalized_offsets(self):
-        if self.NORMAL_MODULUS % self.offset_modulus != 0:
+        if self.NORMAL_MODULUS % self.modulus != 0:
             raise Exception(
                 f"the value {self.modulus} as modulus of recurrence is not normalizable!")
-        return {self.offset + i
-                for i in range(0,
-                               self.NORMAL_MODULUS,
-                               self.NORMAL_MODULUS // self.offset_modulus)}
+        return {(self.offset + i) % self.NORMAL_MODULUS
+                for i in range(0, self.NORMAL_MODULUS, self.modulus)}
 
     def is_compatible_with(self, other):
         return self == other\
@@ -742,57 +788,62 @@ class ShiftAssignable(models.Model):
     class Meta:
         ordering = ['preference', 'offset']
 
-    def __str__(self):
-        return f"pk={self.pk}, shift={self.preference.shift.pk}, offset={self.offset}, modulus={self.offset_modulus}>"        
+    def __repr__(self):
+        return f"<ShiftAssignable: child={self.child}, shift={self.shift}, offset={self.offset}, modulus={self.modulus}>"        
      
 
-class WorktimeScheduleManager(models.Manager):
+
+class WorktimeSchedule(object):
+    def __init__(self, period, solution):
+        self.period = period
+        self.assignments = solution.values()
+        self.children = [assignment.child for assignment in self.assignments]
 
     """ each child gets as domain a set of shifts-with-offset, 
     which is generated by their shift preferences (then tweaked by scheduler)
     the solution assigns each child a shift-with-offset, 
     so that all assignments are "compatible"
     """
-
-    def generate(self, period, no_worse_than=1):
-        # print("setting up problem")
+    @classmethod
+    def _generate_solutions(cls, period, doms):
         problem = Problem()
-        assignables = ShiftAssignable.objects.filter(
-            preference__period=period,
-            is_active=True).select_related('preference__child')
-        doms = defaultdict(list)
-        for assignable in assignables:
-
-            doms[assignable.preference.child.pk].append(assignable)
+        prefs = ShiftPreference.objects.filter(period=period).select_related('shift').select_related('child')
+        for pref in prefs:
+            for assignable in pref.assignables():
+                print(assignable)
+                if assignable.is_active:
+                    print("is active!")
+                    doms[assignable.child.pk].append(assignable)
         for k, dom in doms.items():
-            problem.addVariable(k, dom)
+            try:
+                print(f"added dom {dom} for kid with pk {k}")
+                problem.addVariable(k, dom)
+            except ValueError:
+                return {}
         cached_compatibility = functools.lru_cache()(lambda a1, a2:
                                                      a1.is_compatible_with(a2))
         for k1, k2 in itertools.combinations(doms.keys(), 2):
             problem.addConstraint(cached_compatibility, (k1, k2))
-        solutionIter = problem.getSolutionIter()
-        for solution in solutionIter:
-            schedule = WorktimeSchedule.objects.create(period=period)
-            for assignable in solution.values():
-                schedule.assignments.add(assignable)
-            yield schedule
+        return problem.getSolutionIter()
 
+    @classmethod
+    def generate_solutions(cls, period, total=True):
+        doms = defaultdict(list) if not total\
+            else {child.pk : [] for child in period.classroom.child_set.all()}
+        for solution in cls._generate_solutions(period, doms=doms):
+            yield solution
 
-class WorktimeSchedule(models.Model):
-    date = models.DateTimeField(default=timezone.now)
-    period = models.ForeignKey(Period, on_delete = models.CASCADE)
-    assignments = models.ManyToManyField(ShiftAssignable)
-    objects = WorktimeScheduleManager()
-    committed = models.BooleanField(default=False)
+    @classmethod
+    def generate_schedules(cls, period, total=True):
+        for solution in cls.generate_solutions(period, total=total):
+            yield WorktimeSchedule(period, solution)
 
     def commit(self):
-        if WorktimeSchedule.objects.filter(
-                period=self.period, committed=True).exists():
-            raise Exception("some schedule was already used to generate assignments for this period!")
-        for assignable in self.assignments.all():
+        if WorktimeCommitment.objects.filter(
+                start__range=(self.period.start, self.period.end),
+                child__in=self.children).exists():
+            raise Exception(f"child {child} already has been assigned some shifts for the given period {self.period}")
+        for assignable in self.assignments:
             assignable.create_commitments()
-        self.committed = True
-        self.save()
-
 
             
