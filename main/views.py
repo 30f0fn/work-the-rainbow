@@ -1,12 +1,15 @@
 # 2450
 
+import ast
 import datetime
 import calendar
+import itertools
 from dateutil import parser as dateutil_parser, relativedelta
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 from itertools import chain
 
-from django.shortcuts import render
+
+from django.shortcuts import render, get_object_or_404
 from django.views.generic import TemplateView, ListView, FormView, UpdateView, RedirectView, DetailView, DeleteView, CreateView
 from django.urls import reverse_lazy, reverse
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -27,7 +30,6 @@ from main.utilities import nearest_monday
 from main.models import Holiday, Happening, Shift, WorktimeCommitment, CareDayAssignment, CareDay, ShiftOccurrence, Period, ShiftPreference, WorktimeSchedule, ShiftAssignable
 from main.model_fields import WEEKDAYS
 import main.forms
-
 
 # use instance variables for frequently used attributes whose computation hits the db?
 
@@ -868,6 +870,8 @@ class PeriodDetailView(ClassroomMixin,
                        DetailView):
     model = Period
 
+    
+
 
 class PeriodUpdateView(ClassroomEditMixin,
                        DateMixin,
@@ -911,6 +915,25 @@ class PeriodCreateView(ClassroomEditMixin,
         return kwargs
 
 
+class ClearScheduleForPeriodView(ClassroomMixin,
+                                 DetailView):
+    model = Period
+
+    def get_success_url(self):
+        return reverse('manage-period',
+                       kwargs = {'classroom_slug' : self.classroom.slug,
+                                 'pk' : self.object.pk})
+
+    def post(self, request, *args, **kwargs):
+        if 'clear' in self.request.POST:
+            period = self.get_object()
+            period.clear_commitments()
+        return super().post(request, *args, **kwargs)
+            
+            
+
+
+
 class PreferencesSolicitView(ClassroomEditMixin,
                              SingleObjectMixin,
                              FormView):
@@ -925,7 +948,6 @@ class PreferencesNagView(ClassroomEditMixin,
 
 class PreferencesView(ClassroomEditMixin,
                       DateMixin,
-                      # SingleObjectMixin,
                       TemplateView):
     """
     for each child, display preferences and note
@@ -937,167 +959,139 @@ class PreferencesView(ClassroomEditMixin,
 
     def get(self, request, *args, **kwargs):
         self.period = Period.objects.get(pk=self.kwargs.get('pk'))
-        self.assignables = ShiftAssignable.objects.filter(
-            preference__period=self.period)
-        self.has_solution = next(WorktimeSchedule.objects.generate(
-            period=self.period)) is not None
         return super().get(request, *args, **kwargs)
 
     def post(self, *args, **kwargs):
         ret = self.get(*args, **kwargs)
-        reverse_vals = {"deactivate" : False,
-                        "activate" : True}
-        for assignable in self.assignables:
-            if f"assignable-{assignable.pk}" in self.request.POST:
-                print(f"found assignable-{assignable.pk} in request.POST")
-                print(f"is_active={assignable.is_active}")
-                val = self.request.POST[f"assignable-{assignable.pk}"]
-                print(val)
-                print(reverse_vals.get(val, assignable.is_active))
-                assignable.is_active = reverse_vals.get(val, assignable.is_active)
-                assignable.save()
-                print(f"is_active={assignable.is_active}")
-        return ret
+        # reverse_vals = {"deactivate" : False,
+                        # "activate" : True}
+        try:
+            posted_val = self.request.POST['update-assignable']
+        except KeyError:
+            return super().get(*args, **kwargs)
+        action_dict = ast.literal_eval(posted_val)
+        preference = ShiftPreference.objects.get(pk=action_dict['pref'])
+        print(preference)
+        offset = int(action_dict['offset'])
+        print(offset)
+        value = action_dict['value']
+        if action_dict['value'] == 'deactivate':
+            preference.deactivate_offset(offset)
+        else:
+            preference.activate_offset(offset)
+        preference.save()
+        context = self.get_context_data(**kwargs)
+        return self.render_to_response(context)
 
 
-    # def post(self, request, *args, **kwargs):
-    #     self.object = self.get_object()
-    #     return super().post(request, *args, **kwargs)
-    
-    # def get_form_kwargs(self, *args, **kwargs):
-    #     kwargs = super().get_form_kwargs(*args, **kwargs)
-    #     kwargs['period'] = self.get_object()
-    #     return kwargs
+        # print(self.request.POST)        
+        # for assignable in ShiftAssignable.objects.filter(
+        #     preference__period=self.period):
+        #     if f"assignable-{assignable.pk}" in self.request.POST:
+        #         print(f"found assignable-{assignable.pk}")
+        #         print(f"assignable is {'not' if not assignable.is_active else ''} active before change")
+        #         val = self.request.POST[f"assignable-{assignable.pk}"]
+        #         print(f"new_val = {val}")
+        #         assignable.is_active = reverse_vals.get(val, assignable.is_active)
+        #         assignable.save()
+        #         print(f"assignable is {'not' if not assignable.is_active else ''} active after save")
+        # context = self.get_context_data(**kwargs)
+        # return self.render_to_response(context)
 
-    # def get_success_url(self):
-    #     return reverse('view-assignables',
-    #                    kwargs = {'classroom_slug' : self.object.classroom.slug,
-    #                              'pk' : self.object.pk})
+    def num_solutions(self):
+        num = 0
+        schedule_iter = WorktimeSchedule.generate_solutions(
+            period=self.period)
+        while True:
+            try:
+                next(schedule_iter)
+                num += 1
+            except StopIteration:
+                return num 
 
-    # def get(self, request, *args, **kwargs):
-    #     self.object = self.get_object()
-    #     return super().get(request, *args, **kwargs)
-
-    def prefs_by_shift(self):
-        prefs = ShiftPreference.objects.by_shift(self.period)
-        self.prefs = prefs
-        return prefs
-
-    def shifts_by_weekday(self):
-        prefs = self.prefs_by_shift()
-        shifts = Shift.objects.filter(classroom=self.classroom)
-        return {weekday :
-                {shift : prefs[shift] for shift in shifts if shift.weekday==weekday}
-                for weekday in WEEKDAYS}
 
     def weekdays(self):
         return WEEKDAYS
 
 
+    def shifts_by_weekday(self):
+        # prefs = self.prefs_by_shift()
+        shifts = Shift.objects.filter(classroom=self.classroom)
+        return {weekday :
+                {shift for shift in shifts if shift.weekday==weekday}
+                for weekday in WEEKDAYS}
 
-# class PreferencesDisplayView(ClassroomEditMixin,
-#                              DateMixin,
-#                              SingleObjectMixin,
-#                              FormView):
-#     """
-#     """
-#     template_name = 'preferences_for_scheduler.html'
-#     form_class = main.forms.GenerateShiftAssignmentsForm
-#     model = Period
-
-#     def get(self, request, *args, **kwargs):
-#         self.object = self.get_object()
-#         return super().get(request, *args, **kwargs)
-
-#     def post(self, request, *args, **kwargs):
-#         self.object = self.get_object()
-#         return super().post(request, *args, **kwargs)
-    
-#     def get_form_kwargs(self, *args, **kwargs):
-#         kwargs = super().get_form_kwargs(*args, **kwargs)
-#         kwargs['period'] = self.get_object()
-#         return kwargs
-
-#     def get_success_url(self):
-#         return reverse('view-assignables',
-#                        kwargs = {'classroom_slug' : self.object.classroom.slug,
-#                                  'pk' : self.object.pk})
-
-
-#     def get(self, request, *args, **kwargs):
-#         self.object = self.get_object()
-#         return super().get(request, *args, **kwargs)
-
-#     def prefs_by_shift(self):
-#         prefs = ShiftPreference.objects.by_shift(self.object)
-#         self.prefs = prefs
-#         return prefs
-
-#     def shifts_by_weekday(self):
-#         prefs = self.prefs_by_shift()
-#         shifts = Shift.objects.filter(classroom=self.classroom)
-#         return {weekday :
-#                 {shift : prefs[shift] for shift in shifts if shift.weekday==weekday}
-#                 for weekday in WEEKDAYS}
-
-#     def weekdays(self):
-#         return WEEKDAYS
-
-
-class AssignablesView(ClassroomMixin,
-                      DateMixin,
-                      ModelFormSetView):
-
-    permission_required = 'people.edit_classroom'
-    model = ShiftAssignable
-    fields = ['is_active']
-    template_name = 'assignables.html'
-
-    def get(self, *args, **kwargs):
-        if not self.get_queryset().exists():
-            ShiftAssignable.objects.create_for_period(period=self.period)
-        return super().get(*args, **kwargs)
-
-    def get_queryset(self):
-        print(self.kwargs)
-        self.period = Period.objects.get(pk=self.kwargs['pk'])
-        return super().get_queryset().filter(preference__period=self.period)
-
-    def post(self, request, *args, **kwargs):
-        ret = super().post(request, *args, **kwargs)
-        if 'schedules' in request.POST:
-            WorktimeSchedule.objects.generate(period=self.period)
-            return reverse('view-generated-schedules',
-                           kwargs = {'classroom_slug' : self.object.classroom.slug,
-                                     'pk' : self.object.pk})
+    def prefs_by_shift_and_status(self):
+        """for each shift, return by_status namedtuple, 
+        with active field mapping prefs to their active assignables, 
+        and inactive field mapping prefs to inactive assignables"""
+        prefs_by_status_init = lambda : namedtuple(
+            'PrefsByStatus', 'active inactive')({}, {})
+        ret = defaultdict(prefs_by_status_init)
+        for pref in ShiftPreference.objects.filter(period=self.period):
+            by_status_from_pref = pref.assignables_by_status()
+            if by_status_from_pref.active:
+                ret[pref.shift].active[pref] = by_status_from_pref.active
+            if by_status_from_pref.inactive:
+                ret[pref.shift].inactive[pref] = by_status_from_pref.inactive
         return ret
+
+    def prefs_data(self):
+        prefs_dict = self.prefs_by_shift_and_status()
+        return {weekday : {shift : prefs_dict[shift] for shift in shifts}
+                for weekday, shifts in self.shifts_by_weekday().items()}
+
 
 
 
 class GeneratedSchedulesView(ClassroomEditMixin,
-                             SingleObjectMixin,
                              TemplateView):
 
     template_name = 'generated_schedules.html'
     model = Period
+    
+    def get_period(self):
+        return get_object_or_404(Period, 
+                                 pk=self.kwargs.get('period_pk'))
 
     def schedules(self):
-        return WorktimeSchedule.objects.filter(period=self.object)
+        if not hasattr(self, '_schedules'):
+            self._schedules = list(WorktimeSchedule.generate_schedules(
+                period=self.get_period()))
+            self._schedules.sort(key=lambda s : s.score())
+        return self._schedules
+
+    # def grouper(iterable, n):
+    #     """https://docs.python.org/3/library/itertools.html#itertools-recipes"""
+    #     args = [iter(iterable)] * n
+    #     return itertools.zip_longest(*args)
+
+    # def schedule_groups(self):
+    #     return enumerate(grouper(self.schedules(), 10))
+
+    # def num_schedules(self):
+    #     return len(self.schedules())
+
+    # def schedules_by_range(self):
+    #     first = self.kwargs.get('from', 0)
+    #     num = self.kwargs.get('num', 10)
+    #     return self.schedules[start : start + num]
+
+    # def schedules(self):
+    #     schedules = list(WorktimeSchedule.generate_schedules(
+    #         period=self.get_period()))
+    #     schedules.sort(key=lambda s : s.score())
+    #     return itertools.islice(WorktimeSchedule.generate_schedules(
+    #         period=self.get_period()), 0, 10)
 
     def get_success_url(self):
-        return reverse('scheduler-calendar', kwargs={
-            'classroom_slug' : self.object.classroom.slug
-        })
+        return reverse('scheduler-calendar',
+                       kwargs={'classroom_slug' :
+                               self.object.classroom.slug})
 
-    def get(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        return super().get(request, *args, **kwargs)
-    
     def post(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        schedule_pk = int(request.POST['schedule_pk'])
-        schedule = WorktimeSchedule.objects.get(pk=schedule_pk)
-        assert schedule.period.pk == self.object.pk
+        schedule_data = self.request.POST['commit']
+        schedule = WorktimeSchedule.deserialize(schedule_data)
         schedule.commit()
         return HttpResponseRedirect(self.get_success_url())
 
@@ -1156,7 +1150,6 @@ class FourWeekMakeWorktimeCommitmentsView(MonthlyCalendarMixin,
         return self.jump_url(-self.num_weeks)
 
 
-    # post is idempotent so ok to return the same url
     def get_success_url(self):
         return self.request.path
 
@@ -1201,8 +1194,6 @@ class _BaseWorktimeAttendanceView(ClassroomEditMixin,
     # form_class = main.forms.WorktimeAttendanceForm    
     template_name = 'worktime_attendance.html'
     permission_required = 'main.score_worktime_attendance'
-
-    # todo need end_date(self):
 
     def get_commitments(self):
         return WorktimeCommitment.objects.filter(

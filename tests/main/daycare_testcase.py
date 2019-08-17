@@ -116,12 +116,12 @@ def create_shiftpreferences(period):
                 child=child, shift=shift, rank=1, period=period)
 
 def create_shiftassignments(period):
-    ShiftAssignable.objects.create_for_period(period)
-    list(itertools.islice(WorktimeSchedule.objects.generate(period), 10))
-    # WorktimeSchedule.objects.generate(period)
+    list(itertools.islice(WorktimeSchedule.generate_schedules(
+        period), 10))
+
 
 def create_worktimecommitments(period):
-    schedule = WorktimeSchedule.objects.filter(period=period).first()
+    schedule = next(WorktimeSchedule.generate_schedules(period))
     schedule.commit()
 
 

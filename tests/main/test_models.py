@@ -835,41 +835,6 @@ class ShiftPreferenceTest(ShiftPreferenceTestCase):
         self.assertNotEqual(actual008, actual1013)
 
 
-# class ShiftAssignableManagerTest(ShiftPreferenceTestCase):
-#     def test_generate(self):
-#         period = self.periods[1]
-#         actual_assignables = set(ShiftAssignable.objects.create_for_period(
-#             period=period))
-#         prefs = (ShiftPreference.objects.get(child=self.kids[0],
-#                                              shift=self.shifts[0, 13],
-#                                              period=self.periods[1]),
-#                  ShiftPreference.objects.get(child=self.kids[0],
-#                                              shift=self.shifts[1, 13],
-#                                              period=self.periods[1]),
-#                  ShiftPreference.objects.get(child=self.kids[1],
-#                                              shift=self.shifts[0, 8],
-#                                              period=self.periods[1]),
-#                  ShiftPreference.objects.get(child=self.kids[1],
-#                                              shift=self.shifts[1, 13],
-#                                              period=self.periods[1]))
-#         expected_assignable_data = [
-#             {"preference" : prefs[0], "offset" : 0, "offset_modulus" : 2},
-#             {"preference" : prefs[0], "offset" : 1, "offset_modulus" : 2},
-#             {"preference" : prefs[1], "offset" : 0, "offset_modulus" : 2},
-#             {"preference" : prefs[1], "offset" : 1, "offset_modulus" : 2},
-#             {"preference" : prefs[2], "offset" : 0, "offset_modulus" : 2},
-#             {"preference" : prefs[2], "offset" : 1, "offset_modulus" : 2},
-#             {"preference" : prefs[3], "offset" : 0, "offset_modulus" : 2},
-#             {"preference" : prefs[3], "offset" : 1, "offset_modulus" : 2}
-#         ]
-#         expected_assignables = [ShiftAssignable.objects.get(**data_set)
-#                         for data_set in expected_assignable_data]
-#         self.assertEqual(set(actual_assignables), set(expected_assignables))
-#         for assignable in actual_assignables:
-#             # print("activity", assignable.is_active)
-#             self.assertEqual(assignable.preference.rank==1,
-#                              assignable.is_active)
-
 
 class ShiftAssignableTest(ShiftTestCase):
     @classmethod
@@ -1027,7 +992,6 @@ class WorktimeScheduleTest(ShiftTestCase):
                      rank=1, period=self.periods[0])]
         prefs[1].deactivate_offset(1)
         prefs[1].save()
-        print(ShiftPreference.objects.all())
 
         assignables_data = [
             {"preference" : prefs[0], "offset" : 0},
@@ -1038,9 +1002,150 @@ class WorktimeScheduleTest(ShiftTestCase):
             ShiftAssignable(**kwargs)
                        for kwargs in assignables_data]
         for a, b in itertools.combinations(assignables, 2):
-            print(f"a,b = {a._normalized_offsets(), b._normalized_offsets(), a.is_compatible_with(b)}")
+            # print(f"a,b = {a._normalized_offsets(), b._normalized_offsets(), a.is_compatible_with(b)}")
             self.assertTrue(a.is_compatible_with(b))
         actual_solutions = list(WorktimeSchedule.generate_solutions(
             self.periods[0], total=False))
         """kid0 can get 0,2 or 1,3; kid1 can get 0 or 2 or 3; kid2 can get 0 or 1 or 2 or 3; so three assignments are possible: 02,3,1, 13,0,3, and 13,3,0"""
         self.assertEqual(len(actual_solutions), 3)
+
+
+
+
+    def test_commit(self):
+        pref_data = [
+            {"shift" : self.shifts[0, 8], "child" : self.kids[0]},
+            {"shift" : self.shifts[0, 8], "child" : self.kids[1]},
+            {"shift" : self.shifts[1, 13], "child" : self.kids[2]},
+            {"shift" : self.shifts[2, 15], "child" : self.kids[3]},
+        ]
+        prefs = [ShiftPreference.objects.create(
+            rank=1, period=self.periods[0], **kwargs)
+                     for kwargs in pref_data]
+        assignables_data = [
+            {"preference" : prefs[0], "offset" : 0},
+            {"preference" : prefs[1], "offset" : 1},
+            {"preference" : prefs[2], "offset" : 0},
+            {"preference" : prefs[3], "offset" : 0},
+        ]
+        assignments = [ShiftAssignable(**kwargs)
+                       for kwargs in assignables_data]
+        
+        schedule = WorktimeSchedule(assignments=assignments)
+        commitments = schedule.commit()
+        self.assertEqual(len(commitments), 35)
+
+
+    def test_commit_with_holidays(self):
+        Holiday.objects.create(
+            start=timezone.make_aware(
+                timezone.datetime(2000, 12, 1)),
+            end=timezone.make_aware(
+                timezone.datetime(2000, 12, 31)))
+        pref_data = [
+            {"shift" : self.shifts[0, 8], "child" : self.kids[0]},
+            {"shift" : self.shifts[0, 8], "child" : self.kids[1]},
+            {"shift" : self.shifts[1, 13], "child" : self.kids[2]},
+            {"shift" : self.shifts[2, 15], "child" : self.kids[3]},
+        ]
+        prefs = [ShiftPreference.objects.create(
+            rank=1, period=self.periods[0], **kwargs)
+                     for kwargs in pref_data]
+        assignables_data = [
+            {"preference" : prefs[0], "offset" : 0},
+            {"preference" : prefs[1], "offset" : 1},
+            {"preference" : prefs[2], "offset" : 0},
+            {"preference" : prefs[3], "offset" : 0},
+        ]
+        assignments = [ShiftAssignable(**kwargs)
+                       for kwargs in assignables_data]
+        
+        schedule = WorktimeSchedule(assignments=assignments)
+        commitments = schedule.commit()
+        self.assertEqual(len(commitments), 27)
+
+
+    def test_serialize(self):
+        pref_data = [
+            {"shift" : self.shifts[0, 8], "child" : self.kids[0]},
+            {"shift" : self.shifts[0, 8], "child" : self.kids[1]},
+            {"shift" : self.shifts[1, 13], "child" : self.kids[2]},
+            {"shift" : self.shifts[2, 15], "child" : self.kids[3]},
+        ]
+        prefs = [ShiftPreference.objects.create(
+            rank=1, period=self.periods[0], **kwargs)
+                     for kwargs in pref_data]
+        assignables_data = [
+            {"preference" : prefs[0], "offset" : 0},
+            {"preference" : prefs[1], "offset" : 1},
+            {"preference" : prefs[2], "offset" : 0},
+            {"preference" : prefs[3], "offset" : 0},
+        ]
+        assignments = [ShiftAssignable(**kwargs)
+                       for kwargs in assignables_data]
+        
+        schedule = WorktimeSchedule(assignments=assignments)
+        expected = [(prefs[0].pk, assignments[0].child.pk, assignments[0].shift.pk, 0),
+                    (prefs[1].pk, assignments[1].child.pk, assignments[1].shift.pk, 1),
+                    (prefs[2].pk, assignments[2].child.pk, assignments[2].shift.pk, 0),
+                    (prefs[3].pk, assignments[3].child.pk, assignments[3].shift.pk, 0)]
+        actual = schedule.serialize()
+        self.assertEqual(actual, expected)
+
+
+    def test_deserialize(self):
+        pref_data = [
+            {"shift" : self.shifts[0, 8], "child" : self.kids[0]},
+            {"shift" : self.shifts[0, 8], "child" : self.kids[1]},
+            {"shift" : self.shifts[1, 13], "child" : self.kids[2]},
+            {"shift" : self.shifts[2, 15], "child" : self.kids[3]},
+        ]
+        prefs = [ShiftPreference.objects.create(
+            rank=1, period=self.periods[0], **kwargs)
+                     for kwargs in pref_data]
+
+        assignables_data = [
+            {"preference" : prefs[0], "offset" : 0},
+            {"preference" : prefs[1], "offset" : 1},
+            {"preference" : prefs[2], "offset" : 0},
+            {"preference" : prefs[3], "offset" : 0},
+        ]
+
+        assignments = [ShiftAssignable(**kwargs)
+                       for kwargs in assignables_data]
+        
+        expected = WorktimeSchedule(assignments=assignments)
+
+        data_str = str([(prefs[0].pk, self.kids[0].pk, self.shifts[0, 8].pk, 0),
+                        (prefs[1].pk, self.kids[1].pk, self.shifts[0, 8].pk, 1),
+                        (prefs[2].pk, self.kids[2].pk, self.shifts[1, 13].pk, 0),
+                        (prefs[3].pk, self.kids[3].pk, self.shifts[2, 15].pk, 0)])
+
+        actual = WorktimeSchedule.deserialize(data_str)
+
+        self.assertEqual(actual, expected)
+
+    def test_score(self):
+        pref_data = [
+            {"shift" : self.shifts[0, 8], "child" : self.kids[0], "rank" : 1},
+            {"shift" : self.shifts[0, 8], "child" : self.kids[1], "rank" : 2},
+            {"shift" : self.shifts[1, 13], "child" : self.kids[2], "rank" : 1},
+            {"shift" : self.shifts[2, 15], "child" : self.kids[3], "rank" : 3},
+        ]
+        prefs = [ShiftPreference.objects.create(period=self.periods[0], **kwargs)
+                 for kwargs in pref_data]
+
+        assignables_data = [
+            {"preference" : prefs[0], "offset" : 0},
+            {"preference" : prefs[1], "offset" : 1},
+            {"preference" : prefs[2], "offset" : 0},
+            {"preference" : prefs[3], "offset" : 0},
+        ]
+
+        assignments = [ShiftAssignable(**kwargs)
+                       for kwargs in assignables_data]
+        
+        actual = WorktimeSchedule(assignments=assignments).score()
+        expected = 1 + 2 + 1 + 3
+        self.assertEqual(actual, expected)
+        

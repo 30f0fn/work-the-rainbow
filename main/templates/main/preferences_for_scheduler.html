@@ -18,41 +18,113 @@
     } 
   </script>
 
-  <p>
-    {% if view.has_solution %}
-      <a href="{% url 'view-generated-schedules' view.classroom.slug view.period.pk%}">
-        At least one schedule
-      </a>
-      satisfies the below choice of allowable assignments!
-    {% else %}
-      No schedules satisfies the below choice of allowable assignments.
-      You can broaden the search by enabling more allowable assignments below.
-    {% endif %}
-  </p>
-
-  {% with view.shifts_by_weekday as prefs_data %}
-    {% if view.prefs %} 
-      <table> 
-        {% for weekday, shift_dict in prefs_data.items %} 
-          <tr> 
-            {% for shift, prefs in shift_dict.items %} 
-              <td> 
-                {{shift}}
-                <ul>
-                  {% for pref in prefs %}
-                    <li>
-                      {% include 'preference_detail.html' %}
-                    </li>
-                  {% endfor %}
-                </ul>
-              </td> 
-            {% endfor %} 
-          </tr> 
-        {% endfor %} 
-      </table> 
+  {% with view.prefs_data as prefs_data %}
+    {% if prefs_data %} 
+      <p>
+        {% if view.num_solutions %} The below choice of allowable assignments is satisfied by
+          <a href="{% url 'view-generated-schedules' view.classroom.slug view.period.pk%}">
+            {{view.num_solutions}} possible schedules.
+          </a>
+        {% else %}
+          No schedules satisfies the below choice of allowable assignments.
+          You can broaden the search by enabling more.
+        {% endif %}
+      </p>
+      <table>  
+        {% for weekday, shift_dict in prefs_data.items %}  
+          <tr>  
+            {% for shift, prefs_by_status in shift_dict.items %}  
+              <td>  
+                {{shift}} 
+                {% include 'assignables_detail.html' %} 
+              </td>  
+            {% endfor %}  
+          </tr>  
+        {% endfor %}  
+      </table>  
     {% else %}  
       No preferences yet.  
     {% endif %}  
   {% endwith %} 
 
 {% endblock content %}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+{# {% extends "authenticated.html" %} #}
+
+{# {% load people_tags %}  #}
+{# {% load rules %} #}
+
+{# {% block content %} #}
+{#   <h1>shift preferences ({{view.classroom.slug}})</h1> #}
+
+{#   <script> #}
+{#     function toggle(showHideDiv) { #}
+{#     var ele = document.getElementById(showHideDiv); #}
+{#     if(ele.style.display == "block") { #}
+{#     ele.style.display = "none"; #}
+{#     } #}
+{#     else { #}
+{#     ele.style.display = "block"; #}
+{#     } #}
+{#     }  #}
+{#   </script> #}
+
+{#   {% with view.shifts_by_weekday as prefs_data %} #}
+{#     {% if view.prefs %}  #}
+{#       <p> #}
+{#         {% if view.num_solutions %} The below choice of allowable assignments is satisfied by #}
+{#           <a href="{% url 'view-generated-schedules' view.classroom.slug view.period.pk%}"> #}
+{#             {{view.num_solutions}} possible schedules. #}
+{#           </a> #}
+{#         {% else %} #}
+{#           No schedules satisfies the below choice of allowable assignments. #}
+{#           You can broaden the search by enabling more. #}
+{#         {% endif %} #}
+{#       </p> #}
+{#       <table>  #}
+{#         {% for weekday, shift_dict in prefs_data.items %}  #}
+{#           <tr>  #}
+{#             {% for shift, prefs in shift_dict.items %}  #}
+{#               <td>  #}
+{#                 {{shift}} #}
+{#                 <ul> #}
+{#                   {% for pref in prefs %} #}
+{#                     <li> #}
+{#                       {% include 'preference_detail.html' %} #}
+{#                     </li> #}
+{#                   {% endfor %} #}
+{#                 </ul> #}
+{#               </td>  #}
+{#             {% endfor %}  #}
+{#           </tr>  #}
+{#         {% endfor %}  #}
+{#       </table>  #}
+{#     {% else %}   #}
+{#       No preferences yet.   #}
+{#     {% endif %}   #}
+{#   {% endwith %}  #}
+
+{# {% endblock content %} #}

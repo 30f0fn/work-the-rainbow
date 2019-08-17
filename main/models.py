@@ -227,13 +227,31 @@ class Happening(Event):
     
 
 class Period(Event):
+    """todo add field 'preference_deadline' and revise rules so that child can't modify ShiftPreference for Period after deadline?
+    add 'published' field so that scheduler can wait to reveal commitments"""
     def start_default():
-        """django can't serialize lambdas"""
-        return timezone.now().date()
+        today = timezone.now().date()
+        year_inc = 1 if today.month==12 else 0
+        next_month = today.replace(year=today.year + year_inc,
+                                   month=(today.month + 1 % 12),
+                                   day=1)
+    # def default_deadline():
+        # """django can't serialize lambdas"""
+        # return start_default() - datetime.timedelta(days=7)
     start = models.DateTimeField(default=start_default)
     classroom = models.ForeignKey(Classroom, on_delete=models.CASCADE)
     solicits_preferences = models.BooleanField(default=True)
+    published = models.BooleanField(default=True)
+    preference_deadline = models.DateTimeField(null=True,
+                                               default=start_default)
 
+    def worktime_commitments(self, child=None):
+        commitments = WorktimeCommitment.objects.filter(
+            child__classroom=self.classroom,
+            start__range = (self.start, self.end))
+        if child:
+            commitments.filter(child=child)
+        return commitments
 
     def __str__(self):
         return f"<Period {self.pk}: {self.start} - {self.end}>"
@@ -679,20 +697,23 @@ class ShiftPreference(models.Model):
 
     @property
     def modulus(self):
+        if self._modulus is None:
+            self._modulus = ShiftAssignable.NORMAL_MODULUS // self.child.shifts_per_month
+            self.save()
         return self._modulus
 
     def offset_is_active(self, offset):
         return (self._active_offsets >> offset) & 1
 
     def activate_offset(self, offset):
-        if offset >= self.modulus:
-            raise Exception("offset exceeds modulus!")
+        if not 0 <= offset < self.modulus:
+            raise Exception("offset out of bounds!")
         else:
             self._active_offsets |= (1 << offset)
 
     def deactivate_offset(self, offset):
-        if offset >= self.modulus:
-            raise Exception("offset exceeds modulus!")
+        if not 0 <= offset < self.modulus:
+            raise Exception("offset out of bounds!")
         else:
             self._active_offsets &= ~(1 << offset)
 
@@ -712,6 +733,16 @@ class ShiftPreference(models.Model):
     def assignables(self):
         for offset in range(self.modulus):
             yield self.assignable_from_offset(offset)
+
+    def assignables_by_status(self):
+        by_status = namedtuple('ByStatus', 'active inactive')([], [])
+        for offset in range(self.modulus):
+            assignable = self.assignable_from_offset(offset)
+            if self.offset_is_active(offset):
+                by_status.active.append(assignable)
+            else:
+                by_status.inactive.append(assignable)
+        return by_status
 
     class Meta:
         unique_together = (("child", "shift", "period"), )
@@ -752,6 +783,28 @@ class ShiftAssignable(IdentityMixin, object):
     def __identity__(self):
         return (self.preference.pk, self.offset)
 
+    def serialize(self):
+        return (self.preference.pk,
+                self.child.pk,
+                self.shift.pk,
+                self.offset)
+
+    @classmethod
+    def _from_data(cls, data):
+        preference_pk, child_pk, shift_pk, offset = data
+        preference=ShiftPreference.objects.get(pk=preference_pk)
+        assignable = cls(preference=preference, offset=offset)
+        if (assignable.child.pk, assignable.shift.pk) != (child_pk, shift_pk):
+            raise Exception("The scanned assignment is invalid,\
+            because the preference {preference} does not match the other data.")
+        return assignable
+
+    @classmethod
+    def deserialize(cls, data_str):
+        data = ast.literal_eval(data_str)
+        return cls._from_data(data)
+
+
     @property
     def period(self):
         return self.preference.period
@@ -782,8 +835,8 @@ class ShiftAssignable(IdentityMixin, object):
                 or self.preference.shift != other.preference.shift
 
     def create_commitments(self):
-        for shocc in self.occurrences():
-            shocc.create_commitment(self.preference.child)
+        return [shocc.create_commitment(self.preference.child)
+                for shocc in self.occurrences()]
 
     class Meta:
         ordering = ['preference', 'offset']
@@ -794,10 +847,34 @@ class ShiftAssignable(IdentityMixin, object):
 
 
 class WorktimeSchedule(object):
-    def __init__(self, period, solution):
-        self.period = period
-        self.assignments = solution.values()
+    def __init__(self, solution=None, assignments=None):
+        if solution and not assignments:
+            self.assignments = solution.values()
+        elif assignments and not solution:
+            self.assignments = assignments
+        else:
+            raise Exception("WorktimeSchedule constructor takes either a solution or a list of assignments (but not both)")
         self.children = [assignment.child for assignment in self.assignments]
+        if len(self.assignments) != len(self.children):
+            raise Exception("this schedule is invalid,\
+            because it gives some child more than one assignment!")
+        self._score = None
+        if not self.assignments:
+            raise Exception("Schedule requires at least one assignment")
+        self.period = self.assignments[0].period
+        return super().__init__()
+
+    # def __identity__(self):
+        # return self.assignments
+
+    def __eq__(self, other):
+        return set(self.assignments) == set(other.assignments)
+
+    def score(self):
+        if self._score is None:
+            self._score = sum(assignment.rank
+                              for assignment in self.assignments)
+        return self._score
 
     """ each child gets as domain a set of shifts-with-offset, 
     which is generated by their shift preferences (then tweaked by scheduler)
@@ -810,13 +887,13 @@ class WorktimeSchedule(object):
         prefs = ShiftPreference.objects.filter(period=period).select_related('shift').select_related('child')
         for pref in prefs:
             for assignable in pref.assignables():
-                print(assignable)
+                # print(assignable)
                 if assignable.is_active:
-                    print("is active!")
+                    # print("is active!")
                     doms[assignable.child.pk].append(assignable)
         for k, dom in doms.items():
             try:
-                print(f"added dom {dom} for kid with pk {k}")
+                # print(f"added dom {dom} for kid with pk {k}")
                 problem.addVariable(k, dom)
             except ValueError:
                 return {}
@@ -836,14 +913,30 @@ class WorktimeSchedule(object):
     @classmethod
     def generate_schedules(cls, period, total=True):
         for solution in cls.generate_solutions(period, total=total):
-            yield WorktimeSchedule(period, solution)
+            yield WorktimeSchedule(solution=solution)
+
+    """Schedule object maps each child to an assignable (preference+offset)"""
+    """commit maps each child to shift+offset+offset_modulus"""
+    """soundness means that a shiftpreference of that child exists for that shift"""
+
+    def serialize(self):
+        return [assignment.serialize() for assignment in self.assignments]
+
+    @classmethod
+    def deserialize(cls, data_str):
+        assignments_data = ast.literal_eval(data_str)
+        assignments = [ShiftAssignable._from_data(datum) for datum in assignments_data]
+        return WorktimeSchedule(assignments=assignments)
+
 
     def commit(self):
-        if WorktimeCommitment.objects.filter(
-                start__range=(self.period.start, self.period.end),
-                child__in=self.children).exists():
-            raise Exception(f"child {child} already has been assigned some shifts for the given period {self.period}")
-        for assignable in self.assignments:
-            assignable.create_commitments()
-
+        commitments_already = WorktimeCommitment.objects.filter(
+            child__in=self.children,
+            start__range=(self.period.start, self.period.end)).exists()
+        if commitments_already:
+            raise Exception("commitments already exist for the given period!")
+        return [commitment for assignable in self.assignments
+                for commitment in assignable.create_commitments()]
             
+    def __repr__(self):
+        return f"<WorktimeSchedule: assignments = {self.assignments}>"        

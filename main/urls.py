@@ -123,6 +123,11 @@ classroom_scheduling_patterns = [
          views.PeriodDeleteView.as_view(),
          name='delete-period'),
 
+    path('scheduling/periods/clear-schedule/<int:pk>',
+         views.ClearScheduleForPeriodView.as_view(),
+         name='clear-period-schedule'),
+
+
     # path('scheduling/preferences/solicit',
     #      views.PreferencesSolicitView.as_view(),
     #      name='solicit-preferences'),
@@ -139,13 +144,18 @@ classroom_scheduling_patterns = [
          # views.GeneratedSchedulesView.as_view(),
          # name='list-shiftassignmentcollections'),
 
-    path('scheduling/assignables/<int:pk>',
-         views.AssignablesView.as_view(),
-         name='view-assignables'),
+    # path('scheduling/assignables/<int:pk>',
+         # views.AssignablesView.as_view(),
+         # name='view-assignables'),
 
-    path('scheduling/generated-schedules/<int:pk>',
+    path('scheduling/generated-schedules/<int:period_pk>',
          views.GeneratedSchedulesView.as_view(),
          name='view-generated-schedules'),
+
+    path('scheduling/generated-schedules/<int:period_pk>',
+         views.GeneratedSchedulesView.as_view(),
+         name='view-generated-schedules'),
+
 
 
 
