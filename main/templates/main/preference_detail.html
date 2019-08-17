@@ -1,0 +1,35 @@
+{% with pref.shiftassignable_set.all as assignables %}
+  <a href="javascript:toggle('pref-{{pref.pk}}');">
+    {{pref.child}} (ranked {{pref.rank}})
+  </a>
+  <div id="pref-{{pref.pk}}", style="display:none">
+    {% if pref.note %}
+      {{pref.note}}
+    {% endif %}
+    {% if assignables %}
+      <ul>
+        {% for assignable in assignables %}
+          <li>
+            <form method="post">
+              {{assignable.offset}}/{{assignable.offset_modulus}}
+              {% csrf_token %}
+              {% if assignable.is_active %}
+                enabled
+                <button type="submit" name="assignable-{{assignable.pk}}" value="deactivate">
+                  disable
+                </button>
+              {% else %}
+                disabled
+                <button type="submit" name="assignable-{{assignable.pk}}" value="activate">
+                  enable
+                </button>
+              {% endif %}
+            </form>
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  </div>
+{% endwith %}
+
+

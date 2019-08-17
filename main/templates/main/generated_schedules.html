@@ -1,0 +1,36 @@
+{% extends "authenticated.html" %}
+
+{% load people_tags %} 
+{% load rules %}
+
+{% block content %}
+  <h1>possible shift assigments</h1>
+
+  {% for sched_range in view.schedule_ranges %}
+      <a href="javascript:toggle('sched-range-{{sched_range.from}}');">
+        {{sched_range.from}}-{{sched_range.to}}
+      </a>
+  {% endfor %}
+
+<ul>
+  {% for schedule in view.schedules %}
+    <li id="schedule-{{forloop.counter}}">option {{forloop.counter}} (ranks total {{schedule.score}}):
+      <ul>{% for assignment in schedule.assignments %}
+        <li>{{assignment.preference.child}}:
+          {{assignment.preference.shift}} (ranked {{assignment.preference.rank}})
+        </li>
+        {% endfor %}
+      </ul>
+      <form action="{{request.path}}" method="post">
+        {% csrf_token %}
+        <button type="submit"
+                name="commit"
+                value="{{schedule.serialize}}">
+                commit
+        </button>
+      </form>
+    </li>
+  {% endfor %}
+<ul>
+
+{% endblock content %}

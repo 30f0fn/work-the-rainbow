@@ -1,0 +1,78 @@
+{% with prefs_by_status.active as active_prefs %}
+  {% with prefs_by_status.inactive as inactive_prefs %}
+    {% if inactive_prefs %}
+      <a href="javascript:toggle('prefs-inactive-{{shift.pk}}');">
+        &plus;
+      </a>
+      {% endif %}
+
+    {% if active_prefs %}
+      <ul>
+        {% for pref, assignables in active_prefs.items %}
+          <li>
+            <form method="post">
+              {% csrf_token %}
+              <a href="javascript:toggle('prefs-active-{{pref.pk}}');">
+                {{pref.child}} (rank {{pref.rank}})
+              </a>
+              <span id="prefs-active-{{pref.pk}}", style="display:none">
+                {% for assignable in assignables %}
+                  {{assignable.offset}}/{{pref.modulus}}
+                  <button type="submit"
+                          name="update-assignable"                          
+                          value="{'pref': {{pref.pk}}, 'offset' : {{assignable.offset}}, 'value' : 'deactivate' }">
+                          x
+                  </button>
+                {% endfor %}
+              </span>
+            </form>
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+    {% if inactive_prefs %}
+      {# <a href="javascript:toggle('prefs-inactive-{{shift.pk}}');"> #}
+        {# &plus; #}
+      {# </a> #}
+      <span id="prefs-inactive-{{shift.pk}}", style="display:none">
+        Add assignable for...
+        <ul>
+          {% for pref, assignables in inactive_prefs.items %}
+            <li>
+              <form method="post">
+                {% csrf_token %}
+                <a href="javascript:toggle('assignables-inactive-{{pref.pk}}');">
+                  {{pref.child}} (rank {{pref.rank}})
+                </a>
+                <span id="assignables-inactive-{{pref.pk}}", style="display:none">
+                  {% for assignable in assignables %}
+                    {{assignable.offset}}/{{pref.modulus}}
+                    <button type="submit"
+                          name="update-assignable"                          
+                          value="{'pref': {{pref.pk}}, 'offset' : {{assignable.offset}}, 'value' : 'activate' }">
+                            +
+                    </button>
+                  {% endfor %}
+                </span>
+              </form>
+            </li>
+          {% endfor %}
+        </ul>
+      </span>
+    {% endif %}
+  {% endwith %}
+{% endwith %}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
