@@ -26,10 +26,10 @@ CAREDAYASSIGNMENT_END=PERIODS_START + PERIOD_LENGTH * 3
 while PERIODS_START + PERIOD_LENGTH < timezone.now():
     PERIODS_START += PERIOD_LENGTH
 
-def create_classroom(classroom_name):
+def _create_classroom(classroom_name):
     return Classroom.objects.create(name=classroom_name)
 
-def create_shifts(classroom):
+def _create_shifts(classroom):
     for w in WEEKDAYS:
         if int(w) < 5:
             for st in SHIFT_TIMESPANS:
@@ -38,7 +38,7 @@ def create_shifts(classroom):
                                      end_time=st[1],
                                      classroom=classroom)
 
-def create_caredays(classroom): 
+def _create_caredays(classroom): 
     for w in WEEKDAYS:
         if int(w) < 5:
             CareDay.objects.get_or_create(weekday=w,
@@ -50,7 +50,7 @@ def create_caredays(classroom):
                                           end_time='17:30',
                                           classroom=classroom)
 
-def create_periods(classroom, start=PERIODS_START, num_periods=NUM_PERIODS):
+def _create_periods(classroom, start=PERIODS_START, num_periods=NUM_PERIODS):
     """create a period beginning 30 days in the future, preceded consecutively by another NUM_PERIODS - 1 periods; each period has length four months"""
     # print("creating periods...")
     retval = []
@@ -63,12 +63,12 @@ def create_periods(classroom, start=PERIODS_START, num_periods=NUM_PERIODS):
     return retval
 
 
-def create_kids(classroom, num_kids=NUM_KIDS_PER_CLASSROOM):
+def _create_kids(classroom, num_kids=NUM_KIDS_PER_CLASSROOM):
     return [Child.objects.create(
             nickname=f"Kid {random_str()}", classroom=classroom)
               for n in range(1, num_kids + 1)]
 
-def create_caredayassignments(classroom):
+def _create_caredayassignments(classroom):
     all_caredays = list(CareDay.objects.filter(start_time__hour=8,
                                                classroom=classroom))
     for c in classroom.child_set.all():
@@ -89,7 +89,7 @@ def create_caredayassignments(classroom):
                                                  start=PERIODS_START,
                                                  end=CAREDAYASSIGNMENT_END)
 
-def create_shiftpreferences(period):
+def _create_shiftpreferences(period):
     children = period.classroom.child_set.all().distinct()
     for child in children:
         caredays = CareDay.objects.filter(caredayassignment__child=child).distinct()
@@ -100,25 +100,25 @@ def create_shiftpreferences(period):
             ShiftPreference.objects.create(
                 child=child, shift=shift, rank=1, period=period)
 
-def create_shiftassignments(period):
+def _create_shiftassignments(period):
     list(itertools.islice(WorktimeSchedule.generate_schedules(
         period), 10))
 
 
-def create_worktimecommitments(period):
+def _create_worktimecommitments(period):
     schedule = next(WorktimeSchedule.generate_schedules(period))
     schedule.commit()
 
 
 @transaction.atomic
 def setup_sample_classroom(name):
-    classroom = create_classroom(name)
-    create_shifts(classroom)
-    create_caredays(classroom)
-    periods = create_periods(classroom)
-    kids = create_kids(classroom)
-    create_caredayassignments(classroom)
+    classroom = _create_classroom(name)
+    _create_shifts(classroom)
+    _create_caredays(classroom)
+    periods = _create_periods(classroom)
+    kids = _create_kids(classroom)
+    _create_caredayassignments(classroom)
     for period in periods:
-        create_shiftpreferences(period)
-    create_worktimecommitments(periods[0])
+        _create_shiftpreferences(period)
+    _create_worktimecommitments(periods[0])
     return classroom
