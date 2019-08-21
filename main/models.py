@@ -5,7 +5,8 @@ import itertools
 import functools
 import json
 import random
-from constraint import Problem, RecursiveBacktrackingSolver
+from constraint import Problem
+from dateutil.relativedelta import relativedelta
 
 from django.db import models, transaction
 from django.utils import timezone
@@ -65,8 +66,16 @@ class EventManager(models.Manager):
 
 
 class Event(models.Model):
+    """
+    todo subclass this with DateBoundedEvent, as parent of Period, CareDayAssignment etc
+    it should support comparison of its bounds with datetimes, 
+    but also manipulating the bounds as dates
+    """
+
     start = models.DateTimeField(default=timezone.now)
     end = models.DateTimeField(blank=True, null=True)
+
+    objects = EventManager()
 
     @property
     def date(self):
@@ -81,8 +90,6 @@ class Event(models.Model):
     def save(self, *args, **kwargs):
         self.end = self.end or self.start.replace(hour=23, minute=59)
         super().save(*args, **kwargs)
-
-    objects = EventManager()
 
     class Meta:
         ordering = ['start']
@@ -229,6 +236,7 @@ class Happening(Event):
 class Period(Event):
     """todo add field 'preference_deadline' and revise rules so that child can't modify ShiftPreference for Period after deadline?
     add 'published' field so that scheduler can wait to reveal commitments"""
+    DEFAULT_LENGTH = relativedelta(months=4)
     def start_default():
         today = timezone.now().date()
         year_inc = 1 if today.month==12 else 0
@@ -294,7 +302,7 @@ class CareDayOccurrence(WeeklyEventOccurrence):
         # date = kwargs.pop('date')
         super().__init__(careday, date)
         self.careday = careday
-        self.classroom=self.careday.classroom
+        # self.classroom=self.careday.classroom
         
     def __identity__(self):
         return (self.careday.pk,
@@ -311,7 +319,7 @@ class CareDayOccurrence(WeeklyEventOccurrence):
         for shift in Shift.objects.filter(weekday=self.careday.weekday,
                                           start_time__gte=self.careday.start_time,
                                           end_time__lte=self.careday.end_time,
-                                          classroom=self.classroom):
+                                          classroom=self.careday.classroom):
             yield ShiftOccurrence(shift=shift, date=self.start.date())
  
 
@@ -405,13 +413,21 @@ class CareDayAssignment(models.Model):
 
     def save(self, *args, **kwargs):
         # todo some view logic should prevent start > end
-        if self.start > self.end and self.pk:
+        if self.start >= self.end and self.pk:
             self.delete()
             return
         overlaps = CareDayAssignment.objects.overlaps(
             self.child, self.start, self.end, careday=self.careday)
-        new_start = min(cda.start for cda in list(overlaps) + [self])
-        new_end = max(cda.end for cda in list(overlaps) + [self])
+        if self.pk:
+            overlaps = overlaps.exclude(pk=self.pk)
+        # todo below is hideous hack... need to fix handling of date-bounded events
+        try:
+            self.start = self.start.date()
+            self.end = self.end.date()
+        except AttributeError:
+            pass
+        new_start = min([cda.start.date() for cda in list(overlaps)] + [self.start])
+        new_end = max([cda.end.date() for cda in list(overlaps)] + [self.end])
         overlaps.delete()
         self.start = new_start
         self.end = new_end
@@ -441,7 +457,7 @@ class CareDayAssignment(models.Model):
         return f"<{self.__class__.__name__} {self.pk}>: child={self.child}, careday={self.careday}, start={self.start}, end={self.end}"
 
     def __str__(self):
-        return f"{self.careday} for {self.child}, from {self.start.date()} through {self.end.date()}"
+        return f"{self.careday} for {self.child}, from {self.start} through {self.end}"
 
     class Meta:
         ordering = ['careday', 'start', 'end']
@@ -511,11 +527,11 @@ class ShiftOccurrence(WeeklyEventOccurrence):
                 f"The shift {shift} has no occurrence on {date},\
                 because {shift.weekday} != {date.weekday()}")
         super().__init__(shift, date)
-        self.classroom=self.shift.classroom
+        # self.classroom=self.shift.classroom
         self.commitment = kwargs.pop('commitment', None)
 
     def __identity__(self):
-        return (self.classroom.pk, self.start)
+        return (self.shift.classroom_pk, self.start)
 
     def create_commitment(self, child):
         """commit child to this occurrence
@@ -548,10 +564,10 @@ class ShiftOccurrence(WeeklyEventOccurrence):
 
 
     def __str__(self):
-        return f"{self.start.strftime('%-H:%M %a, %-d %b')} ({self.classroom.slug})"
+        return f"{self.start.strftime('%-H:%M %a, %-d %b')} ({self.shift.classroom.slug})"
 
     def __repr__(self):
-        result = super().__repr__()+f", classroom={self.classroom}"
+        result = super().__repr__()+f", classroom={self.shift.classroom}"
         if self.commitment:
             result += f", commitment={self.commitment}"
         return result
@@ -572,7 +588,8 @@ class ShiftOccurrence(WeeklyEventOccurrence):
         dt = deserialize_datetime(repr_dict['start'])
         shocc = ShiftOccurrence(shift, dt)
         if include_commitment:
-            shocc.commitment = WorktimeCommitment.objects.get(pk=int(repr_dict.get('commitment')))
+            shocc.commitment = WorktimeCommitment.objects.get(
+                pk=int(repr_dict.get('commitment')))
         return shocc
  
 
@@ -672,6 +689,24 @@ class ShiftPreferenceManager(models.Manager):
     def for_scheduler(self, period):
         """by weekday, time, active, child"""
 
+    def for_child_by_period(self, child, periods):
+        PbyP = namedtuple('PbyP', ['period', 'preferences'])
+        # periods = self.periods_soliciting_preferences()
+        retval = []
+        preferences = list(ShiftPreference.objects.filter(
+            child=child,
+            period__in=periods)\
+                           .select_related('shift').order_by('rank').order_by('-period'))
+        for period in periods:
+            print(period)
+            pp = PbyP(period, [[], [], []])
+            while preferences and preferences[-1].period == period:
+                pref = preferences.pop()
+                pp.preferences[(pref.rank - 1)].append(pref)
+            retval.append(pp)
+        return retval
+
+
 
 
 class ShiftPreference(models.Model):
@@ -690,6 +725,7 @@ class ShiftPreference(models.Model):
         if self._modulus is None:
             self._modulus = ShiftAssignable.NORMAL_MODULUS // self.child.shifts_per_month
         worst_to_activate = ShiftAssignable.DEFAULT_ACTIVE_LEVEL
+        print(self.rank.__class__, worst_to_activate.__class__)
         if self._active_offsets is None:
             self._active_offsets = sum(1 << o for o in range(self.modulus)
                                        if self.rank <= worst_to_activate)
@@ -845,11 +881,12 @@ class ShiftAssignable(IdentityMixin, object):
         return f"<ShiftAssignable: child={self.child}, shift={self.shift}, offset={self.offset}, modulus={self.modulus}>"        
      
 
+ 
 
 class WorktimeSchedule(object):
     def __init__(self, solution=None, assignments=None):
         if solution and not assignments:
-            self.assignments = solution.values()
+            self.assignments = list(solution.values())
         elif assignments and not solution:
             self.assignments = assignments
         else:
@@ -884,7 +921,8 @@ class WorktimeSchedule(object):
     @classmethod
     def _generate_solutions(cls, period, doms):
         problem = Problem()
-        prefs = ShiftPreference.objects.filter(period=period).select_related('shift').select_related('child')
+        prefs = ShiftPreference.objects.filter(period=period)\
+                                       .select_related('shift').select_related('child')
         for pref in prefs:
             for assignable in pref.assignables():
                 # print(assignable)
@@ -930,11 +968,11 @@ class WorktimeSchedule(object):
 
 
     def commit(self):
-        commitments_already = WorktimeCommitment.objects.filter(
-            child__in=self.children,
-            start__range=(self.period.start, self.period.end)).exists()
-        if commitments_already:
-            raise Exception("commitments already exist for the given period!")
+        # commitments_already = WorktimeCommitment.objects.filter(
+            # child__in=self.children,
+            # start__range=(self.period.start, self.period.end)).exists()
+        # if commitments_already:
+            # raise Exception("commitments already exist for the given period!")
         return [commitment for assignable in self.assignments
                 for commitment in assignable.create_commitments()]
             

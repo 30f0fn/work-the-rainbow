@@ -342,20 +342,14 @@ class ChildDetailView(ChildMixin,
             classroom=self.child.classroom,
             solicits_preferences=True)
 
-    def prefs_by_period(self):
-        PbyP = namedtuple('PbyP', ['period', 'preferences'])
-        periods = self.periods_soliciting_preferences()
-        preferences = list(main.models.ShiftPreference.objects.filter(
-            child=self.child,
-            period__in=periods).select_related('shift').order_by('rank').order_by('-period'))
-        retval = []
-        for period in periods:
-            pp = PbyP(period, [[],[],[]])
-            while preferences and preferences[-1].period:
-                pref = preferences.pop()
-                pp.preferences[(pref.rank - 1)].append(pref)
-            retval.append(pp)
-        return retval
+    def periods(self):
+        try:
+            return self._periods
+        except AttributeError:
+            self._periods = main.models.Period.objects.filter(
+                classroom_id=self.child.classroom_id,
+                end__gte=timezone.now())
+            return self._periods
 
     def commitments_by_period(self):
         retval = {}
@@ -374,19 +368,20 @@ class ChildDetailView(ChildMixin,
             # child=self.child)
         # for commitment in commitments:
 
-    # def min_commitments_per_period(self):
-    #     # todo below should not be hard coded!
-    #     # assumes four months per period
-    #     return self.child.shifts_per_month * 4
+    def prefs_by_period(self):
+        return main.models.ShiftPreference.objects.for_child_by_period(
+            self.child,
+            [period for period in self.periods() if period.solicits_preferences])
+        
 
     def careday_assignments(self):
-        return self.child.caredayassignment_set.all().distinct().select_related('careday')
+        return self.child.caredayassignment_set.filter(end__gte=timezone.now()).\
+            distinct().select_related('careday')
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
         context['prefs_by_period'] = self.prefs_by_period()
         context['commitments_by_period'] = self.commitments_by_period()
-        # context['min_commitments_per_period'] = self.min_commitments_per_period()
         context['now'] = timezone.now()
         context['careday_assignments'] = self.careday_assignments()
         return context

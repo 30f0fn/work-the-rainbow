@@ -26,8 +26,6 @@ STATICFILES_DIRS = (
 )
 
 
-
-
 # INTERNAL_IPS = ['127.0.0.1']
 
 # GOOGLE_OAUTH_CLIENT_ID = '172679960487-7um12gthi9rcp40rtqfptm7ai59frm03.apps.googleusercontent.com'

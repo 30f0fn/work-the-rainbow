@@ -32,7 +32,7 @@
             {% endfor %}
           </ul>
           {% if edit_classroom %}  
-          <a href="{% url 'add-parent' child.slug %}">add a parent</a>  
+            <a href="{% url 'add-parent' child.slug %}">add a parent</a>  
           {% endif %}  
         </td>
       </tr>
@@ -60,30 +60,27 @@
     <h2>
       worktime preferences
     </h2>
-<p>
-  {# {% if false %} #}
-  {# submit worktime preferences for the period... #}
-  {% for pp in prefs_by_period %}
-    <li>
-      <a href={% url 'submit-preferences' child.slug pp.period.pk %}>
-        {{ pp.period.start | date:"j M y"}} - {{ pp.period.end | date:"j M y" }}
-      </a>
-      {% if pp.preferences %}
-        {# {{pp.preferences}} #}
-        <ol>
-          {% for rank in pp.preferences %}
-            <li>
-              {% for pref in rank %}
-                {{pref.shift.weekday_str}}
-                {{pref.shift.start_time | time:"f"}}
-                {% if not forloop.last %},{% endif %}
-              {% endfor %}
-            </li>
-          {% endfor %}
-        </ol>
-      {% endif %}
-    </li>        
-  {% endfor %}
+    {# submit worktime preferences for the period... #}
+    {% for pp in prefs_by_period %}
+      <h3>{{ pp.period.start | date:"M Y"}} - {{ pp.period.end | date:"M Y" }}</h3>
+        {% if pp.preferences.0 %}
+          <ol>
+            {% for rank in pp.preferences %}
+              <li>
+                {% for pref in rank %}
+                  {{pref.shift.weekday_str}}
+                  {{pref.shift.start_time | time:"f"}}
+                  {% if not forloop.last %},{% endif %}
+                {% endfor %}
+              </li>
+            {% endfor %}
+          </ol>
+        {% endif %}
+        <a href={% url 'submit-preferences' child.slug pp.period.pk %}>
+          {% if pp.preferences %} revise {% else %} submit preferences {% endif %} 
+        </a>
+      </p>      
+    {% endfor %}
 </p>
 {% endif %}
 
@@ -91,29 +88,32 @@
 
 {% if commitments_by_period %}
   <h2>worktime commitments</h2>
-    <ul>
-      {% for period, commitments in commitments_by_period.items %}
-        <li>
-          {{ period.start | date:"j M y"}} - {{ period.end | date:"j M y" }}
-          <ol>
-            {% for commitment in commitments %}
-              <li>
-                {{commitment.start | date:"F d"}}, {{commitment.start | time:"g:i"}}
-                {# {% if can_score_worktime_attendance and commitment.completed != None %} #}
-                  {# ({{commitment.show_completion_status}}) #}
-                {# {% endif %} #}
-              </li>
-            {% endfor %}
-          </ol>
-          {# {% if can_score_worktime_attendance %} #}
-          {#   <a href="{% url 'worktime-attendance-by-child' view.child.classroom.slug view.child.slug period.pk %}"> #}
-          {#     score attendance #}
-          {#   </a> #}
-          {# {% endif %} #}
-        </li>
-      {% endfor %}
-    </ul>
-  </p>
+    {% for period, commitments in commitments_by_period.items %}
+      <h3> {{ period.start | date:"M Y"}} - {{ period.end | date:"M Y" }}</h3>
+        <ol>
+          {% for commitment in commitments %}
+            <li>
+              {{commitment.start | date:"F d"}}, {{commitment.start | time:"g:i"}}
+              {# {% if can_score_worktime_attendance and commitment.completed != None %} #}
+              {# ({{commitment.show_completion_status}}) #}
+              {# {% endif %} #}
+              {% if edit_child and commitment.start > now %}
+                <a href="{% url 'edit-worktime-commitment' commitment.child.classroom.slug commitment.child.slug commitment.pk %}">
+                  [change]
+                </a>
+              {% endif %}
+            </li>
+          {% endfor %}
+        </ol>
+        {# {% if can_score_worktime_attendance %} #}
+        {#   <a href="{% url 'worktime-attendance-by-child' view.child.classroom.slug view.child.slug period.pk %}"> #}
+        {#     score attendance #}
+        {#   </a> #}
+        {# {% endif %} #}
+      </li>
+    {% endfor %}
+  </ul>
+</p>
 {% endif %}
 
 
@@ -124,8 +124,7 @@
       {# {% for cda in child.caredayassignment_set.all.distinct %} #}
       {% for cda in careday_assignments %}
         <li>
-          {{cda.start.date | date:"j M y" }} - {{cda.end.date | date:"j M y"}}:
-          {{cda.careday.weekday_str}}, {{cda.careday.start_time}} - {{cda.careday.end_time}}
+          {{cda.careday.weekday_str}}, {{cda.careday.start_time}} - {{cda.careday.end_time}} ({{cda.start.date | date:"j M Y" }} - {{cda.end.date | date:"j M Y"}})
           [<a href="{% url 'edit-caredayassignment' child.slug cda.pk %}">edit</a>]
           [<a href="{% url 'delete-caredayassignment' child.slug cda.pk %}">delete</a>]
         </li>

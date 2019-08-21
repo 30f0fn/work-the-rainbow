@@ -6,6 +6,7 @@ from django.utils import timezone
 from people.models import User, Child, Classroom
 from main.models import WorktimeCommitment, Period, Shift, CareDay, ShiftPreference, CareDayAssignment, WorktimeSchedule
 from main.model_fields import WEEKDAYS
+from tests.main.test_utils import random_str
 
 
 """
@@ -63,14 +64,14 @@ def create_periods(classroom, start=PERIODS_START, num_periods=NUM_PERIODS):
 
 def create_kids(classroom, num_kids=NUM_KIDS_PER_CLASSROOM):
     return [Child.objects.create(
-            nickname=f"Random Kid the {n}{'st' if n==1 else 'th'}", classroom=classroom)
+            nickname=f"Kid {random_str()}", classroom=classroom)
               for n in range(1, num_kids + 1)]
 
 def create_caredayassignments(classroom):
     all_caredays = list(CareDay.objects.filter(start_time__hour=8,
                                                classroom=classroom))
     for c in classroom.child_set.all():
-        num_days = random.randrange(2,6)
+        num_days = random.randrange(2, 6)
         caredays_for_child = random.sample(list(all_caredays), num_days)
         for careday in caredays_for_child:
             CareDayAssignment.objects.create(child=c,
@@ -80,7 +81,8 @@ def create_caredayassignments(classroom):
             if random.randrange(2):
                 extd_careday = CareDay.objects.get(
                     start_time__hour=15,
-                    weekday=careday.weekday)
+                    weekday=careday.weekday,
+                    classroom=classroom)
                 CareDayAssignment.objects.create(child=c,
                                                  careday=extd_careday,
                                                  start=PERIODS_START,

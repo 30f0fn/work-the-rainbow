@@ -16,6 +16,7 @@ from main.widgets import DatePickerInput
 
 
 NA_YES_NO = ((None, 'N/A'), (True, 'Yes'), (False, 'No'))
+# SHIFT_RANKS = ((1, '1'), (2, '2'), (3, '3'), (None, 'No'))
 SHIFT_RANKS = ((1, '1'), (2, '2'), (3, '3'), (None, 'No'))
 
 """
@@ -48,39 +49,39 @@ class PreferenceSubmitForm(Form):
                                                      label=str(self.shifts_dict[sh_pk]),
                                                      required=False)
                             for sh_pk in self.shifts_dict})
-        self.fields['note'] = CharField(max_length=1024)
+        # self.fields['note'] = CharField(max_length=1024)
 
     def clean(self, *args, **kwargs):
         super().clean(*args, **kwargs)
         num_ranked = sum(1 for value in self.cleaned_data.values()
-                         if value != "")
+                         if value != "" and value is not None)
         # print("self.cleaned_data.items()", self.cleaned_data.items())
         min_prefs = main.scheduling_config.SHIFTPREFERENCE_MIN
         if num_ranked < min_prefs:
             raise ValidationError(f"Please give at least {min_prefs} preferences!")
 
     def save(self):
-        if 'note' in self.changed_data:
-            contents = self.changed_data['note']
-            try:
-                self.existing_note.contents = contents
-                self.existing_note.save()
-            except AttributeError:
-                ShiftPreferenceNoteForPeriod.objects.create(
-                    period=self.period, child=self.child, contents=contents)
+        # if 'note' in self.changed_data:
+            # contents = self.changed_data['note']
+            # try:
+                # self.existing_note.contents = contents
+                # self.existing_note.save()
+            # except AttributeError:
+                # ShiftPreferenceNoteForPeriod.objects.create(
+                    # period=self.period, child=self.child, contents=contents)
         for sh_pk_str in self.changed_data:
             if self.cleaned_data[sh_pk_str] == "":
                 self.existing_prefs[int(sh_pk_str)].delete()
             else:
                 try:
                     revised_pref = self.existing_prefs[int(sh_pk_str)]
-                    revised_pref.rank = self.cleaned_data[sh_pk_str]
+                    revised_pref.rank = int(self.cleaned_data[sh_pk_str])
                     revised_pref.save()
                 except KeyError:
                     main.models.ShiftPreference.objects.create(
                         child = self.child,
                         shift = self.shifts_dict[int(sh_pk_str)],
-                        rank = self.cleaned_data[sh_pk_str],
+                        rank = int(self.cleaned_data[sh_pk_str]),
                         period = self.period)
 
 
@@ -232,6 +233,14 @@ class CreateCareDayAssignmentsForm(Form):
                 start=start,
                 end=end)
 
+class CareDayAssignmentUpdateForm(ModelForm):
+    start = DateField(label="From (YYYY-MM-DD)")
+    end = DateField(label="Until (YYYY-MM-DD, inclusive)")
+    class Meta:
+        model = main.models.Period
+        fields = ['start', 'end']
+
+
 
 class GenerateShiftAssignmentsForm(Form):
     worst_rank_choices = ((1, '1'), (2, '2'), (3, '3'))
@@ -256,6 +265,9 @@ class GenerateShiftAssignmentsForm(Form):
 
 class PeriodForm(ModelForm):
 
+    start = DateField()
+    end = DateField()
+
     def __init__(self, *args, **kwargs):
         self.classroom = kwargs.pop('classroom')
         super().__init__(*args, **kwargs)
@@ -269,11 +281,5 @@ class PeriodForm(ModelForm):
         fields = ['start', 'end', 'solicits_preferences']
 
 
-class CareDayAssignmentUpdateForm(ModelForm):
-    start = DateField(label="From (YYYY-MM-DD)")
-    end = DateField(label="Until (YYYY-MM-DD, inclusive)")
-    class Meta:
-        model = main.models.Period
-        fields = ['start', 'end']
     
     

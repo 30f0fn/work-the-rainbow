@@ -98,10 +98,10 @@ class DateIntervalMixin(DateMixin):
     def start_date(self):
         return self.date()
 
-    # todo
+    # # todo
     # @abstractmethod
-    def end_date(self):
-        return self.start_date()
+    # def end_date(self):
+    #     return self.start_date()
 
     def start(self):
         dt = timezone.datetime.combine(self.start_date(),
@@ -166,18 +166,16 @@ class ClassroomWorktimeMixin(object):
     # requires the datetimes start and end as bounds of the occurrence dict
     # for this, CalendarMixin is enough
 
-    def shifts_dict(self):
-        return dict(Shift.objects.filter(classroom=self.classroom)\
-                            .occurrences_by_date_and_time(
-                                self.start(), self.end(),
-                                include_commitments=True))
-
     # todo use just occurrences_for_date_range instead of shifts_dict here
     def shifts_by_week(self):
-        shifts = self.shifts_dict()
-        return [{date : shifts[date].values() for date in week}
-         for week in self.weeks()]
-
+        shifts = Shift.objects.filter(classroom=self.classroom)\
+                            .occurrences_by_date(
+                                self.start(), self.end(),
+                                include_commitments=True)
+        ret = [{date : shifts[date] for date in week}
+                for week in self.weeks()]
+        # print(f"RET_DICT = {ret}")
+        return ret
 
 
 class PerChildEditWorktimeMixin(object):
@@ -228,9 +226,9 @@ class ScoreWorktimeAttendanceMixin(object):
                         "unmark" : None}
         for wtc in self.get_commitments():
             if f"wtc-{wtc.pk}" in self.request.POST:
-                print(f"found wtc-{wtc.pk} in request.POST")
+                # print(f"found wtc-{wtc.pk} in request.POST")
                 val = self.request.POST[f"wtc-{wtc.pk}"]
-                print(val)
+                # print(val)
                 wtc.completed = reverse_vals.get(val, wtc.completed)
                 wtc.save()
         # todo below is wrong
@@ -324,12 +322,17 @@ class MonthlyCalendarMixin(object):
     unit_name = 'monthly' # for CalendarMixin
  
     def weeks(self):
-        cal = calendar.Calendar().monthdatescalendar(
-            self.date().year, self.date().month)
-        return [[date for date in week if date.weekday() < 5]
-                for week in cal
-                if week[0].month == self.date().month
-                or week[4].month == self.date().month]
+        try:
+            return self._weeks
+        except AttributeError:
+            cal = calendar.Calendar().monthdatescalendar(
+                self.date().year, self.date().month)
+            self._weeks = [[date for date in week if date.weekday() < 5]
+                     for week in cal
+                     if week[0].month == self.date().month
+                     or week[4].month == self.date().month]
+        # print(self._weeks)
+        return self._weeks
 
     def start_date(self):
         return self.weeks()[0][0]
@@ -551,7 +554,10 @@ class WorktimePreferencesSubmitView(ChildEditMixin,
             start__lte=self.object.start,
             end__gte=self.object.end,
             child=self.child).select_related('careday')
-        return list(chain.from_iterable(a.careday.shifts() for a in assignments))
+        print(assignments)
+        print([a.careday for a in assignments])
+        return list(chain.from_iterable(
+            a.careday.shifts() for a in assignments))
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
@@ -567,7 +573,8 @@ class WorktimePreferencesSubmitView(ChildEditMixin,
                   'period' : self.object,
                   'existing_prefs' : {pref.shift.pk : pref for pref in
                                       kwargs['initial']['existing_prefs']},
-                  'existing_note' : kwargs['existing_note']} 
+                  # 'existing_note' : kwargs['existing_note']
+        } 
         kwargs.update(extras)
         return kwargs
 
@@ -578,10 +585,10 @@ class WorktimePreferencesSubmitView(ChildEditMixin,
         data = {str(pref.shift.pk) : pref.rank for pref in existing_prefs}
         data.update({'existing_prefs' : existing_prefs})
         initial.update(data)
-        existing_note = ShiftPreferenceNoteForPeriod.objects.filter(
-            period=self.object, child=self.child).first()
-        if existing_note:
-            initial['existing_note'] = existing_note
+        # existing_note = ShiftPreferenceNoteForPeriod.objects.filter(
+            # period=self.object, child=self.child).first()
+        # if existing_note:
+            # initial['existing_note'] = existing_note
         return initial
 
     def form_valid(self, form):
@@ -677,14 +684,15 @@ class SchedulerHomeView(RoleHomeMixin,
 
 
 # todo is this the correct inheritance order?
-class SchedulerCalendarView(MonthlyCalendarMixin,
-                            ClassroomEditMixin,
-                            ClassroomWorktimeMixin,
+class SchedulerCalendarView(ClassroomWorktimeMixin,
+                            MonthlyCalendarMixin,
                             CalendarMixin,
+                            ClassroomEditMixin,
                             TemplateView):
 
     template_name = 'scheduler_calendar.html'
     view_name = 'scheduler-calendar'
+
 
 
 
@@ -809,7 +817,7 @@ class EditWorktimeCommitmentView(ClassroomMixin,
         # return most_recent_monday
 
     def end_date(self):
-        return self.start_date() + self.num_weeks * datetime.timedelta(days=7)
+        return self.start_date() + self.num_weeks * datetime.timedelta(days=6)
 
     def commitment(self):
         return self.object
@@ -838,7 +846,6 @@ class EditWorktimeCommitmentView(ClassroomMixin,
                           getattr(sh_occ.commitment, 'child', None) == self.child 
                           for sh_occ in self.available_shifts()}
         initial.update(availabilities)
-        # print(initial)
         return initial
 
     def jump_url(self, increment):
@@ -909,6 +916,19 @@ class PeriodCreateView(ClassroomEditMixin,
         return reverse('list-periods',
                        kwargs = {'classroom_slug' : self.classroom.slug})
 
+    def get_initial(self, *args, **kwargs):
+        initial = super().get_initial(*args, **kwargs)
+        latest_period = Period.objects.filter(
+            classroom=self.classroom).order_by('start').last()
+        if latest_period:
+            new_start = latest_period.end.date() + datetime.timedelta(days=1)
+            new_end = new_start + Period.DEFAULT_LENGTH - datetime.timedelta(days=1)
+        data = {'start' : new_start, 'end' : new_end}
+        initial.update(data)
+        return initial
+
+
+
     def get_form_kwargs(self, *args, **kwargs):
         kwargs = super().get_form_kwargs(*args, **kwargs)
         kwargs['classroom'] = self.classroom
@@ -971,9 +991,7 @@ class PreferencesView(ClassroomEditMixin,
             return super().get(*args, **kwargs)
         action_dict = ast.literal_eval(posted_val)
         preference = ShiftPreference.objects.get(pk=action_dict['pref'])
-        print(preference)
         offset = int(action_dict['offset'])
-        print(offset)
         value = action_dict['value']
         if action_dict['value'] == 'deactivate':
             preference.deactivate_offset(offset)
@@ -982,7 +1000,6 @@ class PreferencesView(ClassroomEditMixin,
         preference.save()
         context = self.get_context_data(**kwargs)
         return self.render_to_response(context)
-
 
         # print(self.request.POST)        
         # for assignable in ShiftAssignable.objects.filter(
@@ -998,16 +1015,15 @@ class PreferencesView(ClassroomEditMixin,
         # context = self.get_context_data(**kwargs)
         # return self.render_to_response(context)
 
-    def num_solutions(self):
-        num = 0
+    def solutions_exist(self):
+        # return 0
         schedule_iter = WorktimeSchedule.generate_solutions(
             period=self.period)
-        while True:
-            try:
-                next(schedule_iter)
-                num += 1
-            except StopIteration:
-                return num 
+        try:
+            next(schedule_iter)
+            return True
+        except StopIteration:
+            return False
 
 
     def weekdays(self):
@@ -1047,19 +1063,46 @@ class PreferencesView(ClassroomEditMixin,
 class GeneratedSchedulesView(ClassroomEditMixin,
                              TemplateView):
 
+    BATCH_SIZE = 10
     template_name = 'generated_schedules.html'
     model = Period
     
-    def get_period(self):
-        return get_object_or_404(Period, 
+    def period(self):
+        try:
+            return self._period
+        except AttributeError:
+            self._period = get_object_or_404(Period, 
                                  pk=self.kwargs.get('period_pk'))
+            return self._period
+
+    def num_requested(self):
+        return self.kwargs.get('num_requested', self.BATCH_SIZE)
+
+    def _build_schedules(self):
+        if not hasattr(self, '_schedules'):
+            sched_iter = WorktimeSchedule.generate_schedules(
+                period=self.period())
+            self._schedules = list(itertools.islice(
+                sched_iter, 0, self.num_requested()))
+            try:
+                next(sched_iter)
+                self._more_exist = True
+            except StopIteration:
+                self._more_exist = False
+
+    def more_exist(self):
+        try:
+            return self._more_exist
+        except AttributeError:
+            self._build_schedules()
+            return self._more_exist
 
     def schedules(self):
-        if not hasattr(self, '_schedules'):
-            self._schedules = list(WorktimeSchedule.generate_schedules(
-                period=self.get_period()))
-            self._schedules.sort(key=lambda s : s.score())
-        return self._schedules
+        try:
+            return self._schedules
+        except AttributeError:
+            self._build_schedules()
+            return self._schedules
 
     # def grouper(iterable, n):
     #     """https://docs.python.org/3/library/itertools.html#itertools-recipes"""
@@ -1069,25 +1112,10 @@ class GeneratedSchedulesView(ClassroomEditMixin,
     # def schedule_groups(self):
     #     return enumerate(grouper(self.schedules(), 10))
 
-    # def num_schedules(self):
-    #     return len(self.schedules())
-
-    # def schedules_by_range(self):
-    #     first = self.kwargs.get('from', 0)
-    #     num = self.kwargs.get('num', 10)
-    #     return self.schedules[start : start + num]
-
-    # def schedules(self):
-    #     schedules = list(WorktimeSchedule.generate_schedules(
-    #         period=self.get_period()))
-    #     schedules.sort(key=lambda s : s.score())
-    #     return itertools.islice(WorktimeSchedule.generate_schedules(
-    #         period=self.get_period()), 0, 10)
-
     def get_success_url(self):
         return reverse('scheduler-calendar',
                        kwargs={'classroom_slug' :
-                               self.object.classroom.slug})
+                               self.classroom.slug})
 
     def post(self, request, *args, **kwargs):
         schedule_data = self.request.POST['commit']

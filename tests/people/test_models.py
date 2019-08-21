@@ -1,4 +1,5 @@
 from django.test import TestCase
+from people.generate_samples import setup_sample_classroom
 from people.models import *
 from people.roles import *
 
@@ -173,7 +174,28 @@ class ClassroomParentsTest(PeopleTest):
         self.assertFalse(self.user1 in self.classroom.parents())
         self.configure_family()
         self.assertTrue(self.user1 in self.classroom.parents())
-        
+
+class CreateSampleClassroomTest(TestCase):
+
+    def test(self):
+        classroom = setup_sample_classroom(
+            name="Test Sample Classroom")
+        caredays = main.models.CareDay.objects.filter(classroom=classroom)
+        self.assertEqual(caredays.count(), 10)
+        shifts = main.models.Shift.objects.filter(classroom=classroom)
+        self.assertEqual(shifts.count(), 15)
+        periods = main.models.Period.objects.filter(classroom=classroom)
+        self.assertEqual(periods.count(), 2)
+        kids = Child.objects.filter(classroom=classroom)
+        self.assertEqual(kids.count(), 10)
+        prefs = [main.models.ShiftPreference.objects.filter(period=period)
+             for period in periods]
+        for p in range(periods.count()):
+            self.assertEqual(prefs[p].count(), 20)
+        for child in kids:
+            commitments = main.models.WorktimeCommitment.objects.filter(child=child)
+            self.assertTrue(commitments.count() >= 8)
+
 
 ###############################
 # testing RelateEmailToObject #

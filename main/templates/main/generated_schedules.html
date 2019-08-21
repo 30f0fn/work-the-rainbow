@@ -31,6 +31,18 @@
       </form>
     </li>
   {% endfor %}
-<ul>
+</ul>
+
+<a href="{% url 'view-generated-schedules' view.classroom.slug view.period.pk %}">
+
+{% if view.more_exist %}
+  {% with view.num_requested|add:10 as num_requested %}
+    <a href="{% url 'view-generated-schedules' view.classroom.slug view.period.pk num_requested %}">
+             generate more schedules
+    </a>
+  {% endwith %}
+{% endif %}
+
+
 
 {% endblock content %}

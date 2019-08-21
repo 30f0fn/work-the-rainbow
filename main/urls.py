@@ -152,11 +152,9 @@ classroom_scheduling_patterns = [
          views.GeneratedSchedulesView.as_view(),
          name='view-generated-schedules'),
 
-    path('scheduling/generated-schedules/<int:period_pk>',
+    path('scheduling/generated-schedules/<int:period_pk>/<int:num_requested>',
          views.GeneratedSchedulesView.as_view(),
          name='view-generated-schedules'),
-
-
 
 
     path('scheduling/calendar',

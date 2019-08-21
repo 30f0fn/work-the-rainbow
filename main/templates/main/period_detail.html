@@ -6,14 +6,10 @@
 {% block content %}
   <h1>{{classroom.slug}}
     worktime period -
-    {# {{object.start | date:"j"}} #}
     {{period.start | date:"j b y"}} - {{period.end | date:"j b y"}}  
   </h1>
 
-{# todo navigate forward / backward in period list #}
 
-{# <a href='{% url 'solicit-preferences' classroom.slug period.pk %}'>solicit preferences</a> #}
-{# <a href='{% url 'nag-preferences' classroom.slug period.pk %}'>nag preferences</a> #}
   <nav>
     <ul>
       <li>
@@ -31,11 +27,11 @@
           delete period
         </a>
       </li>
-      <li>
-        <a href='{% url 'clear-period-schedule' classroom.slug period.pk %}'>
-          clear schedule
-        </a>
-      </li>
+      {# <li> #}
+      {#   <a href='{% url 'clear-period-schedule' classroom.slug period.pk %}'> #}
+      {#     clear schedule #}
+      {#   </a> #}
+      {# </li> #}
 
     </ul>
   </nav>
