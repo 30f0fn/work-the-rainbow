@@ -2,6 +2,7 @@ import itertools, random
 
 from dateutil.relativedelta import relativedelta
 from django.utils import timezone
+from django.db import transaction
 
 from people.models import User, Child, Classroom
 from main.models import WorktimeCommitment, Period, Shift, CareDay, ShiftPreference, CareDayAssignment, WorktimeSchedule
@@ -109,7 +110,7 @@ def create_worktimecommitments(period):
     schedule.commit()
 
 
-
+@transaction.atomic
 def setup_sample_classroom(name):
     classroom = create_classroom(name)
     create_shifts(classroom)
