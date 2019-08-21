@@ -1,0 +1,25 @@
+{% extends "authenticated.html" %}
+{% load main_tags %}
+
+{% block content %}
+
+<h1>
+  Delete commitments?
+</h1>
+
+
+
+  {% block confirmation %}
+  {% endblock confirmation %}
+
+  Are you sure you want to delete all commitments from the {{period.classroom.slug}} period
+  {{view.period.start.date}} - {{view.period.end.date}}? (This can't be undone.)
+  <form action="{{request.path}}" method="post">
+    {% csrf_token %}
+    {{ form }}
+    <input type="submit" name="yes" value="yes">
+    <a href="{{view.get_success_url}}">never mind</a>
+  </form>
+{% endblock content %}
+
+

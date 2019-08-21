@@ -1,4 +1,5 @@
-# 2450
+
+# 4756
 
 import ast
 import datetime
@@ -554,8 +555,6 @@ class WorktimePreferencesSubmitView(ChildEditMixin,
             start__lte=self.object.start,
             end__gte=self.object.end,
             child=self.child).select_related('careday')
-        print(assignments)
-        print([a.careday for a in assignments])
         return list(chain.from_iterable(
             a.careday.shifts() for a in assignments))
 
@@ -859,6 +858,14 @@ class EditWorktimeCommitmentView(ClassroomMixin,
 
 
 
+class WorktimeCommitmentDeleteView(DeleteView):
+    model = WorktimeCommitment
+    template_name = 'generic_delete.html'
+    
+    def get_success_url(self):
+        return reverse('admin-home')
+
+
 
 
 class PeriodListView(ClassroomMixin,
@@ -873,12 +880,25 @@ class PeriodListView(ClassroomMixin,
    
 
 
-class PeriodDetailView(ClassroomMixin,
+class PeriodDetailView(ClassroomEditMixin,
                        DetailView):
     model = Period
 
-    
+    def period(self):
+        return self.get_object()
 
+    def commitments_by_child(self):
+        commitments = self.period().worktime_commitments()
+        if commitments:
+            by_child = defaultdict(list)
+            for commitment in commitments:
+                by_child[commitment.child].append(commitment)
+            return dict(by_child)
+
+    def preferences_by_child(self):
+        prefs = ShiftPreference.objects.by_child_for_period(
+            self.period(), self.period().classroom.child_set.all())
+        return prefs
 
 class PeriodUpdateView(ClassroomEditMixin,
                        DateMixin,
@@ -927,28 +947,34 @@ class PeriodCreateView(ClassroomEditMixin,
         initial.update(data)
         return initial
 
-
-
     def get_form_kwargs(self, *args, **kwargs):
         kwargs = super().get_form_kwargs(*args, **kwargs)
         kwargs['classroom'] = self.classroom
         return kwargs
 
 
-class ClearScheduleForPeriodView(ClassroomMixin,
+class ClearScheduleForPeriodView(ClassroomEditMixin,
                                  DetailView):
     model = Period
+    template_name = 'clear_schedule_for_period.html'
 
     def get_success_url(self):
         return reverse('manage-period',
                        kwargs = {'classroom_slug' : self.classroom.slug,
-                                 'pk' : self.object.pk})
+                                 'pk' : self.period().pk})
+    def period(self):
+        return self.get_object()
 
     def post(self, request, *args, **kwargs):
-        if 'clear' in self.request.POST:
-            period = self.get_object()
-            period.clear_commitments()
-        return super().post(request, *args, **kwargs)
+        if 'yes' in self.request.POST:
+            print("found 'yes' in requets.post")
+            commitments = self.period().worktime_commitments()
+            print(commitments)
+            commitments.delete()
+            print(commitments)
+        else:
+            print("did not find 'yes' in request.post")
+        return HttpResponseRedirect(self.get_success_url())
             
             
 
@@ -1000,20 +1026,6 @@ class PreferencesView(ClassroomEditMixin,
         preference.save()
         context = self.get_context_data(**kwargs)
         return self.render_to_response(context)
-
-        # print(self.request.POST)        
-        # for assignable in ShiftAssignable.objects.filter(
-        #     preference__period=self.period):
-        #     if f"assignable-{assignable.pk}" in self.request.POST:
-        #         print(f"found assignable-{assignable.pk}")
-        #         print(f"assignable is {'not' if not assignable.is_active else ''} active before change")
-        #         val = self.request.POST[f"assignable-{assignable.pk}"]
-        #         print(f"new_val = {val}")
-        #         assignable.is_active = reverse_vals.get(val, assignable.is_active)
-        #         assignable.save()
-        #         print(f"assignable is {'not' if not assignable.is_active else ''} active after save")
-        # context = self.get_context_data(**kwargs)
-        # return self.render_to_response(context)
 
     def solutions_exist(self):
         # return 0
@@ -1122,6 +1134,12 @@ class GeneratedSchedulesView(ClassroomEditMixin,
         schedule = WorktimeSchedule.deserialize(schedule_data)
         schedule.commit()
         return HttpResponseRedirect(self.get_success_url())
+
+
+
+# class GeneratedScheduleDetailView(ClassroomEditMixin,
+                                  # TemplateView):
+    
 
 
 

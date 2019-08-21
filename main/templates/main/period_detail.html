@@ -9,33 +9,121 @@
     {{period.start | date:"j b y"}} - {{period.end | date:"j b y"}}  
   </h1>
 
+  <script>
+    function toggle(showHideDiv) {
+    var ele = document.getElementById(showHideDiv);
+    if(ele.style.display == "block") {
+    ele.style.display = "none";
+    }
+    else {
+    ele.style.display = "block";
+    }
+    } 
+  </script>
 
-  <nav>
-    <ul>
-      <li>
-        <a href='{% url 'display-preferences' classroom.slug period.pk %}'>
-        see shift preferences
-        </a>
-      </li>
-      <li>
-        <a href='{% url 'update-period' classroom.slug period.pk %}'>
-          revise period dates
-        </a>
-      </li>
-      <li>
-        <a href='{% url 'delete-period' classroom.slug period.pk %}'>
-          delete period
-        </a>
-      </li>
-      {# <li> #}
-      {#   <a href='{% url 'clear-period-schedule' classroom.slug period.pk %}'> #}
-      {#     clear schedule #}
-      {#   </a> #}
-      {# </li> #}
+  {% with view.commitments_by_child as commitments_by_child %} 
+    {% if commitments_by_child %}
+      <nav>
+        <ul>
+          {# <li> #}
+          {# <a href='{% url 'display-preferences' classroom.slug period.pk %}'> #}
+          {# see shift preferences #}
+          {# </a> #}
+          {# </li> #}
+          <li>
+            <a href='{% url 'update-period' classroom.slug period.pk %}'>
+              revise period dates
+            </a>
+          </li>
+          <li>
+            <a href='{% url 'clear-schedule-for-period' classroom.slug period.pk %}'>
+              clear commitments from period
+            </a>
+          </li>
+          <li>
+            <a href='{% url 'delete-period' classroom.slug period.pk %}'>
+              delete period
+            </a>
+          </li>
 
-    </ul>
-  </nav>
+        </ul>
+      </nav>
 
+      <ul>
+        {% for child, commitments in commitments_by_child.items %}
+          <li>{{child}}
+            <ol>
+              {% for commitment in commitments %}
+                <li>
+                  {{commitment.start | date:"D M d"}}, {{commitment.start | time:"g:i"}}
+                  <a href="{% url 'edit-worktime-commitment' commitment.child.classroom.slug commitment.child.slug commitment.pk %}">
+                    [change]
+                  </a>
+                  <a href="{% url 'delete-worktime-commitment' commitment.child.classroom.slug commitment.pk %}">
+                    [delete]
+                  </a>
+
+                </li>
+              {% endfor %}
+            </ol>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <nav>
+        <ul>
+          {# <li> #}
+          {# <a href='{% url 'display-preferences' classroom.slug period.pk %}'> #}
+          {# see shift preferences #}
+          {# </a> #}
+          {# </li> #}
+          <li>
+            <a href='{% url 'update-period' classroom.slug period.pk %}'>
+              revise period dates
+            </a>
+          </li>
+          <li>
+            <a href='{% url 'delete-period' classroom.slug period.pk %}'>
+              delete period
+            </a>
+          </li>
+        </ul>
+      </nav>
+      {% with view.preferences_by_child as prefs %}
+        <p>There aren't any worktime commitments yet for this period.</p>
+<p>If everyone in your classroom has submitted their preferences, you can start generating a schedule <a href="{% url 'display-preferences' classroom.slug period.pk %}">
+    here</a>.</p>
+    <h2>Submitted preferences</h2>
+    {% if prefs %}
+      <ul>
+        {% for pc in prefs %}
+          <li>{{pc.child}}
+            <ol>   
+              {% if pc.preferences.0 %} 
+                {% for rank in pc.preferences %}
+                  <li>
+                    {% for pref in rank %} 
+                      {{pref.shift.weekday_str}} 
+                      {{pref.shift.start_time | time:"f"}} 
+                      {% if not forloop.last %},{% endif %} 
+                    {% endfor %}
+                  </li> 
+                {% endfor %}
+              {% else %} 
+                No preferences yet {{pc.child}}. 
+              {% endif %} 
+            </ol> 
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  {% endwith %}
+  {# {% else %} #}
+  {# solicit preferences for this period! #}
+  {# {% endif %} #}
+{% endif %}
+
+{% endwith %}
 {# preferences : solicit, nag, view #}
 {# shift-assignment : build, generate, view #}
 {# worktime-assignment : build, generate, view #}

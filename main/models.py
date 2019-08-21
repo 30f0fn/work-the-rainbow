@@ -243,9 +243,6 @@ class Period(Event):
         next_month = today.replace(year=today.year + year_inc,
                                    month=(today.month + 1 % 12),
                                    day=1)
-    # def default_deadline():
-        # """django can't serialize lambdas"""
-        # return start_default() - datetime.timedelta(days=7)
     start = models.DateTimeField(default=start_default)
     classroom = models.ForeignKey(Classroom, on_delete=models.CASCADE)
     solicits_preferences = models.BooleanField(default=True)
@@ -256,7 +253,8 @@ class Period(Event):
     def worktime_commitments(self, child=None):
         commitments = WorktimeCommitment.objects.filter(
             child__classroom=self.classroom,
-            start__range = (self.start, self.end))
+            start__range = (self.start, self.end)
+        )
         if child:
             commitments.filter(child=child)
         return commitments
@@ -533,20 +531,21 @@ class ShiftOccurrence(WeeklyEventOccurrence):
     def __identity__(self):
         return (self.shift.classroom_pk, self.start)
 
-    def create_commitment(self, child):
-        """commit child to this occurrence
-        doesn't check whether it's covered by a careday"""
-        # shift = Shift.objects.get(classroom=child.classroom,
-                                  # start_time=self.start.time(),
-                                  # weekday=str(self.start.date().weekday()))
+    def instantiate_commitment(self, child):
         commitment = WorktimeCommitment(
             start = self.start,
             end = self.end,
             child = child,
             shift = self.shift)
         self.commitment = commitment
-        commitment.save()
         return commitment
+
+    def create_commitment(self, child):
+        """commit child to this occurrence
+        doesn't check whether it's covered by a careday"""
+        self.instantiate_commitment(child)
+        self.commitment.save()
+        return self.commitment
 
     def get_commitment(self):
         return getattr(self, 'commitment', None) or WorktimeCommitment.objects.get(
@@ -706,6 +705,24 @@ class ShiftPreferenceManager(models.Manager):
             retval.append(pp)
         return retval
 
+    def by_child_for_period(self, period, children):
+        PbyC = namedtuple('PbyP', ['child', 'preferences'])
+        # periods = self.periods_soliciting_preferences()
+        retval = []
+        preferences = list(ShiftPreference.objects.filter(
+            period=period,
+            child__in=children)\
+                           .select_related('shift').order_by('rank').order_by('-child'))
+        for child in children:
+            # print(child)
+            pc = PbyC(child, [[], [], []])
+            while preferences and preferences[-1].child == child:
+                pref = preferences.pop()
+                pc.preferences[(pref.rank - 1)].append(pref)
+            retval.append(pc)
+        return retval
+
+
 
 
 
@@ -725,7 +742,7 @@ class ShiftPreference(models.Model):
         if self._modulus is None:
             self._modulus = ShiftAssignable.NORMAL_MODULUS // self.child.shifts_per_month
         worst_to_activate = ShiftAssignable.DEFAULT_ACTIVE_LEVEL
-        print(self.rank.__class__, worst_to_activate.__class__)
+        # print(self.rank.__class__, worst_to_activate.__class__)
         if self._active_offsets is None:
             self._active_offsets = sum(1 << o for o in range(self.modulus)
                                        if self.rank <= worst_to_activate)
@@ -840,7 +857,6 @@ class ShiftAssignable(IdentityMixin, object):
         data = ast.literal_eval(data_str)
         return cls._from_data(data)
 
-
     @property
     def period(self):
         return self.preference.period
@@ -870,9 +886,15 @@ class ShiftAssignable(IdentityMixin, object):
                 other._normalized_offsets())\
                 or self.preference.shift != other.preference.shift
 
-    def create_commitments(self):
-        return [shocc.create_commitment(self.preference.child)
+    def instantiate_commitments(self):
+        return [shocc.instantiate_commitment(self.preference.child)
                 for shocc in self.occurrences()]
+
+    def create_commitments(self):
+        commitments = self.instantiate_commitments()
+        for commitment in commitments:
+            commitment.save()
+        return commitments
 
     class Meta:
         ordering = ['preference', 'offset']
@@ -966,6 +988,10 @@ class WorktimeSchedule(object):
         assignments = [ShiftAssignable._from_data(datum) for datum in assignments_data]
         return WorktimeSchedule(assignments=assignments)
 
+
+    def instantiate_commitments(self):
+        return [commitment for assignable in self.assignmments
+                for commitment in assignable.instantiate_commitments()]
 
     def commit(self):
         # commitments_already = WorktimeCommitment.objects.filter(

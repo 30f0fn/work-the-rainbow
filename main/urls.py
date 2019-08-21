@@ -125,7 +125,7 @@ classroom_scheduling_patterns = [
 
     path('scheduling/periods/clear-schedule/<int:pk>',
          views.ClearScheduleForPeriodView.as_view(),
-         name='clear-period-schedule'),
+         name='clear-schedule-for-period'),
 
 
     # path('scheduling/preferences/solicit',
@@ -180,6 +180,10 @@ classroom_scheduling_patterns = [
     path('rescheduling/<slug:child_slug>/<int:pk>/<int:year>/<int:month>/<int:day>',
          views.EditWorktimeCommitmentView.as_view(),
          name='edit-worktime-commitment'),
+
+    path('rescheduling/delete-commitment/<int:pk>',
+         views.WorktimeCommitmentDeleteView.as_view(),
+         name='delete-worktime-commitment'),
 
 
 

@@ -3,6 +3,7 @@ import itertools, random
 from dateutil.relativedelta import relativedelta
 from django.utils import timezone
 from django.db import transaction
+from django.db.utils import IntegrityError
 
 from people.models import User, Child, Classroom
 from main.models import WorktimeCommitment, Period, Shift, CareDay, ShiftPreference, CareDayAssignment, WorktimeSchedule
@@ -95,10 +96,11 @@ def _create_shiftpreferences(period):
         caredays = CareDay.objects.filter(caredayassignment__child=child).distinct()
         shifts = list(itertools.chain.from_iterable([
             careday.shifts() for careday in caredays]))
-        shifts = random.sample(shifts, 2)
-        for shift in shifts:
+        chosen_shifts = random.sample(shifts, 3)
+        for rank_minus, shift in enumerate(chosen_shifts):
             ShiftPreference.objects.create(
-                child=child, shift=shift, rank=1, period=period)
+                child=child, shift=shift, rank=rank_minus+1, period=period)
+
 
 def _create_shiftassignments(period):
     list(itertools.islice(WorktimeSchedule.generate_schedules(

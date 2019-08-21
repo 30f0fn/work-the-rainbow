@@ -4,44 +4,61 @@
 {% load rules %}
 
 {% block content %}
-  <h1>possible shift assigments</h1>
 
-  {% for sched_range in view.schedule_ranges %}
-      <a href="javascript:toggle('sched-range-{{sched_range.from}}');">
-        {{sched_range.from}}-{{sched_range.to}}
-      </a>
-  {% endfor %}
+  <script>
+    function toggle(showHideDiv) {
+    var ele = document.getElementById(showHideDiv);
+    if(ele.style.display == "block") {
+    ele.style.display = "none";
+    }
+    else {
+    ele.style.display = "block";
+    }
+    } 
+  </script>
 
-<ul>
-  {% for schedule in view.schedules %}
-    <li id="schedule-{{forloop.counter}}">option {{forloop.counter}} (ranks total {{schedule.score}}):
-      <ul>{% for assignment in schedule.assignments %}
-        <li>{{assignment.preference.child}}:
-          {{assignment.preference.shift}} (ranked {{assignment.preference.rank}})
-        </li>
+
+  <h1>possible assignment schemes</h1>
+
+  <ul>
+    {% for schedule in view.schedules %}
+      <li id="schedule-{{forloop.counter}}">option {{forloop.counter}} (ranks total {{schedule.score}}):
+        <ul>{% for assignment in schedule.assignments %}
+          <li>
+              {{assignment.preference.child}}:
+              {{assignment.preference.shift}} (ranked {{assignment.preference.rank}})
+            <a href="javascript:toggle('assignment-{{forloop.counter}}-for-{{assignment.preference.child.pk}}');">
+              [show dates]
+            </a>
+            <ol id="assignment-{{forloop.counter}}-for-{{assignment.preference.child.pk}}", style="display:none">
+              {% for commitment in assignment.instantiate_commitments %}
+                <li>{{commitment.date }}</li>
+              {% endfor %}
+            </ol>
+          </li>
         {% endfor %}
-      </ul>
-      <form action="{{request.path}}" method="post">
-        {% csrf_token %}
-        <button type="submit"
-                name="commit"
-                value="{{schedule.serialize}}">
-                commit
-        </button>
-      </form>
-    </li>
-  {% endfor %}
-</ul>
+        </ul>
+        <form action="{{request.path}}" method="post">
+          {% csrf_token %}
+          <button type="submit"
+                  name="commit"
+                  value="{{schedule.serialize}}">
+                  commit
+          </button>
+        </form>
+      </li>
+    {% endfor %}
+  </ul>
 
-<a href="{% url 'view-generated-schedules' view.classroom.slug view.period.pk %}">
+  <a href="{% url 'view-generated-schedules' view.classroom.slug view.period.pk %}">
 
-{% if view.more_exist %}
-  {% with view.num_requested|add:10 as num_requested %}
-    <a href="{% url 'view-generated-schedules' view.classroom.slug view.period.pk num_requested %}">
-             generate more schedules
-    </a>
-  {% endwith %}
-{% endif %}
+    {% if view.more_exist %}
+      {% with view.num_requested|add:10 as num_requested %}
+        <a href="{% url 'view-generated-schedules' view.classroom.slug view.period.pk num_requested %}">
+          generate more schedules
+        </a>
+      {% endwith %}
+    {% endif %}
 
 
 
