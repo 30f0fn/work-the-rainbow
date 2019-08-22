@@ -44,6 +44,11 @@
       {% endif %}
     {% endwith %}
   {% endwith %}
+  <li>
+    <a href={% url 'recolor' request.get_full_path %}>
+      recolor
+    </a>
+  </li>
     </ul>
   </nav>
 </div>

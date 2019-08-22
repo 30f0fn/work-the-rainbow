@@ -25,6 +25,7 @@ from rules.contrib.views import PermissionRequiredMixin
 from people.forms import RelateEmailToObjectForm, CreateClassroomForm, AddChildForm, ChildUpdateForm
 from people.models import Classroom, Child, User, RelateEmailToObject
 from people.roles import *
+from people import skins
 import main.models
 from . import rules
 
@@ -320,6 +321,13 @@ class ProfileEditView(LoginRequiredMixin,
         return reverse('profile')
 
 
+class RecolorView(LoginRequiredMixin,
+                  RedirectView):
+
+    def get_redirect_url(self, *args, **kwargs):
+        self.request.user.recolor()
+        return kwargs.pop('referring_url')
+    
 # class ParentRemoveView(ClassroomEditMixin, QuerysetInClassroomMixin, DetailView):
 #     model = Parent
 

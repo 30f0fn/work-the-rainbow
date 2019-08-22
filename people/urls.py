@@ -45,7 +45,9 @@ urlpatterns = [
     # path('kids/<slug:child_slug>/remove',
          # views.ChildRemoveView.as_view(), name='remove-child'),
 
-
+    path('recolor/<path:referring_url>',
+         views.RecolorView.as_view(),
+         name='recolor'),
 
     path('accounts/', include('allauth.urls')),
     path('accounts/profile/',

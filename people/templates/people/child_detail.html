@@ -77,7 +77,7 @@
           </ol>
         {% endif %}
         <a href={% url 'submit-preferences' child.slug pp.period.pk %}>
-          {% if pp.preferences %} revise {% else %} submit preferences {% endif %} 
+          {% if pp.preferences.0 %} revise {% else %} submit preferences {% endif %} 
         </a>
       </p>      
     {% endfor %}

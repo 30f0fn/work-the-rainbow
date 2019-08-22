@@ -16,54 +16,17 @@
 
     <link rel="stylesheet" href="{% static 'awsm.css' %}">
 
-    <style> 
-
-      h1, h2, h3, h4, h5, h6 { 
-          margin: 0 0 0.5em; 
-      } 
-      h1 { 
-        font-size: 1.2em; 
-        {# margin: 0em 0 0.1em;        #}
-      } 
-
-      h2 { 
-        font-size: 1em; 
-      } 
-
-      h3 { 
-        margin: 0 0em 0.5em; 
-        font-size: .8em; 
-      } 
-
-      nav {
-      margin: 0 0 0em;
-      font-size: .8em;
-      }
-
-      table { 
-          font-size: .9em;
-          {# border: 0px solid black;  #}
-          border-collapse:collapse;  
-      } 
-
-      ul, ol { 
-          font-size: .9em;
-          padding-left:0em;
-          margin-left: 1em;
-          margin-bottom:0.2em;
-      } 
-
-      form { 
-          padding-left:0em;
-          padding-bottom:0em;
-          margin-left: 0em;
-          {# border: 0px solid black;  #}
-      } 
-
-    </style>
-
+    <link rel="stylesheet" href="{% static 'overrides.css' %}">
   </head>
 
+  <style>
+    html { {{current_skin}} }
+    a:visited { {{current_skin}} }
+    a:link { {{current_skin}} }
+    a:nav { {{current_skin}} }
+    nav a:link { {{current_skin}} }
+    nav a:visited { {{current_skin}} }
+  </style>
 
   <body>
 

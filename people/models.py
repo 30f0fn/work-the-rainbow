@@ -12,6 +12,7 @@ from django.utils.text import slugify
 from invitations.models import Invitation
 
 import main.models
+from people import skins
 
 
 ########
@@ -70,6 +71,8 @@ class User(AbstractUser):
     _role_set = models.ManyToManyField(Role,
                                       related_name='_bearers')
     
+    skin = models.TextField(default=skins.date_seeded_skin)
+
     # these are the four normative definitions of role membership
     def _is_teacher(self):
         return self._classrooms_as_teacher.all()
@@ -106,6 +109,8 @@ class User(AbstractUser):
     def _classrooms_as_null(self):
         return Classroom.objects.none()
 
+    def recolor(self):
+        skins.recolor(self)
 
     def classrooms(self):
         role = self.active_role()
