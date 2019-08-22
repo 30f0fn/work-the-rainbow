@@ -1,6 +1,3 @@
-# todo STATIC config is fucked... right now i need one copy at BASE_DIR/static for development and another at BASE_DIR/worktime/static for production wtf
-
-
 from worktime.settings.base import *
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "worktime.settings.local")
@@ -38,7 +35,8 @@ STATICFILES_DIRS = (
 
 
 STATICFILES_DIRS = [
-    os.path.join("static"),
+    os.path.join("worktime", "static"),
+    # os.path.join("static"),
     # '/var/www/static/',
 ]
 

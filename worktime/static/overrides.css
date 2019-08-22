@@ -6,20 +6,22 @@ h0 {
 
 h1 {
     font-size: 1.4em;
-    margin: 0em 0em 0em;
+    margin: 0em 0em .4em;
 }
 
 h2 {
-    font-size: 1em;
+    font-size: 1.2em;
+    margin: 0em 0em .3em;
 }
 
 h3 {
-    font-size: .8em;
+    font-size: 1em;
+    margin: 0em 0em .22em;
 }
 
 nav {
-    margin: 0 0 0em;
-    font-size: .8em;
+    margin: 0em 0em 0em;
+    /* font-size: .8em; */
 }
 
 table { 
@@ -40,7 +42,7 @@ table th:first-child, table td:first-child, table td:last-child, table th:last-c
 
 
 ul, ol { 
-    font-size: .9em;
+    /* font-size: .9em; */
     padding-left:0em;
     margin-left: 1em;
     margin-bottom:0.2em;
@@ -52,6 +54,10 @@ form {
     margin-left: 0em;
     {# border: 0px solid black;  #}
 } 
+
+a {
+    font-size: .8em;
+}
 
 </style>
 
