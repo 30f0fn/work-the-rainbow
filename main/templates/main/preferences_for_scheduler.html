@@ -21,8 +21,8 @@
   {% with view.prefs_data as prefs_data %}
     {% if prefs_data %} 
       <p>
-        {% if view.solutions_exist %} The below choice of allowable assignments is satisfiable.  
-          <a href="{% url 'view-generated-schedules' view.classroom.slug view.period.pk%}"> Here are the resulting possible assignment schemes.
+        {% if view.solutions_exist %} The below choice of allowable assignments has
+          <a href="{% url 'view-generated-schedules' view.classroom.slug view.period.pk%}">  at least one solution.
           </a>
         {% else %}
           No schedules satisfies the below choice of allowable assignments.

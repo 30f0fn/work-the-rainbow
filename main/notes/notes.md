@@ -1,9 +1,37 @@
 
+
+
+PeriodView
+
+Functionality
+
+- Edit bounds, delete
+- toggle "solicits preferences"
+- view preferences
+- view worktimecommitments
+- clear commitments
+
+workflow
+
+- scheduler creates period
+- scheduler solicits preferences
+- parents submit preferences (with notes)
+- scheduler reviews preferences, adjusts assignables
+- scheduler generates list of possible shiftassignments
+- scheduler generates and reviews commitments (without saving)
+- scheduler saves commitments
+
+- periodview checks whether commitments exist for period
+- if no commitments exist, show who has submitted preferences
+- if commitments exist, show commitments, plus link to clear commitments from period
+
 todo rename CareDay to CareSession
 
 todo standardize __repr__ 
 
 todo subclass CareDayAssignment with ContractedCareDayAssignment, for preferences etc
+
+todo introduce DateBoundedEvent
 
 todo check for timezone awareness... timezone.datetime.combine seems to return non-aware datetimes (?)
 

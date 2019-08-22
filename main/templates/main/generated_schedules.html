@@ -22,31 +22,33 @@
 
   <ul>
     {% for schedule in view.schedules %}
-      <li id="schedule-{{forloop.counter}}">option {{forloop.counter}} (ranks total {{schedule.score}}):
-        <ul>{% for assignment in schedule.assignments %}
-          <li>
+      {% with forloop.counter as schedule_num %}
+        <li id="schedule-{{schedule_num}}">option {{forloop.counter}} (ranks total {{schedule.score}}):
+          <ul>{% for assignment in schedule.assignments %}
+            <li>
               {{assignment.preference.child}}:
               {{assignment.preference.shift}} (ranked {{assignment.preference.rank}})
-            <a href="javascript:toggle('assignment-{{forloop.counter}}-for-{{assignment.preference.child.pk}}');">
-              [show dates]
-            </a>
-            <ol id="assignment-{{forloop.counter}}-for-{{assignment.preference.child.pk}}", style="display:none">
-              {% for commitment in assignment.instantiate_commitments %}
-                <li>{{commitment.date }}</li>
-              {% endfor %}
-            </ol>
-          </li>
-        {% endfor %}
-        </ul>
-        <form action="{{request.path}}" method="post">
-          {% csrf_token %}
-          <button type="submit"
-                  name="commit"
-                  value="{{schedule.serialize}}">
-                  commit
-          </button>
-        </form>
-      </li>
+              <a href="javascript:toggle('assignment-{{schedule_num}}-for-{{assignment.preference.child.pk}}');">
+                [show dates]
+              </a>
+              <ol id="assignment-{{schedule_num}}-for-{{assignment.preference.child.pk}}", style="display:none">
+                {% for commitment in assignment.instantiate_commitments %}
+                  <li>{{commitment.date }}</li>
+                {% endfor %}
+              </ol>
+            </li>
+          {% endfor %}
+          </ul>
+          <form action="{{request.path}}" method="post">
+            {% csrf_token %}
+            <button type="submit"
+                    name="commit"
+                    value="{{schedule.serialize}}">
+                    commit
+            </button>
+          </form>
+        </li>
+      {% endwith %}
     {% endfor %}
   </ul>
 
@@ -55,7 +57,7 @@
     {% if view.more_exist %}
       {% with view.num_requested|add:10 as num_requested %}
         <a href="{% url 'view-generated-schedules' view.classroom.slug view.period.pk num_requested %}">
-          generate more schedules
+          show more assignment schemes...
         </a>
       {% endwith %}
     {% endif %}
