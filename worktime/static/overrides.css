@@ -30,8 +30,8 @@ table {
     background:none;
 } 
 
-table td, table th, table tr, table caption { 
-    font-size: .9em;
+table td, table th, table tr { 
+    /* font-size: .9em; */
     border:0px;
     border-collapse:collapse;  
 } 
