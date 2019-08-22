@@ -51,7 +51,7 @@ body > footer{
   padding-bottom:1.5em;
   text-align:center;
   font-size:0.8rem;
-  color:#aaaaaa;
+  /* color:#aaaaaa; */
 }
 
 nav{
@@ -67,12 +67,12 @@ nav li{
   margin-right:1em;
   margin-bottom:0.25em;
 }
-nav a:visited{
-  color:#0064c1;
-}
-nav a:hover{
-  color:#f00000;
-}
+/* nav a:visited{ */
+  /* color:#0064c1; */
+/* } */
+/* nav a:hover{ */
+  /* color:#f00000; */
+/* } */
 
 ul, ol{
   margin-top:0;
@@ -126,7 +126,7 @@ blockquote{
 aside{
   margin:0.5em 0;
   font-style:italic;
-  color:#aaaaaa;
+  /* color:#aaaaaa; */
 }
 @media (min-width: 65rem){
   aside{
@@ -168,7 +168,7 @@ h1 > a[href^="#"][id]:empty, h2 > a[href^="#"][id]:empty, h3 > a[href^="#"][id]:
   text-decoration:none;
   font-weight:400;
   line-height:1;
-  color:#aaaaaa;
+  /* color:#aaaaaa; */
 }
 @media (min-width: 40rem){
   h1 > a[href^="#"][id]:empty, h2 > a[href^="#"][id]:empty, h3 > a[href^="#"][id]:empty, h4 > a[href^="#"][id]:empty, h5 > a[href^="#"][id]:empty, h6 > a[href^="#"][id]:empty{
@@ -210,7 +210,7 @@ h5{
 h6{
   margin-top:1em;
   font-size:1em;
-  color:#aaaaaa;
+  /* color:#aaaaaa; */
 }
 
 article + article{
@@ -218,7 +218,7 @@ article + article{
 }
 article header p{
   font-size:0.6em;
-  color:#aaaaaa;
+  /* color:#aaaaaa; */
 }
 article header p + h1, article header p + h2{
   margin-top:-0.25em;
@@ -230,28 +230,28 @@ article header h1 a, article header h2 a{
   color:black;
 }
 article header h1 a:visited, article header h2 a:visited{
-  color:#aaaaaa;
+  /* color:#aaaaaa; */
 }
 article header h1 a:visited:hover, article header h2 a:visited:hover{
-  color:#f00000;
+  /* color:#f00000; */
 }
 article > footer{
   margin-top:1.5em;
   font-size:0.85em;
 }
 
-a{
-  color:#0064c1;
-}
-a:visited{
-  color:#8d39d0;
-}
+/* a{ */
+  /* color:#0064c1; */
+/* } */
+/* a:visited{ */
+  /* color:#8d39d0; */
+/* } */
 a:hover, a:active{
   outline-width:0;
 }
-a:hover{
-  color:#f00000;
-}
+/* a:hover{ */
+  /* color:#f00000; */
+/* } */
 a abbr{
   font-size:1em;
 }
@@ -312,7 +312,7 @@ table td, table th{
   font-size:0.9em;
   border:1px solid #f2f2f2;
   border-top:0;
-  border-left:0;
+  border-left:0px;
 }
 table td:first-child, table th:first-child{
   padding-left:0;
@@ -376,7 +376,7 @@ fieldset{
 }
 
 legend{
-  color:#aaaaaa;
+  /* color:#aaaaaa; */
 }
 
 button{
@@ -404,7 +404,7 @@ button:hover{
   border:1px solid black;
 }
 button:active{
-  background-color:#aaaaaa;
+  /* background-color:#aaaaaa; */
 }
 
 select{
@@ -440,7 +440,7 @@ select:hover{
   border:1px solid black;
 }
 select:active{
-  background-color:#aaaaaa;
+  /* background-color:#aaaaaa; */
 }
 select:focus, select:hover{
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 3 2'%3E%3Cpath fill='rgb(0, 0, 0)' fill-rule='nonzero' d='M1.5 2L3 0H0z'/%3E%3C/svg%3E");
@@ -469,13 +469,13 @@ input[type=text]:focus, input[type=password]:focus, input[type^=date]:focus, inp
   border:1px solid black;
 }
 input[type=text]::-moz-placeholder, input[type=password]::-moz-placeholder, input[type^=date]::-moz-placeholder, input[type=email]::-moz-placeholder, input[type=number]::-moz-placeholder, input[type=search]::-moz-placeholder, input[type=tel]::-moz-placeholder, input[type=time]::-moz-placeholder, input[type=month]::-moz-placeholder, input[type=week]::-moz-placeholder, input[type=url]::-moz-placeholder{
-  color:#aaaaaa;
+  /* color:#aaaaaa; */
 }
 input[type=text]::-webkit-input-placeholder, input[type=password]::-webkit-input-placeholder, input[type^=date]::-webkit-input-placeholder, input[type=email]::-webkit-input-placeholder, input[type=number]::-webkit-input-placeholder, input[type=search]::-webkit-input-placeholder, input[type=tel]::-webkit-input-placeholder, input[type=time]::-webkit-input-placeholder, input[type=month]::-webkit-input-placeholder, input[type=week]::-webkit-input-placeholder, input[type=url]::-webkit-input-placeholder{
-  color:#aaaaaa;
+  /* color:#aaaaaa; */
 }
 input[type=text]:-ms-input-placeholder, input[type=password]:-ms-input-placeholder, input[type^=date]:-ms-input-placeholder, input[type=email]:-ms-input-placeholder, input[type=number]:-ms-input-placeholder, input[type=search]:-ms-input-placeholder, input[type=tel]:-ms-input-placeholder, input[type=time]:-ms-input-placeholder, input[type=month]:-ms-input-placeholder, input[type=week]:-ms-input-placeholder, input[type=url]:-ms-input-placeholder{
-  color:#aaaaaa;
+  /* color:#aaaaaa; */
 }
 input[type=submit], input[type=button], input[type=reset]{
   outline:none;
