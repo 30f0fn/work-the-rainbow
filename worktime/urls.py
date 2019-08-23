@@ -35,17 +35,16 @@ urlpatterns = [
 urlpatterns += people_urls.urlpatterns
 urlpatterns += main_urls.urlpatterns
 
-import debug_toolbar
-urlpatterns = [
-    path('__debug__/', include(debug_toolbar.urls)),
-] + urlpatterns
+# import debug_toolbar
+# urlpatterns = [
+    # path('__debug__/', include(debug_toolbar.urls)),
+# ] + urlpatterns
 
 
-# if settings.DEBUG:
-#     import debug_toolbar
-#     urlpatterns = [
-#         path('__debug__/', include(debug_toolbar.urls)),
-
-#     ] + urlpatterns
+if settings.DEBUG:
+    import debug_toolbar
+    urlpatterns = [
+        path('__debug__/', include(debug_toolbar.urls)),
+    ] + urlpatterns
 
 

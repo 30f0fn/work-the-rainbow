@@ -20,12 +20,22 @@
   </head>
 
   <style>
-    html { {{current_skin}} }
-    a:visited { {{current_skin}} }
-    a:link { {{current_skin}} }
-    a:nav { {{current_skin}} }
-    nav a:link { {{current_skin}} }
-    nav a:visited { {{current_skin}} }
+    {% with current_skin.foreground as fg %}
+      {% with current_skin.background as bg %}
+        html { color:{{fg}}; background-color:{{bg}} }
+        a:visited { color:{{fg}}; background-color:{{bg}} }
+        a:link { color:{{fg}}; background-color:{{bg}} }
+        a:nav { color:{{fg}}; background-color:{{bg}} }
+        nav a:visited { color:{{fg}}; background-color:{{bg}} }
+        button { color:{{bg}}; background-color:{{fg}} }
+        {# html { color:fg; {{current_skin}} } #}
+        {# a:visited { {{current_skin}} } #}
+        {# a:link { {{current_skin}} } #}
+        {# a:nav { {{current_skin}} } #}
+        {# nav a:link { {{current_skin}} } #}
+        {# nav a:visited { {{current_skin}} } #}
+      {% endwith %}
+    {% endwith %}
   </style>
 
   <body>
