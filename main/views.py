@@ -944,7 +944,7 @@ class PeriodCreateView(ClassroomEditMixin,
         if latest_period:
             new_start = latest_period.end.date() + datetime.timedelta(days=1)
         else:
-            this_year = timezone.datetime().now().year
+            this_year = timezone.now().year
             new_start = timezone.datetime(this_year, 9, 1)
         new_end = new_start + Period.DEFAULT_LENGTH - datetime.timedelta(days=1)
         data = {'start' : new_start, 'end' : new_end}
