@@ -1,8 +1,24 @@
-from django.db.models.signals import post_save, m2m_changed
+from django.db.models.signals import post_save, m2m_changed, pre_save
 from django.dispatch import receiver
 
 from people.models import User, Child, Classroom, RelateEmailToObject, Role
 from people.roles import *
+import people.notifications
+
+@receiver(pre_save, sender=Child)
+def child_to_new_classroom(sender, *args, **kwargs):
+    """update"""
+    child_instance = kwargs['instance']
+    if getattr(child_instance, 'pk') is None:
+        return
+    new_classroom = child_instance.classroom
+    old_classroom = Child.objects.get(pk=child_instance.pk).classroom
+    if old_classroom != new_classroom:
+        print(f"classroom chnaged from {old_classroom} to {new_classroom}")
+        default_user = User.objects.first()
+        people.notifications.announce_child_to_new_classroom(
+            default_user,
+            child_instance, old_classroom, new_classroom)
 
 
 @receiver(post_save, sender=User)
