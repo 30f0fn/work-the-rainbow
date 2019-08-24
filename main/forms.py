@@ -279,7 +279,5 @@ class PeriodForm(ModelForm):
     class Meta:
         model = main.models.Period
         fields = ['start', 'end', 'solicits_preferences']
-
-
     
     

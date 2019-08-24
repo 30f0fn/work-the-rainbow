@@ -17,7 +17,18 @@
 
 {% for child in user.child_set.all %} 
   {% url 'child-profile' child.slug as linked_url %}
-  {% smart_link linked_url child.slug view.request %}
+  {% with child.nickname|add:'\'s details' as link_text %}
+    {% smart_link linked_url link_text view.request %}
+  {% endwith %}
+  {% for period in child.classroom.periods_soliciting_preferences %}  
+    {% url 'submit-preferences' child.slug period.pk as linked_url %} 
+    {% with period.start|date:'F' as period_start %}
+      {% with child.nickname|add:'\'s worktime preferences for '|add:period_start as link_text %}  
+        {% smart_link linked_url link_text view.request %} 
+      {% endwith %} 
+    {% endwith %} 
+  {% endfor %} 
+
 {% endfor %}
 
 

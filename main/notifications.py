@@ -1,3 +1,5 @@
+from collections import namedtuple
+
 from notifications.signals import notify
 
 """
@@ -28,13 +30,38 @@ def announce_commitment_change(user,
                 verb='updated',
                 description=description)
 
+class ShiftPrefRequest(object):
+    def __init__(self, child, period):
+        self.child = child
+        self.period=period
 
-def solicit_shiftpreferences(user, preference_request):
-    parents = preference_request.period.classroom.parent_set.all()
+    def submission_url(self):
+        return reverse_lazy('submit-preferences',
+                       kwargs={'child_slug' : self.child.slug,
+                               'period_pk' : self.period.pk})
+
+    def display(self):
+        return "please submit {child}'s worktime preferences for {period.start.date.strftime('%B')} in {child.classroom}!"
+
+
+def solicit_shiftpreferences(user, child, period):
+    url = reverse_lazy('submit-preferences',
+                       kwargs={'child_slug' : child.slug,
+                               'period_pk' : period.pk})
+    pref_request = ShiftPrefRequest(child=child, period=period)
+    print(f"sending notification to {user}: {action_object}")
     notify.send(user,
                 recipient=parents,
                 verb='requested',
-                action_object=preference_request)
+                action_object=pref_request)
+
+
+# def solicit_shiftpreferences(user, preference_request):
+#     parents = preference_request.period.classroom.parent_set.all()
+#     notify.send(user,
+#                 recipient=parents,
+#                 verb='requested',
+#                 action_object=preference_request)
 
 
 

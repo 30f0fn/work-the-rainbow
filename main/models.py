@@ -249,6 +249,8 @@ class Period(Event):
     published = models.BooleanField(default=True)
     preference_deadline = models.DateTimeField(null=True,
                                                default=start_default)
+ 
+        
 
     def worktime_commitments(self, child=None):
         commitments = WorktimeCommitment.objects.filter(

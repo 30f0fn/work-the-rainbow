@@ -900,6 +900,7 @@ class PeriodDetailView(ClassroomEditMixin,
             self.period(), self.period().classroom.child_set.all())
         return prefs
 
+
 class PeriodUpdateView(ClassroomEditMixin,
                        DateMixin,
                        UpdateView):

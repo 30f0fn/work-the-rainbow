@@ -174,6 +174,9 @@ class Classroom(NamingMixin, models.Model):
         return main.models.WorktimeCommitment.objects.filter(
             child__classroom=self,
             shift_instance__date=date)
+    
+    def periods_soliciting_preferences(self):
+        return self.period_set.filter(solicits_preferences=True)
 
     def get_absolute_url(self):
         return reverse_lazy('classroom-roster', kwargs={'classroom_slug':self.slug})
