@@ -741,6 +741,7 @@ class ShiftPreference(models.Model):
     _active_offsets = models.IntegerField(null=True)
 
     def save(self, *args, **kwargs):
+        assert self.shift.classroom == self.period.classroom
         if self._modulus is None:
             self._modulus = ShiftAssignable.NORMAL_MODULUS // self.child.shifts_per_month
         worst_to_activate = ShiftAssignable.DEFAULT_ACTIVE_LEVEL

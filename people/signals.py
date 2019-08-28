@@ -14,7 +14,6 @@ def child_to_new_classroom(sender, *args, **kwargs):
     new_classroom = child_instance.classroom
     old_classroom = Child.objects.get(pk=child_instance.pk).classroom
     if old_classroom != new_classroom:
-        print(f"classroom chnaged from {old_classroom} to {new_classroom}")
         default_user = User.objects.first()
         people.notifications.announce_child_to_new_classroom(
             default_user,

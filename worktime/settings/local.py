@@ -50,7 +50,7 @@ GOOGLE_OAUTH_CLIENT_SECRET = 'vQdOqG8FIK4nCg8DPM0UAOL7'
 DATABASES = {
     'default': {
         'ENGINE' : 'django.db.backends.postgresql',
-        'NAME' : 'worktime-5-24-19',
+        'NAME' : 'worktherainbow-2019-08-28-a',
         'USER' : 'mw',
         'PASSWORD' : '30f0fnts',
         'HOST' : 'localhost',

@@ -1032,9 +1032,8 @@ class PreferencesView(ClassroomEditMixin,
         return self.render_to_response(context)
 
     def solutions_exist(self):
-        # return 0
         schedule_iter = WorktimeSchedule.generate_solutions(
-            period=self.period)
+            period=self.period, total=False)
         try:
             next(schedule_iter)
             return True
@@ -1049,9 +1048,11 @@ class PreferencesView(ClassroomEditMixin,
     def shifts_by_weekday(self):
         # prefs = self.prefs_by_shift()
         shifts = Shift.objects.filter(classroom=self.classroom)
-        return {weekday :
+        ret = {weekday :
                 {shift for shift in shifts if shift.weekday==weekday}
                 for weekday in WEEKDAYS}
+        print("shifts_by_weekday", ret)
+        return ret
 
     def prefs_by_shift_and_status(self):
         """for each shift, return by_status namedtuple, 
@@ -1062,6 +1063,7 @@ class PreferencesView(ClassroomEditMixin,
         ret = defaultdict(prefs_by_status_init)
         for pref in ShiftPreference.objects.filter(period=self.period):
             by_status_from_pref = pref.assignables_by_status()
+            # print("active", pref, pref.shift, pref.child)
             if by_status_from_pref.active:
                 ret[pref.shift].active[pref] = by_status_from_pref.active
             if by_status_from_pref.inactive:
@@ -1070,8 +1072,19 @@ class PreferencesView(ClassroomEditMixin,
 
     def prefs_data(self):
         prefs_dict = self.prefs_by_shift_and_status()
-        return {weekday : {shift : prefs_dict[shift] for shift in shifts}
+        # print("prefs_by_shift_and_status", prefs_dict)
+        for shift, ps in prefs_dict.items():
+            print(shift, ps)
+        # print("partial_dict",
+              # {shift : prefs_dict[shift] for shift in Shift.objects.filter(
+                  # classroom=self.classroom)})
+        ret = {weekday : {shift : prefs_dict[shift] for shift in shifts}
                 for weekday, shifts in self.shifts_by_weekday().items()}
+        # for weekday in ret:
+            # for shift, vals in ret[weekday].items():
+                # print("shift_dict = ", shift, vals)
+        # print("ret", ret)
+        return ret
 
 
 
@@ -1097,7 +1110,7 @@ class GeneratedSchedulesView(ClassroomEditMixin,
     def _build_schedules(self):
         if not hasattr(self, '_schedules'):
             sched_iter = WorktimeSchedule.generate_schedules(
-                period=self.period())
+                period=self.period(), total=False)
             self._schedules = list(itertools.islice(
                 sched_iter, 0, self.num_requested()))
             try:
