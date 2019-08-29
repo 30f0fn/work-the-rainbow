@@ -173,7 +173,9 @@ class ClassroomWorktimeMixin(object):
                             .occurrences_by_date(
                                 self.start(), self.end(),
                                 include_commitments=True)
-        ret = [{date : shifts[date] for date in week}
+        # for date in shifts:
+            # shifts[date].default_factory = None
+        ret = [{date : shifts[date] for date in week if date in shifts}
                 for week in self.weeks()]
         # print(f"RET_DICT = {ret}")
         return ret
@@ -554,7 +556,8 @@ class WorktimePreferencesSubmitView(ChildEditMixin,
         assignments = CareDayAssignment.objects.filter(
             start__lte=self.object.start,
             end__gte=self.object.end,
-            child=self.child).select_related('careday')
+            child=self.child,
+            careday__classroom=self.object.classroom).select_related('careday')
         return list(chain.from_iterable(
             a.careday.shifts() for a in assignments))
 
@@ -1073,8 +1076,8 @@ class PreferencesView(ClassroomEditMixin,
     def prefs_data(self):
         prefs_dict = self.prefs_by_shift_and_status()
         # print("prefs_by_shift_and_status", prefs_dict)
-        for shift, ps in prefs_dict.items():
-            print(shift, ps)
+        # for shift, ps in prefs_dict.items():
+            # print(shift, ps)
         # print("partial_dict",
               # {shift : prefs_dict[shift] for shift in Shift.objects.filter(
                   # classroom=self.classroom)})
