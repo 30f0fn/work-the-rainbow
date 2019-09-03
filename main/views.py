@@ -1282,13 +1282,15 @@ class WorktimeAttendanceByMonthView(MonthlyCalendarMixin,
 
     def get_commitments(self):
         return super().get_commitments().filter(
-            start__month=(self.date().month)).order_by('-start')
+            start__month=(self.date().month)).order_by('start')
 
     def jump_url(self, increment):
         new_date = self.jump_date(increment)
         kwargs = self.kwargs.copy()
         kwargs.update({
-                 'year':new_date.year, 'month':new_date.month, 'day':new_date.day
+            'year':new_date.year,
+            'month':new_date.month,
+            'day':new_date.day
         })
         return reverse_lazy(self.view_name,
                             kwargs=kwargs)

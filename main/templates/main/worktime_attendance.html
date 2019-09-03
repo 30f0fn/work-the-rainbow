@@ -27,17 +27,19 @@
     </ul>
   </nav>
 
+{# {{view.get_commitments}} #}
+
 {% has_perm 'main.score_worktime_attendance' user classroom as can_score_worktime_attendance %}
 
   <table>
     {% for commitment in commitments %}
       <tr>
         <td>
-          {{commitment.child}}, {{commitment}}
+          {{commitment.child}}: {{commitment.start|date:"M j, g:i"}}
         </td>
         {% if commitment.has_started and can_score_worktime_attendance %}
         <td> 
-          {{commitment.show_completion_status}} 
+          {{commitment.show_completion_status}}
         </td> 
           <td>
             {% include "commitment_scorer.html" %}
