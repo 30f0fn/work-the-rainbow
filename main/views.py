@@ -173,12 +173,7 @@ class ClassroomWorktimeMixin(object):
                             .occurrences_by_date(
                                 self.start(), self.end(),
                                 include_commitments=True)
-        # for date in shifts:
-            # shifts[date].default_factory = None
-        # ret = [{date : shifts[date] for date in week if date in shifts}
-                # for week in self.weeks()]
-        ret = [{date : shifts[date] if date in shifts else []
-                for date in week}
+        ret = [{date : shifts[date] for date in week}
                for week in self.weeks()]
 
         return ret
