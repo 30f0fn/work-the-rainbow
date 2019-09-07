@@ -824,11 +824,6 @@ class EditWorktimeCommitmentView(ClassroomMixin,
         
     def get_success_url(self, *args, **kwargs):
         return reverse('parent-home')
-        # return reverse('weekly-classroom-calendar',
-        #                kwargs={'classroom_slug' : self.classroom.slug,
-        #                        'year' : self.date().year,
-        #                        'month' : self.date().month,
-        #                        'day' : self.date().day})
 
     def get_form_kwargs(self, *args, **kwargs):
         kwargs = super().get_form_kwargs(*args, **kwargs)

@@ -52,12 +52,37 @@ form {
     padding-left:0em;
     padding-bottom:0em;
     margin-left: 0em;
-    {# border: 0px solid black;  #}
 } 
 
 nav a {
     font-size: .8em;
 }
+
+.monthly-calendar {
+    layout: fixed;
+    border-collapse: true;
+    /* margin:3em; */
+}
+
+.monthly-calendar > tbody > tr > td {
+    border:1px solid;
+    padding:2px;
+}
+
+.monthly-calendar > tbody > tr > th {
+    border:1px solid;
+    border-collapse:true;
+    width:6em;
+}
+
+.monthly-calendar-inner > tbody > tr > td {
+    padding-right:0px;
+    /* margin-right:100px; */
+    /* width:auto */
+}
+
+
+
 
 </style>
 

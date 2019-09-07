@@ -7,11 +7,11 @@
   <h1>{{view.classroom.name}} - {{view.date|date:"F Y"}}</h1>
   {% include 'calendar-nav.html' %} 
   {% with view.shifts_by_week as shifts_by_week %}
-    <table>
+    <table class="monthly-calendar">
       <tr>
-        {% for day in shifts_by_week.0 %}
+        {% for day in shifts_by_week.1 %}
           <th>
-            {{ day|date:"l" }}
+            {{ day|date:"D" }}
           </th>
         {% endfor %}
       </tr>
@@ -23,7 +23,7 @@
                 {{day|date:"j"}}
               {# </p> #}
               <br>
-              <table>
+              <table class="monthly-calendar-inner">
                 {% for shift in shifts %}
                   <tr>
                     <td>
