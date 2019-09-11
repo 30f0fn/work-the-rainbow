@@ -169,9 +169,9 @@ classroom_scheduling_patterns = [
          views.MakeWorktimeCommitmentsView.as_view(),
          name='make-worktime-commitments'),
 
-    path('rescheduling/<slug:child_slug>/<int:year>/<int:month>/<int:day>',
-         views.EditWorktimeCommitmentsForParentByMonth.as_view(),
-         name='edit-worktimecommitments-for-parent-by-month'),
+    # path('rescheduling/<slug:child_slug>/<int:year>/<int:month>/<int:day>',
+    #      views.EditWorktimeCommitmentsForParentByMonth.as_view(),
+    #      name='edit-worktimecommitments-for-parent-by-month'),
 
     path('rescheduling/<slug:child_slug>/<int:pk>',
          views.EditWorktimeCommitmentView.as_view(),

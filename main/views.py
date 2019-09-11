@@ -1,6 +1,4 @@
 
-# 4756
-
 import ast
 import datetime
 import calendar
@@ -33,14 +31,6 @@ from main.model_fields import WEEKDAYS
 import main.forms
 
 # use instance variables for frequently used attributes whose computation hits the db?
-
-########
-# todo #
-########
-
-# rescheduling
-# workflow for scheduler
-
 
 class UpcomingEventsMixin(object):
     # needs start_date, end_date
@@ -175,11 +165,11 @@ class ClassroomWorktimeMixin(object):
                                 include_commitments=True)
         ret = [{date : shifts[date] for date in week}
                for week in self.weeks()]
-
         return ret
 
 
-class PerChildEditWorktimeMixin(object):
+
+class AvailableShiftsForChildMixin(object):
 
     # todo... "available" is kind of a misnomer
 
@@ -661,6 +651,13 @@ class CareDayAssignmentDeleteView(ChildEditMixin,
 #######################
 
 
+def current_month_worktime_change_warning(request):
+    message = "You've just changed a worktime commitment starting within the current calendar month.  For such commitments, the official schedule is the classroom hard copy.  So, ensure that the hard copy also reflects your changes."
+    messages.add_message(request, messages.SUCCESS, message)
+            
+
+
+
 class SchedulerHomeView(RoleHomeMixin,
                         RedirectView):
     role, created = Role.objects.get_or_create(name='scheduler')
@@ -696,52 +693,12 @@ class SchedulerCalendarView(ClassroomWorktimeMixin,
 
 
 
-# # todo is this the correct inheritance order?
-# class FourWeekSchedulerCalendarView(ClassroomEditMixin,
-#                                     ClassroomWorktimeMixin,
-#                                     CalendarMixin,
-#                                     TemplateView):
-
-#     num_weeks = 4
-#     template_name = 'scheduler_calendar.html'
-#     unit_name = 'weekly'
-    
-
-#     # todo break period into three four-week sections, show active section
-#     @property
-#     def start_date(self):
-#         most_recent_monday = self.date() - datetime.timedelta(days = self.date().weekday())
-#         return most_recent_monday
-    
-#     @property
-#     def end_date(self):
-#         return self.start_date() + self.num_weeks * datetime.timedelta(days=7)
-
-
-#     def jump_url(self, increment):
-#         new_date = self.jump_date(increment)
-#         kwargs= {'classroom_slug' : self.classroom.slug,
-#                  'year':new_date.year, 'month':new_date.month, 'day':new_date.day}
-#         return reverse_lazy('scheduler-calendar',
-#                             kwargs=kwargs)
- 
-#     def next(self):
-#         return self.jump_url(4)
-
-#     def previous(self):
-#         return self.jump_url(-4)
-
-
-
-
-
-# todo is this the correct inheritance order?
 class MakeWorktimeCommitmentsView(MonthlyCalendarMixin,
                                   ClassroomMixin,
                                   ClassroomWorktimeMixin,
                                   CalendarMixin,
                                   ChildEditMixin,
-                                  PerChildEditWorktimeMixin,
+                                  AvailableShiftsForChildMixin,
                                   FormView):
     template_name = 'make_worktime_commitments.html'
     form_class = main.forms.MakeChildCommitmentsForm
@@ -778,23 +735,28 @@ class MakeWorktimeCommitmentsView(MonthlyCalendarMixin,
 
 
 
-class EditWorktimeCommitmentsForParentByMonth(MakeWorktimeCommitmentsView):
-    template_name = 'monthly_edit_worktime_commitments.html'
+# class EditWorktimeCommitmentsForParentByMonth(MakeWorktimeCommitmentsView):
+#     template_name = 'monthly_edit_worktime_commitments.html'
 
-    def jump_url(self, increment):
-        new_date = self.jump_date(increment)
-        kwargs= {'child_slug' : self.child.slug,
-            'classroom_slug' : self.classroom.slug,
-                 'year':new_date.year, 'month':new_date.month, 'day':new_date.day}
-        return reverse_lazy('edit-worktimecommitments-for-parent-by-month',
-                            kwargs=kwargs)
+#     def form_valid(self, form):
+#         if self.start_date().month == timezone.now().month:
+#             current_month_worktime_change_warning(self.request)
+#         return super().form_valid(form)
 
+
+#     def jump_url(self, increment):
+#         new_date = self.jump_date(increment)
+#         kwargs= {'child_slug' : self.child.slug,
+#             'classroom_slug' : self.classroom.slug,
+#                  'year':new_date.year, 'month':new_date.month, 'day':new_date.day}
+#         return reverse_lazy('edit-worktimecommitments-for-parent-by-month',
+#                             kwargs=kwargs)
 
 
 class EditWorktimeCommitmentView(ClassroomMixin,
                                  CalendarMixin,
                                  ClassroomWorktimeMixin,
-                                 PerChildEditWorktimeMixin,
+                                 AvailableShiftsForChildMixin,
                                  ChildEditMixin,
                                  UpdateView):
 
@@ -812,9 +774,7 @@ class EditWorktimeCommitmentView(ClassroomMixin,
             return super().date()
 
     def start_date(self):
-        # most_recent_monday = self.date - datetime.timedelta(days = self.date.weekday())
         return nearest_monday(self.date())
-        # return most_recent_monday
 
     def end_date(self):
         return self.start_date() + self.num_weeks * datetime.timedelta(days=6)
@@ -852,6 +812,12 @@ class EditWorktimeCommitmentView(ClassroomMixin,
         return reverse_lazy(self.view_name,
                             kwargs=kwargs)
 
+    def form_valid(self, form):
+        ret = super().form_valid(form)
+        changed_dates = (self.date(), form.commitment.start)
+        if timezone.now().month in [date.month for date in changed_dates]:
+            current_month_worktime_change_warning(self.request)
+        return ret
 
 
 class WorktimeCommitmentDeleteView(DeleteView):
@@ -861,6 +827,10 @@ class WorktimeCommitmentDeleteView(DeleteView):
     def get_success_url(self):
         return reverse('admin-home')
 
+    def delete(self, request, *args, **kwargs):
+        if self.object.date.start.month == timezone.now().month:
+            current_month_worktime_change_warning(self.request)
+        super().delete(request, *args, **kwargs)
 
 
 
@@ -1156,89 +1126,91 @@ class GeneratedSchedulesView(ClassroomEditMixin,
 
 
 
-class ShiftAssignmentDetailView(ClassroomEditMixin,
-                                DetailView):
-    model = Period
+# class ShiftAssignmentDetailView(ClassroomEditMixin,
+#                                 DetailView):
+#     model = Period
+
     # link to generate commitments from ShiftAssignment
 
 
 
 
-# misquamicut
-# ashtanga
+# # misquamicut
+# # ashtanga
 
-# todo is this the correct inheritance order?
-# todo I think this is not in use
-class FourWeekMakeWorktimeCommitmentsView(MonthlyCalendarMixin,
-                                          ClassroomEditMixin,
-                                          ClassroomWorktimeMixin,
-                                          CalendarMixin,
-                                          ChildEditMixin,
-                                          PerChildEditWorktimeMixin,
-                                          FormView):
-    # todo evaluate start_date based on whether mode is monthly
-    num_weeks = 4
-    template_name = 'make_worktime_commitments.html'
-    form_class = main.forms.MakeChildCommitmentsForm
-    unit_name = 'weekly'
+# # todo is this the correct inheritance order?
+# # todo I think this is not in use
+# class FourWeekMakeWorktimeCommitmentsView(MonthlyCalendarMixin,
+#                                           ClassroomEditMixin,
+#                                           ClassroomWorktimeMixin,
+#                                           CalendarMixin,
+#                                           ChildEditMixin,
+#                                           AvailableShiftsForChildMixin,
+#                                           FormView):
+#     # todo evaluate start_date based on whether mode is monthly
+#     num_weeks = 4
+#     template_name = 'make_worktime_commitments.html'
+#     form_class = main.forms.MakeChildCommitmentsForm
+#     unit_name = 'weekly'
 
-    def form():
-        return self.form_class()
+#     def form():
+#         return self.form_class()
 
-    # this makes sense only if link sends to first day of month
-    # else, try to extract this from a period
-    def start_date(self):
-        most_recent_monday = self.date() - datetime.timedelta(days = self.date().weekday())
-        return most_recent_monday
+#     # this makes sense only if link sends to first day of month
+#     # else, try to extract this from a period
+#     def start_date(self):
+#         most_recent_monday = self.date() - datetime.timedelta(days = self.date().weekday())
+#         return most_recent_monday
     
-    def end_date(self):
-        return self.start_date() + self.num_weeks * datetime.timedelta(days=7)
+#     def end_date(self):
+#         return self.start_date() + self.num_weeks * datetime.timedelta(days=7)
 
-    def jump_url(self, increment):
-        new_date = self.jump_date(increment)
-        kwargs= {'classroom_slug' : self.classroom.slug,
-                 'child_slug' : self.child.slug,
-                 'year':new_date.year, 'month':new_date.month, 'day':new_date.day}
-        return reverse_lazy('make-worktime-commitments',
-                            kwargs=kwargs)
+#     def jump_url(self, increment):
+#         new_date = self.jump_date(increment)
+#         kwargs= {'classroom_slug' : self.classroom.slug,
+#                  'child_slug' : self.child.slug,
+#                  'year':new_date.year, 'month':new_date.month, 'day':new_date.day}
+#         return reverse_lazy('make-worktime-commitments',
+#                             kwargs=kwargs)
  
-    def next(self):
-        return self.jump_url(self.num_weeks)
+#     def next(self):
+#         return self.jump_url(self.num_weeks)
 
-    def previous(self):
-        return self.jump_url(-self.num_weeks)
+#     def previous(self):
+#         return self.jump_url(-self.num_weeks)
 
 
-    def get_success_url(self):
-        return self.request.path
+#     def get_success_url(self):
+#         return self.request.path
 
-    # todo mimic prefsubmitview
-    def get_form_kwargs(self, *args, **kwargs):
-        kwargs = super().get_form_kwargs(*args, **kwargs)
-        kwargs.update({'child' : self.child,
-                       'available_shifts' : self.available_shifts()
-        })
-        return kwargs
+#     # todo mimic prefsubmitview
+#     def get_form_kwargs(self, *args, **kwargs):
+#         kwargs = super().get_form_kwargs(*args, **kwargs)
+#         kwargs.update({'child' : self.child,
+#                        'available_shifts' : self.available_shifts()
+#         })
+#         return kwargs
 
-    # todo
-    def get_initial(self, *args, **kwargs):
-        initial = super().get_initial(*args, **kwargs)
-        data = {sh.serialize() : getattr(sh.commitment, 'child', None) == self.child 
-                for sh in self.available_shifts()}
-        initial.update(data)
-        return initial
+#     # todo
+#     def get_initial(self, *args, **kwargs):
+#         initial = super().get_initial(*args, **kwargs)
+#         data = {sh.serialize() : getattr(sh.commitment, 'child', None) == self.child 
+#                 for sh in self.available_shifts()}
+#         initial.update(data)
+#         return initial
 
-    def form_valid(self, form):
-        revisions = form.revise_commitments()
-        added_repr = ', '.join([str(sh) for sh in revisions['added']])
-        if added_repr:
-            message1 = "shifts added: "+ added_repr
-            messages.add_message(self.request, messages.SUCCESS, message1)
-        removed_repr = ', '.join([str(sh) for sh in revisions['removed']])
-        if removed_repr:
-            message2 = "shifts removed: "+ ', '.join([str(sh) for sh in revisions['removed']])
-            messages.add_message(self.request, messages.SUCCESS, message2)
-        return super().form_valid(form)
+#     def form_valid(self, form):
+#         revisions = form.revise_commitments()
+#         added_repr = ', '.join([str(sh) for sh in revisions['added']])
+#         if added_repr:
+#             message1 = "shifts added: "+ added_repr
+#             messages.add_message(self.request, messages.SUCCESS, message1)
+#         removed_repr = ', '.join([str(sh) for sh in revisions['removed']])
+#         if removed_repr:
+#             message2 = "shifts removed: "+ ', '.join(
+#                 [str(sh) for sh in revisions['removed']])
+#             messages.add_message(self.request, messages.SUCCESS, message2)
+#         return super().form_valid(form)
 
 
 #####################

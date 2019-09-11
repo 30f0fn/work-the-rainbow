@@ -147,7 +147,7 @@ class MakeChildCommitmentsForm(Form):
 class EditWorktimeCommitmentForm(Form):
 
     def __init__(self, *args, **kwargs):
-        print(kwargs)
+        # print(kwargs)
         self.commitment = kwargs.pop('instance')
         self.user = kwargs.pop('user')
         self.sh_occ_deserializer = kwargs.pop('sh_occ_deserializer')
@@ -176,16 +176,14 @@ class EditWorktimeCommitmentForm(Form):
         new_shiftoccurrence = self.cleaned_data['new_shift']
         if new_shiftoccurrence.start != self.commitment.start or\
            new_shiftoccurrence.shift != self.commitment.shift:
-            # print("commitment hmm", self.commitment.shift, self.commitment.start, self.commitment.pk)
             old_shiftoccurrence = self.commitment.shift_occurrence()
             self.commitment.move_to(new_shiftoccurrence)
             self.commitment.save()
             main.notifications.announce_commitment_change(
                 self.user, self.commitment, old_shiftoccurrence)
-            return {'old_shiftoccurrence' : old_shiftoccurrence,
-                    'new_shiftoccurrence' : new_shiftoccurrence}
-        
-
+            # return {'old_shiftoccurrence' : old_shiftoccurrence,
+                    # 'new_shiftoccurrence' : new_shiftoccurrence}
+            return self.commitment
 
 
 class WorktimeAttendanceForm(Form):

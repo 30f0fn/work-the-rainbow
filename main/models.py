@@ -876,7 +876,7 @@ class ShiftAssignable(IdentityMixin, object):
         return (occ for index, occ in enumerate(occ_pool)
                 if index % self.modulus == self.offset)
 
-    def _normalized_offsets(self):
+    def normalized_offsets(self):
         if self.NORMAL_MODULUS % self.modulus != 0:
             raise Exception(
                 f"the value {self.modulus} as modulus of recurrence is not normalizable!")
@@ -885,8 +885,8 @@ class ShiftAssignable(IdentityMixin, object):
 
     def is_compatible_with(self, other):
         return self == other\
-            or self._normalized_offsets().isdisjoint(
-                other._normalized_offsets())\
+            or self.normalized_offsets().isdisjoint(
+                other.normalized_offsets())\
                 or self.preference.shift != other.preference.shift
 
     def instantiate_commitments(self):
