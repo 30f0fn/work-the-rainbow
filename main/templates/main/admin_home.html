@@ -44,7 +44,7 @@
 <ul>
     {% for happening in happenings %}
       <li><a href="{% url 'update-happening' happening.pk %}">
-          {{happening.name}}
+          {{happening.name}} - {{happening.start|date:"M j, g:i"}}
         </a>
         [<a href="{%url 'delete-happening' happening.pk %}">delete</a>]
       </li>

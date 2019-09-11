@@ -437,12 +437,12 @@ class AdminHomeView(RoleHomeMixin,
     
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
-        # holidays = Holiday.objects.all()
-        # happenings = Happening.objects.all()
-        # classrooms = Classroom.objects.all()
-        context.update({'holidays' : Holiday.objects.all(),
-                        'happenings' : Happening.objects.all(),
-                        'classrooms' : Classroom.objects.all()})
+        holidays = Holiday.objects.all()
+        happenings = Happening.objects.all()
+        classrooms = Classroom.objects.all()
+        context.update({'holidays' : holidays,
+                        'happenings' : happenings,
+                        'classrooms' : classrooms})
         return context
 # this just handles general time structuring stuff..
 # for content, use mixins below
@@ -652,7 +652,7 @@ class CareDayAssignmentDeleteView(ChildEditMixin,
 
 
 def current_month_worktime_change_warning(request):
-    message = "You've just changed a worktime commitment starting within the current calendar month.  For such commitments, the official schedule is the classroom hard copy.  So, ensure that the hard copy also reflects your changes."
+    message = "You've just changed a worktime commitment starting within the current calendar month.  For such commitments, the official schedule is the classroom hard copy.  So, please ensure that the hard copy also reflects your changes."
     messages.add_message(request, messages.SUCCESS, message)
             
 
@@ -783,7 +783,8 @@ class EditWorktimeCommitmentView(ClassroomMixin,
         return self.object
         
     def get_success_url(self, *args, **kwargs):
-        return reverse('parent-home')
+        return reverse('child-profile',
+                       kwargs={'child_slug' : self.child.slug})
 
     def get_form_kwargs(self, *args, **kwargs):
         kwargs = super().get_form_kwargs(*args, **kwargs)
