@@ -124,7 +124,7 @@
       {# {% for cda in child.caredayassignment_set.all.distinct %} #}
       {% for cda in careday_assignments %}
         <li>
-          {{cda.careday.weekday_str}}, {{cda.careday.start_time}} - {{cda.careday.end_time}} ({{cda.start.date | date:"j M Y" }} - {{cda.end.date | date:"j M Y"}})
+          {{cda.careday.weekday_str}}, {{cda.careday.start_time}} - {{cda.careday.end_time}} ({{cda.careday.classroom}}, {{cda.start.date | date:"j M Y" }} - {{cda.end.date | date:"j M Y"}})
           [<a href="{% url 'edit-caredayassignment' child.slug cda.pk %}">edit</a>]
           [<a href="{% url 'delete-caredayassignment' child.slug cda.pk %}">delete</a>]
         </li>
