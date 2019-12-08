@@ -240,9 +240,10 @@ class Period(Event):
     def start_default():
         today = timezone.now().date()
         year_inc = 1 if today.month==12 else 0
-        next_month = today.replace(year=today.year + year_inc,
-                                   month=(today.month + 1 % 12),
+        first_of_next_month = today.replace(year=today.year + year_inc,
+                                   month=(today.month % 12 + 1),
                                    day=1)
+        return first_of_next_month
     start = models.DateTimeField(default=start_default)
     classroom = models.ForeignKey(Classroom, on_delete=models.CASCADE)
     solicits_preferences = models.BooleanField(default=True)
