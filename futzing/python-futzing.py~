@@ -1,6 +1,0 @@
-def add_setters(method, properties):
-    def new_method(self, request, *args, **kwargs):
-        for key, value in d.items():
-            setattr(self, key, value)
-        return getattr(super(), f)(request, *args, **kwargs)
-    return new_f

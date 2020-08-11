@@ -1,4 +1,0 @@
-def get_fams():
-    qs = WorktimeCommitment.objects.filter(classroom=classroom)
-    print("--------\n--------\n--------\n")
-    qs.filter(family=family)
