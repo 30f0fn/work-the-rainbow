@@ -6,9 +6,10 @@ This Django app implements a system for scheduling regular volunteer shifts (at 
 
 An instance of this application runs for a given daycare.  Each instance organizes the human participants in its use into: 
 - application administrator per daycare
+- classrooms per daycare
 - teachers and schedulers per classroom
-- children in a given classroom
-- parents or caregivers of each child (who will be volunteers)
+- children per classroom
+- parents or caregivers per child (who will be volunteers)
 
 Each person playing one or more of these roles (other than that of child) is represented by the app as a User instance.  A User instance has specialized privileges and duties corresponding to their roles.
 
