@@ -1,6 +1,6 @@
 # work-the-rainbow
 
-This Django app implements a system for scheduling regular volunteer shifts (at a daycare).  It consists of two primary functionality groups, *People* and *Main*.
+This Django app implements a system for scheduling regular volunteer shifts (at a daycare).  It consists of two primary functionality groups, *People* and *Scheduling*.
 
 ## People
 
