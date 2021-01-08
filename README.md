@@ -4,7 +4,7 @@ This Django app implements a system for scheduling regular volunteer shifts (at 
 
 ## People
 
-An instance of this application runs for a given daycare.  It organizes the human participants in the use of a given instance into: 
+An instance of this application runs for a given daycare.  Each instance organizes the human participants in its use into: 
 - application administrator per daycare
 - teachers and schedulers per classroom
 - children in a given classroom
