@@ -27,4 +27,6 @@ This email links to a web form to rank the family's preferred shifts; all caregi
 
 2. Given the chosen time slot assignment, choose an assignment of shift commitments for each family (say, 2pm on Sept 5, Sep 19, ...).
 
-After any final manual tweaks, the scheduler sends the calendar to families.  Throughout the scheduled period, the families can revise any of their individual commitments; the scheduler can choose (upon consulting with teachers) whether to set a deadline for schedule changes and whether the schedule requires teacher approval.  Revisions to a family's schedule generate notifications (through the Signals framework) for all users in the family.
+After any final manual tweaks, the Scheduler sends the calendar to Parents.  Throughout the scheduled period, Parents can revise any of their individual commitments until some fixed interval before the shift starts.  Revisions to a family's schedule generate notifications (through the Signals framework) for all users in the family.
+
+The app presents to a Teacher the resulting schedule of shift commitments, plus an attendance scoresheet visible to the Teachers and to the Administrator.
