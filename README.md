@@ -14,7 +14,7 @@ An instance of this application runs for a given daycare.  The instance organize
 
 The app represents a person playing any of the capitalized roles as a User.  A User may play any number of these roles; and can play a given role more than once (e.g., be a scheduler and parent in one classroom and a parent of another child in another classrooms).  
 
-The app always designates one role as active for each User, presenting a menu to toggle between roles and correspondingly sets of available views.  Permissions generally derive from which role is active, with help from the sweet [django-rules](https://github.com/dfunckt/django-rules) package.
+The app always designates one role as active for each User, presenting a menu to toggle between roles and correspondingly sets of available views.  Permissions generally derive from which role is active, with help from the [django-rules](https://github.com/dfunckt/django-rules) package.
 
 To begin populating the app, the Administrator initializes the application instance for a given daycare, creates classrooms and invites a Scheduler for each classroom.  The Scheduler begins adding Teachers, children and Parents to their classroom by entering an email address for each Teacher, a name (or nickname) for each child, and email addresses for the child's Caregivers.  If the email address already corresponds to a User, the user accepts  their new role (as teacher or parent).  Otherwise, the site generates an signup invite message, so that signup licensed by the corresponding token attaches (through the Django Signals framework) the roles to the resulting new user instance.
 
